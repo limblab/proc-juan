@@ -214,6 +214,8 @@ if isempty(find(empir_angle_dist_all.space_dim == nbr_neural_chs,1))
 else
     angles_non_rand         = empir_angle_dist_all.angle_non_orth{...
                                 find(empir_angle_dist_all.space_dim == nbr_neural_chs,1)};
+    empir_angle_dist         = empir_angle_dist_all.dist_angles{...
+                                find(empir_angle_dist_all.space_dim == nbr_neural_chs,1)};
 end
 
 
