@@ -81,6 +81,7 @@ switch xval_mode
         % do PCA of all the selected channels
         dim_red_FR          = dim_reduction(smoothed_FR,'pca',discard_chs);
                         
+        disp(['computing CCs of subsets of projections from' perc_chs ' % of the electrodes...'])
         for i = 1:nbr_reps
             % randomly choose a subset of perc_chs
             chs(i,:)        = datasample(1:nbr_neural_chs,...
@@ -136,6 +137,8 @@ switch xval_mode
         
         set(gca,'TickDir','out'),set(gca,'FontSize',14), ylim([0 1])
         xlabel('projection nbr.'),ylabel('canonical correlation')
+        title(['CCs btw projections from ' num2str(perc_chs*100) ...
+            ' % of the electrodes vs. all electrodes'])
         
 %         % R2 Procrustes vs R2 CC
 %         figure,plot(R2_Proc,'color',[.6 .6 .6]), hold on
