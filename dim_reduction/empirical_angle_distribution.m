@@ -54,7 +54,10 @@ dist_angles       	= zeros(samples,length(plane_dim),length(space_dim));
 % matrices A and B don't need to be unitary vectors), as 'subspace'
 % orthogonalizes the matrices 
 for n = 1:length(space_dim)
+    disp(['generating hyperplane distribution for hyperspace with dimensionality: ' num2str(space_dim(n))]);
+    disp('...');
     for d = 1:length(plane_dim)
+        disp(['generating hyperplane distribution for hyperplanes with dimensionality: ' num2str(plane_dim(d))]);
         for s = 1:samples
             % create planes
             A       = randn(space_dim(n),plane_dim(d));
