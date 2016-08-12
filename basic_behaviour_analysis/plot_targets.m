@@ -30,7 +30,7 @@ elseif strncmp(label,'ball',4)
 elseif strncmp(label,'mg',2)
     targets             = unique(binned_data.trialtable(:,7:10),'rows');
     % datasets from Theo don't have target coordinates
-    if targets == [-1 -1 -1 -1]
+    if targets(1,:) == [-1 -1 -1 -1]
         warning('drawing targets anywhere')
         nbr_targets     = length(find(unique(binned_data.trialtable(:,6))>=0));
         for i = 1:nbr_targets
