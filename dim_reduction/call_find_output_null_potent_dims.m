@@ -59,6 +59,8 @@ else
     bdf                 = data_struct;
 end
 
+bin_size                = mean(diff(binned_data(1).timeframe));
+
 % see if user has passed the smoothed_firing_rates
 if nargin >= 5
     smoothed_FR         = varargin{1};
@@ -160,7 +162,7 @@ end
 % neural_to_EMG_lags by number of tasks. Each field of this array contains
 % the results for one target (or all the concatenated targets, which is the
 % last field)
-neural_to_EMG_lag       = 0.05*(-4:1:4);
+neural_to_EMG_lag       = bin_size*(-4:1:4);
 onp_dim                 = cell(nbr_bdfs,length(neural_to_EMG_lag));
 
 for i = 1:nbr_bdfs
@@ -216,7 +218,7 @@ onp_dim_summary.weighed_R2_fcn_delay.lag_mx = neural_to_EMG_lag(indx_max_weighed
 
 % find lags that maximize the R2 of the model fit
 lags_best_fit               = unique(onp_dim_summary.R2_fcn_delay.lag_mx);
-lags_to_include             = [0.05, 0.1];
+lags_to_include             = [bin_size*1, bin_size*2, bin_size*3, bin_size*4];
 for i = 1:numel(lags_to_include)
     if sum(ismember(lags_best_fit,lags_to_include(i))) == 0
         lags_best_fit           = sort([lags_best_fit; lags_to_include(i)]);
