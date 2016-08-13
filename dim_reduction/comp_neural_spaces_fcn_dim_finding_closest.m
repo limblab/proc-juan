@@ -1,15 +1,18 @@
 %
-% A wrapper of comp_neural_spaces_fcn_dim that looks for the eigenvectors
-% in hyperplane 2 that are closest (define the smallest angle) which each
-% dimension of hyperplane 1, for dimensions 1:dims_hyper_in_orig before it
-% computes the angle. By default, the function will also look for the
-% eigenvectors in hyperplane 1 that are closest to each eigenvector in
-% hyperplane 2, for the same dimensions, and compute the mean and SD
-% angle. This is to avoid ranking according to one arbitrarily selected
+% A wrapper of comp_neural_spaces_fcn_dim that first looks for the
+% eigenvectors in manifold 2 that are closest (define the smallest angle)
+% which each dimension of manifold 1, for dimensions 1:dims_hyper_in_orig,
+% before it computes the angle. 
+% By default, the function will also look for the eigenvectors in manifold
+% 1 that are closest to each eigenvector in manifold 2, for the same
+% dimensions, and give XXXXXXXXXXXXXXXXX. This is to avoid ranking according to one arbitrarily selected
 % task
 %
-%   function [angles, dim_red_FR, smoothed_FR empir_angle_dist] = comp_neural_spaces_fcn_dim_finding_closest( ...
+%
+%   function [angles, dim_red_FR, smoothed_FR empir_angle_dist] = ...
+%           comp_neural_spaces_fcn_dim_finding_closest( ...
 %           bdf, neural_chs, dims_hyper_in_orig, labels, method, varargin ) 
+%
 %
 % Inputs (opt)          : [default]
 %   bdf                 : struct with BDFs. Function will calculate the
@@ -45,6 +48,7 @@
 %                           between pairs (from smallest to largest) 
 %   (last_dim)          : last dimension for resort_eigenv
 %
+%
 % Outputs (opt):
 %   angles              : cell array with angles between hyperplanes of
 %                           dimensionality 1:dims_hyper_in_orig for all
@@ -54,6 +58,7 @@
 %   (smoothed_FR)       : smoothed_FR, if the function has to compute them
 %   (empir_angle_dist)  : empirical distributions of angles between
 %                           hyperplanes, used to assess significance
+%
 %
 % Usage:
 %   function [angles, dim_red_FR, smoothed_FR, empir_angle_dist ] = ...
@@ -78,6 +83,7 @@
 % Notes/ToDo's:
 %   - make 'method' an optional argument
 %   - code needs to be cleaned out
+%
 
 
 
@@ -250,7 +256,7 @@ angles                      = comp_neural_spaces_fcn_dim( bdf, neural_chs, dim_m
                                 
 % Do again finding the closest eigenvector in task i-p (p>1) to each
 % eigenvector in task i
-[angles_fc_rev, dim_min_angle_rev] = find_closest_neural_hyperplane_all( dim_red_FR, ...
+[~, dim_min_angle_rev]      = find_closest_neural_hyperplane_all( dim_red_FR, ...
                                 1:dims_hyper_in_orig-1, labels, true );
 
 angles_rev                  = comp_neural_spaces_fcn_dim( bdf, neural_chs, dim_min_angle_rev, ...

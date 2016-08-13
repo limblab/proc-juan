@@ -1,18 +1,21 @@
 %
-% Find the eigenvectors in task 2 that are most similar (smallest angle) to
-% certain eigenvectors in task 1 (orig).
+% Find the eigenvectors in manifold 2 that are most similar (smallest
+% angle) to each of the specified eigenvectors in manifold 1 (orig).
 %
 %   function [angle, dim_min_angle] = find_closest_hyperplane( eigenv_orig, ...
 %                                       eigenv_2, dims_hyper_in_orig )
 %
 % Inputs:
 %   eigenv_orig             : matrix with eigenvectors defining the
-%                               original hyperspace (in columns)
-%   eigenv_2                : matrix with the eigenvectors you want to
-%                               match (find smallest angle)
-%   dims_hyper_in_orig      : the dimensions in the original space you want
-%                               to match (scalar or matrix). Do 'all' for
-%                               all the eigenvectors
+%                               original manifold (manifold 1; in columns)
+%   eigenv_2                : matrix with the eigenvectors from manifold 2,
+%                               i.e. the eigenvectors that want to be
+%                               resorted based on minimizing the angle with
+%                               each of the eigenvectors in manifold 1
+%   dims_hyper_in_orig      : the dimensions in the original manifold (1)
+%                               for which we want to find the closest
+%                               eigenvectors in maniofld 2 (scalar or
+%                               matrix). Do 'all' for all the eigenvectors
 %   (no_warn)               : [true] don't give warnings if the closest
 %                               eigenvector for eigenvector P was also the
 %                               closest for dimension N with N < P
@@ -21,9 +24,12 @@
 %
 % Outputs:
 %   angle                   : the angle (rad) between the most similar
-%                               eigenvector and the original eigenvector  
-%   dim_min_angle           : the dimension which eigenvector minimizes the
-%                               angle with the original eigenvector 
+%                               in manifold 2 to each of the specified
+%                               eigenvectors in manifold 1
+%   dim_min_angle           : ranking of the eigenvector in manifold 2 that
+%                               minimizes the angle with each of the
+%                               specified eigenvectors in manifold 1
+%
 %
 
 function [angle, dim_min_angle] = find_closest_hyperplane( eigenv_orig, eigenv_2, dims_hyper_in_orig, varargin )

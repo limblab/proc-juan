@@ -1,17 +1,23 @@
 %
-% Wrapper function to find the closest dimensions across tasks.
+% Wrapper function to find the eigenvectors in the manifold from one task
+% that are closest to each of the eigenvectors in the manifold from another
+% task. 
 %
 %   function [angle, dim_min_angle] = find_closest_hyperplane_all( dim_red_FR, dims_hyper_in_orig )
 %
 % Inputs (opt):         : [default]
-%   dim_red_FR          : array of PCA-processed FRs
-%   dims_hyper_in_orig  : the dimensions in the original space you want
-%                           to match (scalar or matrix). Do 'all' for
-%                           all the eigenvectors
+%   dim_red_FR          : cell array of PCA-processed FRs. This cell
+%                           contains the eigenvectors that define the
+%                           manifolds
+%   dims_hyper_in_orig  : the eigenvectors in manifold 1 for which we want
+%                           to find the closest eigenvectors in manifold 2
+%                           (scalar if it is only one eigenv, or matrix
+%                           with a series of eigenvs). Do 'all' for all the
+%                           eigenvectors that define manifold 1.
 %   (labels)            : [''] labels that define each task. If passed, it
 %                           will plot the relative order of the pairs of
 %                           most similar eigenvectors for all pairs of
-%                           tasks
+%                           tasks.
 %   (reverse_yn)    : [false] instead of looking for the invectors in task
 %                       i+p that are closest to the eigenvectors in task i
 %                       (i = 1:nbr. of tasks), look for the eigenvectors in
@@ -20,14 +26,20 @@
 %
 %   
 % Outpus:
-%   angle               : cell array with the angle between hyperspaces. It
-%                           has dimension nbr-of-taks-by-nbr-of-tasks (dim_red_FR) 
-%   dim_min_angle       : cell array with the eigenvector in hyperspace #2
-%                           that minimize the angle with eigenvectors in
-%                           the original hyperspace 
+%   angle               : cell array with the angle between pairs of
+%                           eigenvectors for each pair of tasks. It has
+%                           dimension nbr-of-taks-by-nbr-of-tasks
+%                           (dim_red_FR)     
+%   dim_min_angle       : cell array with the eigenvectors in manifold 2
+%                           that minimize the angle each of the
+%                           eigenvectors in manifold 1 (for the
+%                           eigenvectors specified in dims_hyper_in_orig)
 %   diff_ranking        : metric that quantifies the difference in
-%                           eigenvector across hyperspaces
+%                           eigenvector across hyperspaces (sum of
+%                           absolute values of differences in eigenvector
+%                           ranking)
 %   
+%
 
 function [angle, dim_min_angle, diff_ranking] = find_closest_neural_hyperplane_all( ...
                     dim_red_FR, dims_hyper_in_orig, varargin )
@@ -100,6 +112,7 @@ end
 
 % -------------------------------------------------------------------------
 
+% plot -- only if the task labels have been passed
 if exist('labels','var')
     clrs_plot           = jet(size(comb_bdfs,1));
 
