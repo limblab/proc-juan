@@ -3,7 +3,7 @@
 % BDF (optional). The user can choose the size of the bins and the SD of
 % the Gaussian kernel; the length of the kernel is fixed to 3·SD.
 %
-%   function smoothed_FR = gaussian_smoothing2( bdf, varargin )
+%   function smoothed_FR = gaussian_smoothing( bdf, varargin )
 %
 %
 % Input parameters (opt)    : [defaults]
@@ -26,7 +26,7 @@
 %
 
 
-function [smoothed_FR, varargout] = gaussian_smoothing2( bdf, varargin )
+function [smoothed_FR, varargout] = gaussian_smoothing( bdf, varargin )
 
 
 % get input parameters
