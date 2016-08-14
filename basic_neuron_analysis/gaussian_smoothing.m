@@ -152,5 +152,12 @@ end
 
 % add time axis in the first column of smoothed_FR 
 % -- legacy, remove in newer versions
-t_axis                  = 0:bin_size:bin_size*(size(smoothed_FR,1)-1);
+if nargout == 2
+    % if the fcn outputs a binned_data struct, make the time vector for the
+    % smoothed_FR the sam
+    t_axis              = binned_data.timeframe(1):bin_size:binned_data.timeframe(end);
+else
+    % else, create a time vector that starts at the same time as the BDF 
+    t_axis              = t_start:bin_size:(t_end-bin_size*1);
+end
 smoothed_FR             = [t_axis' smoothed_FR];
