@@ -141,7 +141,7 @@ switch xval_mode
 
         % smooth the FRs
         smoothed_FR         = gaussian_smoothing2(bdf,'sqrt',0.02,0.05); %#ok<AGROW>                       
-
+        
         disp(['Computing CCs btw pair of projections onto random subsets of ' ...
             num2str(perc_chs*100) ' % of the electrodes...']);
         
@@ -164,9 +164,22 @@ switch xval_mode
             dim_red_FR_1    = dim_reduction(smoothed_FR,'pca',discard_chs_1);
             dim_red_FR_2    = dim_reduction(smoothed_FR,'pca',discard_chs_2);
             
+            % ToDo: delete: shuffle dim_red_FR_2, it shouldn't change the
+            % results if CCA is only based on the distributions
+            rndm_indxs      = randperm(size(dim_red_FR_2.scores,1));
+            for ii = 1:size(dim_red_FR_2.scores,2)
+                dim_red_FR_2_shuffled.scores(:,ii) = dim_red_FR_2.scores(rndm_indxs,ii);
+            end
+            dim_red_FR_2_shuffled.scores = dim_red_FR_2.scores(rndm_indxs,:);
+            
+%            dim_red_FR_2.scores = dim_red_FR_2_shuffled.scores;
+            % ToDo: delete up to here
+            
             % compare the dynamics of the projections using all the
             % channels, and the randonmly chosen subset of percentage of channels
-            [~,~,R_CC(:,i),U,V,stats_CC{i}] = canoncorr(dim_red_FR_1.scores(:,1:nbr_pcs_comp),...
+%             [~,~,R_CC(:,i),U,V,stats_CC{i}] = canoncorr(dim_red_FR_1.scores(:,1:nbr_pcs_comp),...
+%                             dim_red_FR_2.scores(:,1:nbr_pcs_comp)); %#ok<AGROW>
+            [A,B,R_CC(:,i),U,V,stats_CC{i}] = canoncorr(dim_red_FR_1.scores(:,1:nbr_pcs_comp),...
                             dim_red_FR_2.scores(:,1:nbr_pcs_comp)); %#ok<AGROW>
             R2_CC(:,i)      = CalculateR2(U,V);
 
@@ -178,6 +191,17 @@ switch xval_mode
             stats.R2_CC         = R2_CC;
             stats.mean_R2_CC    = mean(R2_CC,2);
             stats.std_R2_CC     = std(R2_CC,0,2); 
+            
+            stats.A{i}          = A;
+            stats.B{i}          = B;
+            
+            % ToDo: to delete
+            [A_sh,B_sh,R_CC_sh(:,i),~,~,stats_CC_sh{i}] = canoncorr(dim_red_FR_1.scores(:,1:nbr_pcs_comp),...
+                            dim_red_FR_2_shuffled.scores(:,1:nbr_pcs_comp)); %#ok<AGROW>
+            stats.A_sh{i}       = A_sh;
+            stats.B_sh{i}       = B_sh;
+            stats.R_CC_sh{i}    = R_CC_sh;
+            % ToDo: stop deleting here
         end
 end
 
