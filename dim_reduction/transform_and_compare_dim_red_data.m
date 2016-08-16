@@ -143,9 +143,9 @@ for i = 1:nbr_comps
     vaf_this_combR          = calc_VAF( within_proj, across_proj ); % Raeed's fcn
 
     % compute R2 by fitting a linear regression model
-    linear_fit              = fitlm( within_proj, across_proj );
-    R2_this_comb            = linear_fit.Rsquared.Ordinary;
-          
+%     linear_fit              = fitlm( within_proj, across_proj );
+%     R2_this_comb            = linear_fit.Rsquared.Ordinary;
+    R2_this_comb            = CalculateR2( within_proj, across_proj );
     
 %     % compute canonical correlation
 %     [~,~,CC_this_comb,~,~,CCstats_this_comb]    = canoncorr( within_proj, across_proj );
@@ -177,7 +177,7 @@ end
 % PLOTS
 
 if plot_yn
-    for i = 1:nbr_comps
+    for i = 1:2:nbr_comps
         figure,
         subplot(211),hold on
         plot(dim_red_FR{within_task}.t,[ pc_proj_across_tasks.scores_within(:,i), ...
@@ -185,15 +185,23 @@ if plot_yn
         %plot(dim_red_FR{within_task}.t,dim_red_FR{within_task}.scores(:,comp_nbr(i)),'LineWidth',2)
         legend(labels{within_task},labels{across_task})
         set(gca,'Tickdir','out'),set(gca,'FontSize',14)
-        ylabel(['neural comp.' num2str(comp_nbr(i))]),xlabel('time (s)'), xlim(t_lims)
-        subplot(223)
-        plot(t_axis_xcorr,pc_proj_across_tasks.xcorr(:,i),'LineWidth',2)
+        ylabel(['neural comp.' num2str(comp_nbr(i))]),xlim(t_lims)
+        subplot(212),hold on
+        plot(dim_red_FR{within_task}.t,[ pc_proj_across_tasks.scores_within(:,i+1), ...
+            pc_proj_across_tasks.scores_across(:,i+1) ], 'LineWidth',2)
+        %plot(dim_red_FR{within_task}.t,dim_red_FR{within_task}.scores(:,comp_nbr(i)),'LineWidth',2)
+        legend(labels{within_task},labels{across_task})
         set(gca,'Tickdir','out'),set(gca,'FontSize',14)
-        ylabel('crosscorrelation'), xlabel('time (s)')
-        subplot(224)
-        plot(f_coh,pc_proj_across_tasks.coh(:,i),'LineWidth',2)
-        set(gca,'Tickdir','out'),set(gca,'FontSize',14)
-        ylabel('coherence'), xlabel('frequency (Hz)'), ylim([0 1])
-        set(gcf,'Colormap',winter)
+        ylabel(['neural comp.' num2str(comp_nbr(i)+1)]),xlabel('time (s)'), xlim(t_lims)
+
+        %         subplot(223)
+%         plot(t_axis_xcorr,pc_proj_across_tasks.xcorr(:,i),'LineWidth',2)
+%         set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+%         ylabel('crosscorrelation'), xlabel('time (s)')
+%         subplot(224)
+%         plot(f_coh,pc_proj_across_tasks.coh(:,i),'LineWidth',2)
+%         set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+%         ylabel('coherence'), xlabel('frequency (Hz)'), ylim([0 1])
+%         set(gcf,'Colormap',winter)
     end
 end
