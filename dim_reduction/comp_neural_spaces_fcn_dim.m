@@ -130,8 +130,10 @@ elseif nargin == 8
     smoothed_FR             = varargin{1};
     dim_red_FR              = varargin{2};    
     % check that dimensions are consistent
-    if length(bdf) ~= length(smoothed_FR),error('smoothed_FR has wrong size'),end
-    if length(bdf) ~= length(dim_red_FR),error('dim_red_FR has wrong size'),end
+    if ~isempty(bdf)
+        if length(bdf) ~= length(smoothed_FR),error('smoothed_FR has wrong size'),end
+        if length(bdf) ~= length(dim_red_FR),error('dim_red_FR has wrong size'),end
+    end
 end
 
 % Set reverse_yn to false, if not passed
@@ -172,10 +174,11 @@ else
 end
 
 % Set neural channels to discard for the analysis
-if ~isempty(neural_chs)
-    discard_neurons         = setdiff(1:length(bdf(1).units), neural_chs);
+if ~isempty(bdf)
+    if ~isempty(neural_chs)
+        discard_neurons         = setdiff(1:length(bdf(1).units), neural_chs);
+    end
 end
-
 
 % -------------------------------------------------------------------------
 % Check if user wants to compare the angle between two manifolds, or two
@@ -329,17 +332,27 @@ end
 
 
 % create a vector to give each trace a different color
-cols_plot                   = parula(size(pairs_hyperplanes,1));
+if size(pairs_hyperplanes,1) > 1
+    cols_plot               = parula(size(pairs_hyperplanes,1));
+else
+    cols_plot               = [0 0 0];
+end
 % cell with legend
 legends_plot                = cell(size(pairs_hyperplanes,1),1);
 for i = 1:size(pairs_hyperplanes,1)
     legends_plot{i}         = [labels{pairs_hyperplanes(i,1)} ' vs. ' labels{pairs_hyperplanes(i,2)}];
 end
-legends_plot{length(legends_plot)+1} = 'randomness th. (P<0.01)';
+legends_plot{length(legends_plot)+1} = 'rand. th';
 
 figure,hold on
 for i = 1:size(pairs_hyperplanes,1)
-    plot(rad2deg(squeeze(angle_mtrx(pairs_hyperplanes(i,1),pairs_hyperplanes(i,2),:))),'linewidth',2,'color',cols_plot(i,:))
+    if ~reverse_yn
+        plot(rad2deg(squeeze(angle_mtrx(pairs_hyperplanes(i,1),pairs_hyperplanes(i,2),:))),...
+            'linewidth',2,'color',cols_plot(i,:))
+    else
+        plot(rad2deg(squeeze(angle_mtrx(pairs_hyperplanes(i,1),pairs_hyperplanes(i,2),:))),...
+            'linewidth',2,'color',cols_plot(i,:),'linestyle','-.')
+    end
 end
 plot(angles_non_rand,'color',[.5 .5 .5],'linewidth',2,'linestyle','-.')
 % add orthogonality threshold (P<0.001, from Kobak et al., eLife, 2016)
@@ -357,6 +370,7 @@ xlim([0 25])
 
 angles.data                 = angle_mtrx;
 angles.labels               = angle_lbls;
+
 
 % add method for computing the angles to the struct
 if isscalar(eigenvectors)
