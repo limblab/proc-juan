@@ -238,7 +238,7 @@ plot(1:aux.last_dim_emg,analysis.neural.mean_var_fcn_eigen(1:aux.last_dim_emg)+.
     analysis.neural.std_var_fcn_eigen(1:aux.last_dim_emg),'k','linewidth',2,'linestyle','--');
 set(gca,'TickDir','out'),set(gca,'FontSize',14)
 legend([cbdf(1).emg.emgnames(chosen_emgs), 'neurons'],'Location','SouthEast','FontSize',14,'Interpreter','none')
-xlabel('comp. nbr.','FontSize',14),ylabel('mean VAF (no xval)')
+xlabel('manifold dimensionality','FontSize',14),ylabel('mean VAF (no xval)')
 xlim([0 aux.last_dim_emg+3]),ylim([0 1])
 for i = 1:length(chosen_emgs)
     plot(analysis.emg.mean_emg_vaf(:,i)+analysis.emg.std_emg_vaf(:,i),...

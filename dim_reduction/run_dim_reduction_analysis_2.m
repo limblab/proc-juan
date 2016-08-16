@@ -6,8 +6,12 @@
 
 clear all;
 
-% start parallel computing
-parpool('local')
+
+aux                     = struct();
+
+% start parallel computing and increase idle time for when it is not used
+aux.pp                  = parpool('local');
+aux.pp.IdleTimeout      = 60;
 
 % % Find plateau in amount of variance explained by the neural PCs
 % perc_increase_neural    = zeros(length(cbdf),length(neural_chs)-1);
@@ -18,7 +22,6 @@ parpool('local')
 %     end
 % end
 
-aux                     = struct();
 aux.tmr                 = tic;
 aux.this_dir            = dir;
 aux.file_idx            = [];
@@ -43,7 +46,7 @@ prog_bar                = waitbar(0,'progress');
 
 
 % run for all the files in the directory
-for f = 1:length(aux.file_idx)
+for f = 2:length(aux.file_idx)
 
 filename                = aux.this_dir(aux.file_idx(f)).name;
 load(filename);
@@ -341,7 +344,7 @@ else
 %         analysis.emg.vaf_neurons, binned_data]      = within_EMG_preds_fcn_nbr_neural_comp( ...
 %         cbdf, dim_red_FR, labels, aux.last_dim_emg, chosen_emgs, binned_data );
     [~, analysis.emg.vaf_array, analysis.emg.vaf_array_norm, ...
-        analysis.emg.vaf_neurons, analysis.emg.R2_array, analysis.emg.R2_neurons, binned_data] = ...
+        analysis.emg.vaf_neurons, analysis.emg.R2_array, analysis.emg.R2_neurons, ~] = ...
         within_EMG_preds_fcn_nbr_neural_comp_mfxval( cbdf, dim_red_FR, labels, aux.last_dim_emg, ...
         chosen_emgs, binned_data, 'mfxval', 60, false, analysis.bin_size );
 end
@@ -353,9 +356,9 @@ end
 
 % [onp_dim_raw, onp_dim_summary, single_trial_data ] = call_find_output_null_potent_dims_wf( cbdf, neural_chs, chosen_emgs, labels, [], true);
 
-if isempty(find(strncmp(labels,'kluver',6),1)) && isempty(find(strncmp(labels,'ball',4),1))
+if isempty(find(strncmp(labels,'kluver',6),1)) % && isempty(find(strncmp(labels,'ball',4),1))
     
-    [analysis.onp.dim_raw, analysis.onp.dim_summary, analysis.onp.single_trial_data ] = call_find_output_null_potent_dims_wf( ...
+    [analysis.onp.dim_raw, analysis.onp.dim_summary, analysis.onp.single_trial_data ] = call_find_output_null_potent_dims( ...
                                                     binned_data, neural_chs, chosen_emgs, labels, smoothed_FR, false);
 end
 
@@ -444,10 +447,12 @@ disp(['elapsed time: ' num2str(toc(aux.tmr))]);
 disp(' ')
 
 % clear some vars
-clearvars -except f aux prog_bar aux
+clearvars -except f aux prog_bar aux analysis
 
 % update progress bar
 waitbar(f/length(aux.file_idx));
+
+
 end
 
 
