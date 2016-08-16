@@ -114,6 +114,7 @@ end
 
 % plot -- only if the task labels have been passed
 if exist('labels','var')
+    if ~isempty(labels)
     clrs_plot           = jet(size(comb_bdfs,1));
 
     legends_plot        = cell(size(comb_bdfs,1),1);
@@ -121,8 +122,7 @@ if exist('labels','var')
         legends_plot{i} = [labels{comb_bdfs(i,1)} ' vs. ' labels{comb_bdfs(i,2)}];
     end
 
-    figure('units','normalized','outerposition',[1/3 1/3 2/3 2/3]),
-    subplot(121),hold on
+    figure, subplot(121),hold on
     for i = 1:nbr_comb_bdfs
         plot(dim_min_angle{comb_bdfs(i,1),comb_bdfs(i,2)}(:,1), ...
             dim_min_angle{comb_bdfs(i,1),comb_bdfs(i,2)}(:,2),'color',clrs_plot(i,:),...
@@ -144,4 +144,5 @@ if exist('labels','var')
     set(gca,'XTick',1:nbr_comb_bdfs) 
     set(gca,'XTickLabels',legends_plot)
     set(gca,'XTickLabelRotation',45)
+    end
 end
