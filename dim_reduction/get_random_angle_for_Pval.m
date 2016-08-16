@@ -29,3 +29,10 @@ for n = 1:length(space_dim)
         angle_non_orth(d,n) = find(cumsum(hist_dist_angles(:,d,n))>Pval, 1);
     end
 end
+
+% turn into degrees
+% note: the histogram starts in 1 deg and hist_x in 0, which means we'd
+% have to add 1 to max_angle_non_orth, but we compensate for that by
+% looking for the first bin at which P>P_orth
+angle_non_orth      = rad2deg(hist_x(angle_non_orth)); 
+
