@@ -176,8 +176,8 @@ end
 %     end    
 % end
     
-% fill the lower diagonal so it is mirrored
-angle_mtrx                  = angle_mtrx + angle_mtrx';
+% % fill the lower diagonal so it is mirrored
+% angle_mtrx                  = angle_mtrx + angle_mtrx';
 
 
 % -------------------------------------------------------------------------
