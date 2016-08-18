@@ -6,6 +6,8 @@
 % Inputs:
 %   binned_data         : binned_data struct. It has to contain field
 %                           'target' with 'corners' (time, ULx ULy LRx LRy) 
+%   task                : task (implemented so far: 'iso', 'spr','wm','ball','mg') 
+%   (plot_yn)           : [false] plot the targets
 %
 % Ouputs:
 %   nbr_targets         : number of targets
@@ -14,20 +16,20 @@
 %
 %
 
-function [nbr_targets, target_coord] = plot_targets( binned_data, varargin )
+function [nbr_targets, target_coord] = get_targets( binned_data, task, varargin )
 
-if nargin == 2
-    label               = varargin{1};
+if nargin == 3
+    plot_yn             = varargin;
 else 
-    label               = '';
+    plot_yn             = false;
 end
 
 % find targets
-if strncmp(label,'iso',3) || strncmp(label,'spr',3) || strncmp(label,'wm',2)
+if strncmp(task,'iso',3) || strncmp(task,'spr',3) || strncmp(task,'wm',2)
     targets             = unique(binned_data.trialtable(:,2:5),'rows');
-elseif strncmp(label,'ball',4)
+elseif strncmp(task,'ball',4)
     targets             = [-1 1 1 -1]; % arbitrarily create a target centered in [0 0]
-elseif strncmp(label,'mg',2)
+elseif strncmp(task,'mg',2)
     targets             = unique(binned_data.trialtable(:,7:10),'rows');
     % datasets from Theo don't have target coordinates
     if targets(1,:) == [-1 -1 -1 -1]
@@ -72,4 +74,4 @@ rectangle('Position',[-1,-1,2,2],'Edgecolor','k');
 xlim([-max_coord-3, max_coord+3])
 ylim([-max_coord-3, max_coord+3])
 set(gca,'TickDir','out'),set(gca,'FontSize',14)
-title(['target positions ' label],'FontSize',14);
+title(['target positions ' task],'FontSize',14);
