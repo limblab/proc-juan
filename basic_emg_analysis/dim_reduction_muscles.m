@@ -6,7 +6,7 @@
 % Inputs (opt)          : [default]
 %   binned_data         : binned_data struct or array of structs. Can be
 %                           cropped 
-%   (method)            : ['pca'] dim reduction method ('pca','nnmf')
+%   (method)            : ['pca'] dim reduction method ('pca','nnmf','none')
 %   (chosen_emgs)       : [all] EMGs to be used for the analysis. 'all'
 %                           will chose all
 %   (labels)            : name of the task in each binned_data struct

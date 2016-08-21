@@ -92,7 +92,7 @@ if show_plot
 %     xlabel('neural input nbr.','FontSize',14),ylabel('norm. eigenvalue','FontSize',14)
 %     set(gca,'TickDir','out'),set(gca,'FontSize',14);
 %     xlim([0 size(smoothed_FR,2)+1])
-    plot(cumsum(eigen/sum(eigen)),'linewidth',3),
+    plot(cumsum(eigen/sum(eigen)),'linewidth',3,'marker','d'),
 %     hold on, plot([0 size(smoothed_FR,2)+1],[0.8 0.8],'r','LineWidth',2), hold off
     xlabel('eigenvalue nbr.','FontSize',14),ylabel('explained variance','FontSize',14)
     set(gca,'TickDir','out'),set(gca,'FontSize',14);
