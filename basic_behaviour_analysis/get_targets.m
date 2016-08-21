@@ -13,10 +13,11 @@
 %   nbr_targets         : number of targets
 %   target_coord        : target coordinates (ULx ULy Width Height) for
 %                           each target
+%   target_id           : ID of each of the targets
 %
 %
 
-function [nbr_targets, target_coord] = get_targets( binned_data, task, varargin )
+function [nbr_targets, target_coord, target_id] = get_targets( binned_data, task, varargin )
 
 if nargin == 3
     plot_yn             = varargin{1};
@@ -68,6 +69,9 @@ if ~exist('nbr_targets','var')
 end
 
 
+% -------------------------------------------------------------------------
+% get target coords in Matlab's plotting format
+
 % find bottom left corner (X and Y), width and height for rectangle command
 rect_coord              = zeros(nbr_targets,4);
 rect_coord(:,1)         = targets(:,1);
@@ -79,6 +83,25 @@ rect_coord(:,4)         = abs(targets(:,2)-targets(:,4));
 rect_coord(rect_coord(:,3) == 0,:) = [];
 rect_coord(rect_coord(:,4) == 0,:) = [];
 
+
+
+% -------------------------------------------------------------------------
+% create vector with target ID for each trial
+
+nbr_trials              = size(binned_data.trialtable,1);
+target_id               = zeros(1,nbr_trials);
+
+switch task{1}
+    case {'wf','iso','spr','iso8','wm'}
+        target_id       = binned_data.trialtable(:,10);
+    case 'ball'
+        target_id       = zeros(1,nbr_trials);
+    case {'mg','mg-pt'}
+        target_id       = binned_data.trialtable(:,6);
+end
+
+
+% -------------------------------------------------------------------------
 % return variables
 target_coord            = rect_coord;
 
