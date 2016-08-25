@@ -23,12 +23,14 @@
 function cropped_binned_data = crop_binned_data( binned_data, cropping_times )
 
 
+
+% get bin size
+bin_size                    = mean(diff(binned_data.timeframe));
+
 % see if we passed a vector with the intervals for cropping (it would be a
 % 2-by-N size matrix)
 if size(cropping_times,2) == 2
-    % get bin size
-    bin_size                = mean(diff(binned_data.timeframe));
-
+    
     % convert word times to bin numbers
     cropping_times_bin      = zeros(size(cropping_times,1),2);
     cropping_times_bin(:,1) = ceil(cropping_times(:,1)/bin_size);
@@ -82,6 +84,8 @@ end
 if isfield(binned_data,'smoothedspikerate')
     binned_data.smoothedspikerate = binned_data.smoothedspikerate(indx_keep,:);
 end
+
+% binned_data.trialtable(binned_data.trialtable(:,1)>indx_keep(end)*bin_size,:) = [];
 
 % return variable
 cropped_binned_data     = binned_data;

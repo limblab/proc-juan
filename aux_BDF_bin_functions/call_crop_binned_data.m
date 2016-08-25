@@ -57,16 +57,20 @@ end
 clear data_struct;
     
 
+% get nbr of binned_data structs
 nbr_bdfs                    = length(binned_data_array);
 
 
 for i = 1:nbr_bdfs
 
+    % get trial table
+    trial_table             = binned_data_array.trialtable;
+    
     % get the column of the words. Note that the organization of the trial
     % table depends on the task
     switch task{i}
         % WRIST FLEXION
-        case 'wf'
+        case {'wf','iso8','iso','wm','spr'}
             % first word for cropping
             switch word_i
                 case 'start'
@@ -92,7 +96,15 @@ for i = 1:nbr_bdfs
                     error([word_f ' not supported for this task']);
             end
         % MULTIGADGET 
-        case 'mg'
+        case {'mg','mg-pt'}
+            
+%             % get nbr cols of the trial table --in very old datasets there
+%             % were only 7 columns, where 1 seems to correspond to 'start', 2
+%             % to 'ot_on', 3 to 'touchpad off' (?), 4 to target number, 5 to
+%             % contact sensor time (picking up ball) (?), 6 to trial end,
+%             % and 7 the trial end word
+%             cols_trial_table_mg = size(trial_table,2);
+            
             % first word for cropping
             switch word_i
                 case 'start'
@@ -112,9 +124,21 @@ for i = 1:nbr_bdfs
                 case 'go'
                     indx_f  = 3;
                 case 'end'
+%                     % for compatibility with really old files
+%                     if cols_trial_table_mg == 12
+%                         indx_f  = 11;
+%                     elseif cols_trial_table_mg == 7
+%                         indx_f  = 6;
+%                     end
                     indx_f  = 11;
                 case 'R'
-                    indx_f  = 11; % code will then look at whether the monkey got a reward
+%                     % for compatibility with really old files                    
+%                     if cols_trial_table_mg == 12
+%                         indx_f  = 11; % code will then look at whether the monkey got a reward
+%                     elseif cols_trial_table_mg == 7
+%                         indx_f  = 6;
+%                     end
+                    indx_f  = 11;
                 otherwise
                     error([word_f ' not supported for this task']);
             end
@@ -149,15 +173,21 @@ for i = 1:nbr_bdfs
 
     % get trial table and store it in a N x 2 matrix with times for
     % cropping 
-    trial_table             = binned_data_array(i).trialtable;
     cropping_times          = [trial_table(:,indx_i), trial_table(:,indx_f)];
 
     % if the end word is 'R' (reward), get rid of the trials without a reward
     if word_f == 'R'
         switch task{i}
-            case 'wf'
+            case {'wf','iso8','iso','wm','spr'}
                 col_R       = 9;
-            case 'mg'
+            case {'mg','mg-pt'}
+                % for compatibility with really old files
+%                 switch cols_trial_table_mg
+%                     case 12
+%                         col_R = 12;
+%                     case 7
+%                         col_R = 7;
+%                 end
                 col_R       = 12;
             case 'ball'
                 col_R       = 7;
