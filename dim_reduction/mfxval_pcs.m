@@ -10,10 +10,11 @@
 %                           case the user wants to discard some)
 %   xval_mode           : 'time' will do multifold cross-validation by
 %                           dividing the data into n folds, then computing
-%                           ..................; 'channels' will
-%                           cross-validate by computing PC using m
-%                           channels, projecting the data onto the time
-%                           domain, and comparing these projections to
+%                           the correlation betwenn each of the folds and
+%                           its corresponding portion of continuous data;
+%                           'channels' will cross-validate by computing PC
+%                           using m channels, projecting the data onto the
+%                           time domain, and comparing these projections to 
 %                           those obtained with the PCs computed using all
 %                           the electrodes. This is repeated 'nbr_reps'
 %                           times; 'subsets' will cross-validate btw
@@ -49,7 +50,8 @@ gauss_SD                    = 0.05;
 
 
 % some preliminary definitions
-all_chs                     = double(arrayfun(@(x) x.id(1), bdf.units));
+% all_chs                     = double(arrayfun(@(x) x.id(1), bdf.units));
+all_chs                     = 1:length(bdf.units);
 discard_chs                 = setdiff(all_chs, neural_chs);
 
 % -------------------------------------------------------------------------
@@ -166,7 +168,7 @@ switch xval_mode
     case 'channels'
         
         % preallocate matrix for storing random channels
-        chs_1               = zeros(nbr_reps,...
+        chs                 = zeros(nbr_reps,...
                                 round(nbr_neural_chs*perc_chs));
         % preallocate matrix for storing CC correlations
         R_CC                = zeros(nbr_pcs_comp,nbr_reps);
@@ -177,7 +179,7 @@ switch xval_mode
 
                         
         % smooth the FRs
-        smoothed_FR         = gaussian_smoothing2(bdf,'sqrt',bin_size,gauss_SD); %#ok<AGROW>                       
+        smoothed_FR         = gaussian_smoothing(bdf,'sqrt',bin_size,gauss_SD); %#ok<AGROW>                       
         % do PCA of all the selected channels
         dim_red_FR          = dim_reduction(smoothed_FR,'pca',discard_chs);
                         
