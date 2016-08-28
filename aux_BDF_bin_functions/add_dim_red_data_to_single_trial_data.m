@@ -38,15 +38,36 @@ end
 if neural_data_yn
     
     nbr_targets         = length(single_trial_data.target) - 1;
+    nbr_bins            = size(single_trial_data.target{1}.bin_indx_p_trial,1);
+    nbr_chs             = length(neural_data.eigen);
     
     % -----------------------------------
     % 1) add scores (projections onto PCs) for each target
     
     for t = 1:nbr_targets
+        
+        % individual trials
+        nbr_trials_this_tgt = size(single_trial_data.target{t}.bin_indx_p_trial,2);
+        
+        single_trial_data.target{t}.neural_data.dim_red.st_scores = ...
+            zeros(nbr_bins,nbr_chs,nbr_trials_this_tgt);
+
+        for r = 1:nbr_trials_this_tgt
+            single_trial_data.target{t}.neural_data.dim_red.st_scores(:,:,r) = ...
+                neural_data.scores(single_trial_data.target{t}.bin_indx_p_trial(:,r),:);
+        end
+            
+        % all concatenated trials
         single_trial_data.target{t}.neural_data.dim_red.scores = ...
             neural_data.scores(single_trial_data.target{t}.bin_indx,:); 
         single_trial_data.target{t}.neural_data.dim_red.t = ...
             neural_data.t(single_trial_data.target{t}.bin_indx);
+        
+        % add mean and SD scores
+        single_trial_data.target{t}.neural_data.dim_red.st_scores_mn = ...
+            mean(single_trial_data.target{t}.neural_data.dim_red.st_scores,3);
+        single_trial_data.target{t}.neural_data.dim_red.st_scores_sd = ...
+            std(single_trial_data.target{t}.neural_data.dim_red.st_scores,0,3);
     end
     
     % -----------------------------------
@@ -54,8 +75,12 @@ if neural_data_yn
     % concatenated trials
     
     % init vectors to concatenate data
+    aux_st_scores       = single_trial_data.target{1}.neural_data.dim_red.st_scores;
     aux_scores          = single_trial_data.target{1}.neural_data.dim_red.scores;
     aux_t               = single_trial_data.target{1}.neural_data.dim_red.t;
+    
+    aux_st_scores_mn    = single_trial_data.target{1}.neural_data.dim_red.st_scores_mn;
+    aux_st_scores_sd    = single_trial_data.target{1}.neural_data.dim_red.st_scores_sd;
     
     % add info for all the concatenated targets, as well as the scores
     single_trial_data.target{end}.neural_data.dim_red.method = ...
@@ -65,8 +90,12 @@ if neural_data_yn
     
     % concatenate scores & time
     for t = 2:nbr_targets
+        aux_st_scores  	= cat(3,aux_st_scores,single_trial_data.target{t}.neural_data.dim_red.st_scores);
         aux_scores      = cat(1,aux_scores,single_trial_data.target{t}.neural_data.dim_red.scores);
         aux_t           = cat(1,aux_t,single_trial_data.target{t}.neural_data.dim_red.t);
+        
+        aux_st_scores_mn = cat(1,aux_st_scores_mn,single_trial_data.target{t}.neural_data.dim_red.st_scores_mn);
+        aux_st_scores_sd = cat(1,aux_st_scores_sd,single_trial_data.target{t}.neural_data.dim_red.st_scores_sd);
     end
     single_trial_data.target{end}.neural_data.dim_red.t = aux_t;
     single_trial_data.target{end}.neural_data.dim_red.scores = aux_scores;
@@ -74,7 +103,14 @@ if neural_data_yn
     single_trial_data.target{end}.neural_data.dim_red.eigen = ...
         neural_data.eigen;
     single_trial_data.target{end}.neural_data.dim_red.chs = ...
-        neural_data.chs;
+        neural_data.chs;    
+    
+    single_trial_data.target{end}.neural_data.dim_red.st_scores = ...
+        aux_st_scores;
+    single_trial_data.target{end}.neural_data.dim_red.st_scores_mn = ...
+        aux_st_scores_mn;
+    single_trial_data.target{end}.neural_data.dim_red.st_scores_sd = ...
+        aux_st_scores_sd;
 end
 
 
