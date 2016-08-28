@@ -15,7 +15,7 @@
 %                       'all_tasks_monkey_date.mat'
 %   (params)        : struct with preprocessing params, of type
 %                       'batch_preprocess_dim_red_data_params_defaults'
-%
+%s
 %
 % function batch_preprocess_dim_red_data( path )
 % function batch_preprocess_dim_red_data( path, params )
@@ -91,13 +91,37 @@ for i = 1:numel(files_indx)
     % do dimensionality reduction on the smoothed FRs
     discard_neurons             = setdiff( 1:numel(cbdf(1).units), neural_chs );
     for ii = 1:numel(cbdf)
-        datasets{i}.dim_red_FR{ii} = dim_reduction( datasets{i}.smoothed_FR{ii}, ...
+        % decide what data to do PCA on --the continous data or the
+        % trial-related part of the data only
+        switch params.data_pca
+            case 'all'
+                datasets{i}.dim_red_FR{ii} = dim_reduction( datasets{i}.smoothed_FR{ii}, ...
                             params.dim_red_method, discard_neurons );
-%         datasets{i}.dim_red_FR{ii} = dfr;
+            case 'trial-related'
+                % split the data in single trials
+                % -- note that get-single_trial_data will already exclude
+                % the unwanted neural and EMG
+                stdata          = get_single_trial_data( datasets{i}.binned_data{ii}, ...
+                            labels(ii), neural_chs, chosen_emgs, params.norm_trial_data, ...
+                            params.w_i, params.w_f );
+                % concatenate the firing rates to do PCA
+                stdata          = concatenate_single_trials( stdata );
+                % get concatenated smoothed FRs, and add time as first
+                % variable --for compatibility with the PCA code
+                sfr             = [stdata.target{end}.conc_t', ...
+                            stdata.target{end}.neural_data.conc_smoothed_fr];
+                % Do PCA on the neural data
+                datasets{i}.dim_red_FR{ii} = dim_reduction( sfr, ...
+                            params.dim_red_method, [], false, false );
+        end
+        % add what data were used
+        datasets{i}.dim_red_FR{ii}.data = params.data_pca;
     end
     
     % clean up
     clear cbdf bd sfr chosen_emgs neural_chs discard_neurons labels
+    
+    disp(' ');
 end
 
 
