@@ -204,13 +204,13 @@ for i = 1:nbr_targets
     trials_this_tgt         = find(target_id == i-1);
     nbr_trials_this_tgt     = length(trials_this_tgt);
     
+    % get nbr of bins per trial
+    nbr_bins                = round(st_dur/bin_size);
+
     
     % ---------------------------------
     % preallocate data matrices
-    
-    % get nbr of bins per trial
-    nbr_bins                = round(st_dur/bin_size);
-    
+        
     % for the raw data
     STD{i}.neural_data.fr   = zeros( nbr_bins,...
                                 nbr_neural_chs, nbr_trials_this_tgt );
@@ -273,6 +273,9 @@ for i = 1:nbr_targets
                                 nbr_emgs );
     end
     
+    % for a matrix that will include the bin number after cropping
+    STD{i}.bin_indx         = zeros(1,nbr_trials_this_tgt*st_dur/bin_size);
+    
     
     % ---------------------------------
     % fill with values
@@ -313,11 +316,8 @@ for i = 1:nbr_targets
                     STD{i}.emg_data.dim_red.scores(:,:,t) = dim_red_emg.scores(...
                                 aux_start:aux_end,:);
                 end
-                
+                                
             case 'stretch'
-                
-                % get number of bins per trial
-                nbr_bins            = st_dur/bin_size;
                 
                 % -----------------
                 % 1. find trial end: for 'stretch is the real end of the
@@ -328,7 +328,7 @@ for i = 1:nbr_targets
                 % -----------------
                 % 2. for interpolating, define time axis of the data
                 t_orig              = 1:trial_dur(trials_this_tgt(t))/bin_size;
-                t_new               = 1:st_dur/bin_size;
+                t_new               = 1:nbr_bins;
                 
                 fr_orig             = cropped_binned_data.spikeratedata(aux_start:aux_end,:);
                 if isfield(cropped_binned_data,'smoothedspikerate')
@@ -381,6 +381,11 @@ for i = 1:nbr_targets
                     STD{i}.emg_data.dim_red.scores(:,:,t) = emg_scores_new;
                 end
         end
+        
+        % bins (of the cropped_binned_data struct) that correspond
+        % to this trial
+        STD{i}.bin_indx( (t-1)*nbr_bins+1 : t*nbr_bins ) = ...
+                    (trials_this_tgt(t)-1)*nbr_bins+1 : trials_this_tgt(t)*nbr_bins;
     end
     
     % -----------------    
@@ -467,6 +472,8 @@ if dim_red_data_yn
     aux_emg_scores_sd       = STD{1}.emg_data.dim_red.sd;
 end
 
+aux_bin_indx                = STD{1}.bin_indx;
+
 % concatenate trials in 'aux' vars
 for i = 2:nbr_targets
     aux_fr                  = cat(3,aux_fr,STD{i}.neural_data.fr);
@@ -500,6 +507,8 @@ for i = 2:nbr_targets
         aux_emg_scores_m    = cat(1,aux_emg_scores_m,STD{i}.emg_data.dim_red.mn);
         aux_emg_scores_sd   = cat(1,aux_emg_scores_sd,STD{i}.emg_data.dim_red.sd);
     end
+    
+    aux_bin_indx            = cat(2,aux_bin_indx,STD{i}.bin_indx);
 end
 
 
@@ -549,14 +558,13 @@ STD{ptr}.w_f                = w_f;
 STD{ptr}.t                  = 0:bin_size:(size(STD{ptr}.neural_data.mn,1)-1)*bin_size;
 STD{ptr}.t_single_trial     = 0:bin_size:(size(STD{ptr}.neural_data.fr,1)-1)*bin_size;
 
+% bin numbers in cropped_binned_data
+STD{ptr}.bin_indx           = aux_bin_indx;
+
+
+
 % ------------------------------------------------------------------------
 % return variables
 
 single_trial_data.target    = STD;
 
-
-
-% ------------------------------------------------------------------------
-% plot
-
-% ToDo
