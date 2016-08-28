@@ -133,7 +133,7 @@ bin_size                    = min(diff(binned_data.timeframe));
 bin_size                    = round(bin_size*100)/100;
 
 % get information about targets: how many and coordinates
-[nbr_targets, ~, target_id] = get_targets( cropped_binned_data, task, false );
+[nbr_targets, target_coord, target_id] = get_targets( cropped_binned_data, task, false );
 
 % chop the dim_red_data to the same bins, if present
 if dim_red_data_yn
@@ -151,6 +151,9 @@ diff_timeframe              = diff(cropped_binned_data.timeframe);
 
 % get the end of each trial
 end_indx                    = find(diff_timeframe >= 2*bin_size);
+% add the end of tehe last trial
+end_indx                    = [end_indx; length(cropped_binned_data.timeframe)];
+
 % get the beginning of each trial
 start_indx                  = [1; end_indx(1:end-1)+1];
 % get the number of trials
@@ -163,10 +166,11 @@ trial_dur(2:nbr_trials)     = diff(end_indx)*bin_size;
 
 % ToDo: improve this
 % check that the trials have been retrieved as they should
-% Note: because of the binning, sometimes the last target is missing
-if cropped_binned_data.trialtable(end,end-1)-cropped_binned_data.timeframe(end) > 0
-    warning([num2str(length(target_id)-nbr_trials) ' target(s) fall oustide the binned data'])
-    target_id(end-length(target_id)+nbr_trials+1) = [];
+% Note: because of the binning, sometimes the last target(s) are missing
+while cropped_binned_data.trialtable(end,end-1)-cropped_binned_data.timeframe(end) > 0
+    warning('last target fall oustide the binned data')
+    target_id(end)          = [];
+    cropped_binned_data.trialtable(end,:) = [];
 end
 
 
@@ -204,65 +208,68 @@ for i = 1:nbr_targets
     % ---------------------------------
     % preallocate data matrices
     
+    % get nbr of bins per trial
+    nbr_bins                = round(st_dur/bin_size);
+    
     % for the raw data
-    STD{i}.neural_data.fr   = zeros( st_dur/bin_size,...
+    STD{i}.neural_data.fr   = zeros( nbr_bins,...
                                 nbr_neural_chs, nbr_trials_this_tgt );
     if isfield(cropped_binned_data,'smoothedspikerate')
-        STD{i}.neural_data.smoothed_fr = zeros( st_dur/bin_size,...
+        STD{i}.neural_data.smoothed_fr = zeros( nbr_bins,...
                                 nbr_neural_chs, nbr_trials_this_tgt );
     end
     
-    STD{i}.emg_data.emg     = zeros( st_dur/bin_size,...
+    STD{i}.emg_data.emg     = zeros( nbr_bins,...
                                 nbr_emgs, nbr_trials_this_tgt );
 	if ~isempty(cropped_binned_data.cursorposbin)
-        STD{i}.pos.data     = zeros( st_dur/bin_size,...
+        STD{i}.pos.data     = zeros( nbr_bins,...
                                 2, nbr_trials_this_tgt );
-        STD{i}.vel.data     = zeros( st_dur/bin_size,...
+        STD{i}.vel.data     = zeros( nbr_bins,...
                                 3, nbr_trials_this_tgt );
     end
     
     % some statistics (mean, SD)
-    STD{i}.neural_data.mn 	= zeros( st_dur/bin_size,...
+    STD{i}.neural_data.mn 	= zeros( nbr_bins,...
                                 nbr_neural_chs );
     if isfield(cropped_binned_data,'smoothedspikerate')
-        STD{i}.neural_data.smoothed_fr_mn = zeros( st_dur/bin_size,...
+        STD{i}.neural_data.smoothed_fr_mn = zeros( nbr_bins,...
                                 nbr_neural_chs );
     end
-    STD{i}.emg_data.mn      = zeros( st_dur/bin_size,...
+    STD{i}.emg_data.mn      = zeros( nbr_bins,...
                                 nbr_emgs );
     if ~isempty(cropped_binned_data.cursorposbin)
-        STD{i}.pos.mn       = zeros( st_dur/bin_size, 2 );
-        STD{i}.vel.mn       = zeros( st_dur/bin_size, 3 );
+        STD{i}.pos.mn       = zeros( nbr_bins, 2 );
+        STD{i}.vel.mn       = zeros( nbr_bins, 3 );
     end
     
-    STD{i}.neural_data.sd   = zeros( st_dur/bin_size,...
+    STD{i}.neural_data.sd   = zeros( nbr_bins,...
                                 nbr_neural_chs );
 	if isfield(cropped_binned_data,'smoothedspikerate')
-        STD{i}.neural_data.smoothed_fr_sd = zeros( st_dur/bin_size,...
+        STD{i}.neural_data.smoothed_fr_sd = zeros( nbr_bins,...
                                 nbr_neural_chs );
     end
-    STD{i}.emg_data.sd      = zeros( st_dur/bin_size,...
+    STD{i}.emg_data.sd      = zeros( nbr_bins,...
                                 nbr_emgs );
     if ~isempty(cropped_binned_data.cursorposbin)            
-        STD{i}.pos.sd       = zeros( st_dur/bin_size, 2 );
-        STD{i}.vel.sd       = zeros( st_dur/bin_size, 3 );
+        STD{i}.pos.sd       = zeros( nbr_bins, 2 );
+        STD{i}.vel.sd       = zeros( nbr_bins, 3 );
     end
     
     % for the dimensionality-reduced data
     if dim_red_data_yn
        
-        STD{i}.neural_data.dim_red.scores = zeros( st_dur/bin_size,...
+        STD{i}.neural_data.dim_red.scores = zeros( nbr_bins,...
                                 nbr_neural_chs, nbr_trials_this_tgt );
-        STD{i}.neural_data.dim_red.mn = zeros( st_dur/bin_size,...
+        STD{i}.neural_data.dim_red.mn = zeros( nbr_bins,...
                                 nbr_neural_chs );
-        STD{i}.neural_data.dim_red.sd = zeros( st_dur/bin_size,...
+        STD{i}.neural_data.dim_red.sd = zeros( nbr_bins,...
                                 nbr_neural_chs );
                                 
-        STD{i}.emg_data.dim_red.scores = zeros( st_dur/bin_size,...
+        STD{i}.emg_data.dim_red.scores = zeros( nbr_bins,...
                                 nbr_emgs, nbr_trials_this_tgt );
-        STD{i}.emg_data.dim_red.mn = zeros( st_dur/bin_size,...
+        STD{i}.emg_data.dim_red.mn = zeros( nbr_bins,...
                                 nbr_emgs );
-        STD{i}.emg_data.dim_red.sd = zeros( st_dur/bin_size,...
+        STD{i}.emg_data.dim_red.sd = zeros( nbr_bins,...
                                 nbr_emgs );
     end
     
@@ -279,7 +286,7 @@ for i = 1:nbr_targets
             case 'min_dur'
                 % find trial end: for 'min_dur' happens at the end of the
                 % shortest trial for this target
-                aux_end     = aux_start + st_dur/bin_size - 1;
+                aux_end     = aux_start + nbr_bins - 1;
                 
                 % raw data
                 STD{i}.neural_data.fr(:,:,t) = cropped_binned_data.spikeratedata(...
@@ -308,6 +315,9 @@ for i = 1:nbr_targets
                 end
                 
             case 'stretch'
+                
+                % get number of bins per trial
+                nbr_bins            = st_dur/bin_size;
                 
                 % -----------------
                 % 1. find trial end: for 'stretch is the real end of the
@@ -411,7 +421,11 @@ for i = 1:nbr_targets
     STD{i}.w_i              = w_i;
     STD{i}.w_f              = w_f;
     % create time vector
-    STD{i}.t                = 0:bin_size:(round(st_dur/bin_size)-1)*bin_size;
+    STD{i}.t                = 0:bin_size:(round(nbr_bins)-1)*bin_size;
+    
+    % add info about emgs and neurons
+    STD{i}.neural_data.neural_chs = neural_chs;
+    STD{i}.emg_data.emg_names = binned_data.emgguide;
 end
 
 
@@ -472,7 +486,7 @@ for i = 2:nbr_targets
     if ~isempty(cropped_binned_data.cursorposbin)
         aux_pos             = cat(3,aux_pos,STD{i}.pos.data);
         aux_pos_m           = cat(1,aux_pos_m,STD{i}.pos.mn);
-        aux_pos_sd          = cat(1,aux_pos_sd,STD{i}.vel.sd);
+        aux_pos_sd          = cat(1,aux_pos_sd,STD{i}.pos.sd);
         aux_vel             = cat(3,aux_vel,STD{i}.vel.data);
         aux_vel_m           = cat(1,aux_vel_m,STD{i}.vel.mn);
         aux_vel_sd          = cat(1,aux_vel_sd,STD{i}.vel.sd);
@@ -507,10 +521,10 @@ STD{ptr}.emg_data.sd        = aux_emg_sd;
 
 if ~isempty(cropped_binned_data.cursorposbin)
     STD{ptr}.pos.data       = aux_pos;
-    STD{ptr}.pos.mn         = aux_pos_mn;
+    STD{ptr}.pos.mn         = aux_pos_m;
     STD{ptr}.pos.sd         = aux_pos_sd;
     STD{ptr}.vel.data       = aux_vel;
-    STD{ptr}.vel.mn         = aux_vel_mn;
+    STD{ptr}.vel.mn         = aux_vel_m;
     STD{ptr}.vel.sd         = aux_vel_sd;
 end
 
