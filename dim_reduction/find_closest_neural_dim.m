@@ -3,7 +3,7 @@
 % that are closest to each of the eigenvectors in the manifold from another
 % task. 
 %
-%   function [angle, dim_min_angle] = find_closest_hyperplane_all( dim_red_FR, dims_hyper_in_orig )
+%   function [angle, dim_min_angle] = find_closest_neural_dim( dim_red_FR, dims_hyper_in_orig )
 %
 % Inputs (opt):         : [default]
 %   dim_red_FR          : cell array of PCA-processed FRs. This cell
@@ -41,7 +41,7 @@
 %   
 %
 
-function [angle, dim_min_angle, diff_ranking] = find_closest_neural_hyperplane_all( ...
+function [angle, dim_min_angle, diff_ranking] = find_closest_neural_dim( ...
                     dim_red_FR, dims_hyper_in_orig, varargin )
 
 
