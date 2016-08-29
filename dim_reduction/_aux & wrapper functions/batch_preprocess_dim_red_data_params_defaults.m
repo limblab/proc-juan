@@ -15,7 +15,8 @@ params_defaults     = struct( ...
                         'data_pca',         'trial-related', ...% 'trial-related', 'all'
                         'w_i',              'ot_on', ...
                         'w_f',              'R', ...
-                        'norm_trial_data',  'min_dur'); % 'min_dur', 'stretch'
+                        'norm_trial_data',  'min_dur', ... % 'min_dur', 'stretch'
+                        'dim_red_emg',      'none'); % 'none', 'pca','nnmf'
 
                 
 % read input params, if passed
