@@ -98,12 +98,18 @@ for i = 1:numel(files_indx)
                 datasets{i}.dim_red_FR{ii} = dim_reduction( datasets{i}.smoothed_FR{ii}, ...
                             params.dim_red_method, discard_neurons );
             case 'trial-related'
-                % split the data in single trials
+                
+                % ----------------------------------
+                % 1) split the data in single trials
                 % -- note that get-single_trial_data will already exclude
                 % the unwanted neural and EMG
                 stdata          = get_single_trial_data( datasets{i}.binned_data{ii}, ...
                             labels(ii), neural_chs, chosen_emgs, params.norm_trial_data, ...
                             params.w_i, params.w_f );
+                        
+                % ----------------------------------
+                % 2) PCA of the neural data
+                
                 % concatenate the firing rates to do PCA
                 stdata          = concatenate_single_trials( stdata );
                 % get concatenated smoothed FRs, and add time as first
@@ -113,6 +119,31 @@ for i = 1:numel(files_indx)
                 % Do PCA on the neural data
                 datasets{i}.dim_red_FR{ii} = dim_reduction( sfr, ...
                             params.dim_red_method, [], false, false );
+                       
+                % ----------------------------------
+                % 3) Dimensionality reduction of the EMG data
+                
+                switch params.dim_red_emg
+                    case 'none'
+                        % do nothing
+                    otherwise
+                        error('dim red EMG not implemented yet!');
+                end
+                % ----------------------------------
+                % 4) Rearrange results
+                
+                % add dimensionally reduced data to single trial data
+                % struct
+                if ~exist('dim_red_emg','var')
+                    stdata      = add_dim_red_data_to_single_trial_data( ...
+                            stdata, datasets{i}.dim_red_FR{ii} ); 
+                else
+                    error('to be implemented!');
+                end
+                
+                % add dim_red data to single trial data struct
+                % add single trial data to the dataset struct
+                datasets{i}.stdata{ii} = stdata;
         end
         % add what data were used
         datasets{i}.dim_red_FR{ii}.data = params.data_pca;
