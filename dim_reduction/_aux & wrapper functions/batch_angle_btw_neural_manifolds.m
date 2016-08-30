@@ -63,7 +63,7 @@ meta_info               = batch_get_monkey_task_data( datasets );
 
 
 % -------------------------------------------------------------------------
-% compute angles between manifolds
+% compute angles between manifoldsclc
 
 for i = 1:meta_info.nbr_monkeys
     
@@ -72,13 +72,32 @@ for i = 1:meta_info.nbr_monkeys
         % what dataset are we looking at?
         dtst            = meta_info.sessions_per_monkey{i}(ii);
         
+        % -----------------------------------------------------------------
+        % 1) angles between pairs of eigenvectors --show angles and
+        % corresponding eigenvectors with each of the tasks as reference
+        
+        % get non-orthogonality angle
+        angle_orth      = empir_angle_dist_all.angle_non_orth_001{ ...
+            find( empir_angle_dist_all.space_dim == ...
+            length(datasets{dtst}.dim_red_FR{1}.chs) )}(1);
+        
+        % compute angles btw eigenvectors
+        [angle_eigenv, dim_min_angle_eigenv, ref_task_label] = comp_dims_neural_spaces( ...
+            datasets{dtst}.dim_red_FR, 1:dim_manifold, datasets{dtst}.labels, ...
+            angle_orth );
+        
+        % -----------------------------------------------------------------
+        % 2) angles between manifolds
         [angles, ~, ~, empir_angle_dist] = comp_neural_spaces_fcn_dim_finding_closest( ...
             [], datasets{dtst}.neural_chs, dim_manifold, datasets{dtst}.labels, '', ...
             [], datasets{dtst}.dim_red_FR, empir_angle_dist_all );
         
         % store all results
-        data{dtst}.angles = angles;
-        data{dtst}.angle_non_orth = empir_angle_dist.angle_non_rand(1:dim_manifold);
+        data{dtst}.angle_eigenv = angle_eigenv;
+        data{dtst}.dim_min_angle_eigenv = dim_min_angle_eigenv;
+        data{dtst}.ref_task_label = ref_task_label;
+        data{dtst}.angles_manifolds = angles;
+        data{dtst}.angle_non_orth_manifolds = empir_angle_dist.angle_non_rand(1:dim_manifold);
     end
 end
 
@@ -105,12 +124,12 @@ manifold_pair           = cell(1,nbr_manifold_pairs);
 % for all pairs of tasks
 ctr                     = 1;
 for d = 1:length(data)
-    for p = 1:size(data{d}.angles.min_angle,1)
-        dim_above_th    = find( rad2deg(data{d}.angles.min_angle(p,:)) > data{d}.angle_non_orth, 1);
+    for p = 1:size(data{d}.angles_manifolds.min_angle,1)
+        dim_above_th    = find( rad2deg(data{d}.angles_manifolds.min_angle(p,:)) > data{d}.angle_non_orth_manifolds, 1);
         if ~isempty(dim_above_th)
             last_dim_below_th(ctr) = dim_above_th - 1;
         end
-        manifold_pair{ctr} = data{d}.angles.pair_min_angle{p};
+        manifold_pair{ctr} = data{d}.angles_manifolds.pair_min_angle{p};
         ctr             = ctr + 1;
     end
 end
