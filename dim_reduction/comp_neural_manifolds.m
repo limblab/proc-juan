@@ -92,7 +92,7 @@
 
 
 function [angles, dim_red_FR, smoothed_FR, empir_angle_dist] = ...
-            comp_neural_spaces_fcn_dim_finding_closest( bdf, neural_chs,...
+            comp_neural_manifolds( bdf, neural_chs,...
             dims_hyper_in_orig, labels, method, varargin ) 
                             
 
@@ -256,7 +256,7 @@ end
 
 % Find the closest eigenvector in task i+p (p>1) to each eigenvector in
 % task i. Do until n = N - 1 
-[angles_fc, dim_min_angle]  = find_closest_neural_hyperplane_all( dim_red_FR, ...
+[angles_fc, dim_min_angle]  = find_closest_neural_dim( dim_red_FR, ...
                                 1:dims_hyper_in_orig, '' );
 
 
@@ -277,7 +277,7 @@ angles                      = comp_neural_spaces_fcn_dim( bdf, neural_chs, dim_m
                                 
 % Do again finding the closest eigenvector in task i-p (p>1) to each
 % eigenvector in task i
-[~, dim_min_angle_rev]      = find_closest_neural_hyperplane_all( dim_red_FR, ...
+[~, dim_min_angle_rev]      = find_closest_neural_dim( dim_red_FR, ...
                                 1:dims_hyper_in_orig, '', true );
 
 angles_rev                  = comp_neural_spaces_fcn_dim( bdf, neural_chs, dim_min_angle_rev, ...
@@ -310,7 +310,8 @@ clear empir_angle_dist;
 empir_angle_dist            = ead;
 
 
-% look for the direction of eigenvector search (i.e., using what task
+% -----------------------------
+% 1) look for the direction of eigenvector search (i.e., using what task
 % in each pair of tasks as reference) gives the smallest manifold angle
 % -- the first search criterion is find what of the two directions goes
 % above the randomness threshold in a highest dimension
@@ -325,13 +326,16 @@ angles.pair_min_angle       = cell(nbr_comb_bdfs,1);
 diff_w_rand_angle           = zeros(dims_hyper_in_orig,nbr_comb_bdfs);
 diff_w_rand_angle_rev       = zeros(dims_hyper_in_orig,nbr_comb_bdfs);
 
-% it happens that the angle btw the manifolds computed using both manifolds
-% as reference to order the eigenvectors don't go above the randomness
-% threshold
+% FIX: it happens that the angle btw the manifolds computed using both
+% manifolds as reference to order the eigenvectors don't go above the
+% randomness threshold. In this case, compute the cumsum of the angle, and
+% chose the pair that gives the minimum
 last_dim_cumsum             = 20;
 
 
+% -- find what task, used as reference, gives the smallest angle
 for i = 1:nbr_comb_bdfs
+    
     % compute diff w. random angle (values < 0 indicate the angle is above
     % "the randomness threshold")
     diff_w_rand_angle(:,i)  = deg2rad(angles_non_rand(1:dims_hyper_in_orig))' ...
@@ -340,26 +344,36 @@ for i = 1:nbr_comb_bdfs
     diff_w_rand_angle_rev(:,i) = deg2rad(angles_non_rand(1:dims_hyper_in_orig))' ...
                                  - squeeze(angles.data(comb_bdfs_rev(i,1),comb_bdfs_rev(i,2),...
                                 1:dims_hyper_in_orig));
-    if find(diff_w_rand_angle(:,i)<0,1) > find(diff_w_rand_angle_rev(:,i)<0,1)
-        angles.min_angle(i,:) = angles.data(comb_bdfs(i,1),comb_bdfs(i,2),...
-                                1:dims_hyper_in_orig);
-        angles.pair_min_angle{i} = angles.labels{comb_bdfs(i,1),comb_bdfs(i,2)};
+    
+    % find what task goes last above the orthogonality threshold
+	if find(diff_w_rand_angle(:,i)<0,1) > find(diff_w_rand_angle_rev(:,i)<0,1)
+        % ...using the first task in the pair as reference gives the
+        % smallest manifold angle
+        ref_task            = 1;
+        non_ref_task        = 2;
     elseif find(diff_w_rand_angle(:,i)<0,1) < find(diff_w_rand_angle_rev(:,i)<0,1)
-        angles.min_angle(i,:) = angles.data(comb_bdfs_rev(i,1),comb_bdfs_rev(i,2),...
-                                1:dims_hyper_in_orig);
-        angles.pair_min_angle{i} = angles.labels{comb_bdfs_rev(i,1),comb_bdfs_rev(i,2)};
+        % ...using the secondtask in the pair as reference gives the
+        % smallest manifold angle
+        ref_task            = 2;
+        non_ref_task        = 1;
     else % if neither angles or angles_rev go above rand_thr
+        % this is the case in which using neither of them makes the angle
+        % go above the orthogonality threshold...
         if squeeze(sum(angles.data(comb_bdfs(i,1),comb_bdfs(i,2),1:dims_hyper_in_orig))) > ...
                 squeeze(sum(angles.data(comb_bdfs_rev(i,1),comb_bdfs_rev(i,2),1:dims_hyper_in_orig)))
-            angles.min_angle(i,:) = angles.data(comb_bdfs_rev(i,1),comb_bdfs_rev(i,2),...
-                                1:dims_hyper_in_orig);
-            angles.pair_min_angle{i} = angles.labels{comb_bdfs_rev(i,1),comb_bdfs_rev(i,2)};
+            ref_task        = 2;
+            non_ref_task    = 1;
         else
-            angles.min_angle(i,:) = angles.data(comb_bdfs(i,1),comb_bdfs(i,2),...
-                                1:dims_hyper_in_orig);
-            angles.pair_min_angle{i} = angles.labels{comb_bdfs(i,1),comb_bdfs(i,2)};
+            ref_task        = 1;
+            non_ref_task    = 2;
         end
     end
+    
+    % and store results
+    angles.min_angle(i,:) = angles.data(comb_bdfs(i,ref_task),comb_bdfs(i,non_ref_task),...
+                                1:dims_hyper_in_orig);
+    angles.pair_min_angle{i} = angles.labels{comb_bdfs(i,ref_task),...
+                                comb_bdfs(i,non_ref_task)};
 end
 
 

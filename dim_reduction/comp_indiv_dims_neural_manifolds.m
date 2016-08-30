@@ -16,7 +16,7 @@
 %
 %
 
-function [angle, dim_min_angle, ref_task_label, data] = comp_dims_neural_spaces( ...
+function [angle, dim_min_angle, ref_task_label, data] = comp_indiv_dims_neural_manifolds( ...
     dim_red_FR, dims, labels, varargin )
 
 
@@ -136,6 +136,10 @@ for p = 1:nbr_comb_bdfs
 end
 
 
+
+
+% -------------------------------------------------------------------------
+% add a few more summary fields to angles
 
 % -------------------------------------------------------------------------
 % Plot
