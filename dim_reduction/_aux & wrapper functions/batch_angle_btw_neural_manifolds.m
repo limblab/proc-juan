@@ -6,12 +6,14 @@
 %
 %
 
-function results = batch_angle_btw_neural_manifolds( varargin )
+function angle_results = batch_angle_btw_neural_manifolds( varargin )
 
 
 % -------------------------------------------------------------------------
 % some options that could be turn into fcn params
 dim_manifold            = 20; % the neural manifolds are defined by the first 20 dimensions
+last_eigenv             = 20; % when counting things based on eigenvectors go up to 20
+
 empir_angle_dist_file   = ['/Users/juangallego/Documents/NeuroPlast/Data/' ...
                             '_Dimensionality reduction/_control analyses/' ...
                             'empirical angle distribution all datasets.mat'];
@@ -91,14 +93,30 @@ for i = 1:meta_info.nbr_monkeys
         [angles, ~, ~, empir_angle_dist] = comp_neural_spaces_fcn_dim_finding_closest( ...
             [], datasets{dtst}.neural_chs, dim_manifold, datasets{dtst}.labels, '', ...
             [], datasets{dtst}.dim_red_FR, empir_angle_dist_all );
+
+        % -----------------------------------------------------------------
+        % 3) store all results
         
-        % store all results
-        data{dtst}.angle_eigenv = angle_eigenv;
-        data{dtst}.dim_min_angle_eigenv = dim_min_angle_eigenv;
-        data{dtst}.ref_task_label = ref_task_label;
+        % for the manifold comparison
         data{dtst}.angles_manifolds = angles;
         data{dtst}.angle_non_orth_manifolds = empir_angle_dist.angle_non_rand(1:dim_manifold);
-    end
+        
+        % for the eigenvector comparison 
+        
+        % THIS HAS TO BE REORDERED SO IT RESEMBLES THE OTHER STRUCT IN
+        % ANGLES_MANIFOLDS
+        data{dtst}.angles_eigenv.labels = data{dtst}.angles_manifolds.labels;
+        data{dtst}.angles_eigenv.min_angle = angle_eigenv{1,2};
+        data{dtst}.angles_eigenv.ref_task_min_angle = ref_task_label{1,2};
+        data{dtst}.angles_eigenv.pair_dims_min_angle = dim_min_angle_eigenv{1,2};
+        % -- this creates a pair that has the same structure as the
+        % manifold struct
+        data{dtst}.angles_eigenv.pair_min_angle{1} = [data{dtst}.angles_eigenv.ref_task_min_angle, ...
+            data{dtst}.angles_manifolds.pair_min_angle{1}(1,...
+            find(strcmpi(data{dtst}.angles_manifolds.pair_min_angle{1},data{dtst}.angles_eigenv.ref_task_min_angle)==0))];    
+        % UP TO HERE
+        
+        end
 end
 
 
@@ -108,9 +126,11 @@ end
 % -------------------------------------------
 % 0. some preliminary definitions:
 
-% how many pairs of manifolds do we have?
+% how many pairs of combinations ( monkey x session x pairs of tasks ) do we have?
 nbr_manifold_pairs      = length(meta_info.task_pairs.monkey);
 
+% ---------------------
+% For the manifold analysis
 % var to store the dimensionality of the highest dimensional manifold below
 % the "randomness threshold" for each pair of manifolds --note that it will
 % be a NaN if it doesn't go above the threshold for the 1:dim_manifold
@@ -118,21 +138,50 @@ nbr_manifold_pairs      = length(meta_info.task_pairs.monkey);
 last_dim_below_th       = nan(1,nbr_manifold_pairs);
 manifold_pair           = cell(1,nbr_manifold_pairs);
 
+% ---------------------
+% For the eigenvector analysis
+nbr_non_orth_eigenv     = zeros(1,nbr_manifold_pairs);
+task_pair_eigenv_search = cell(1,nbr_manifold_pairs);
 
 % -------------------------------------------
-% 1. find the dimension at which the angle goes above the random threshold
-% for all pairs of tasks
+% 1. find: 
+%     a) the dimension at which the angle goes above the random threshold
+%     for all pairs of tasks, and 
+%     b) the number of eigenvectors that are non orthogonal (1:last_eigenv)
+
 ctr                     = 1;
 for d = 1:length(data)
     for p = 1:size(data{d}.angles_manifolds.min_angle,1)
+        
+        % a) find what manifold dimension goes above the randomness
+        % threshold
         dim_above_th    = find( rad2deg(data{d}.angles_manifolds.min_angle(p,:)) > data{d}.angle_non_orth_manifolds, 1);
         if ~isempty(dim_above_th)
             last_dim_below_th(ctr) = dim_above_th - 1;
         end
         manifold_pair{ctr} = data{d}.angles_manifolds.pair_min_angle{p};
+        
+        % b) the number of eigenvectors that are non orthogonal
+
+        % -------------
+        % TODO: THIS HAS TO BE FINISHED
+        
+        % task_pair_eigenv_search{ctr} = data{d}.angle_eigenv
+        
+        % UP THERE
+        % -------------
+        
+        % update ctr
         ctr             = ctr + 1;
     end
 end
+
+
+% -------------
+% AFTER THIS; EVERYTHING FOR THE MANIFOLDS HAS TO BE REPLICATED FOR THE
+% EIGENVECTORS...
+% -------------
+
 
 % do a histogram to summarize this
 [counts_dim_below_th, edges_dim_below_th] = histcounts(last_dim_below_th,1:dim_manifold+1);
@@ -188,8 +237,8 @@ end
 
 % add variables to results
 
-results.data            = data;
-results.summary_data    = summary_data;
+angle_results.data     	= data;
+angle_results.summary_data = summary_data;
 
 
 % -------------------------------------------------------------------------
@@ -239,3 +288,6 @@ set(gca,'XTickLabel',[num2cell([0:5:20]) '>20'])
 set(gca,'TickDir','out'), set(gca,'FontSize',16)
 legend(legend_plot,'Location','NorthWest'),legend boxoff
 
+
+% Histogram with the number of non-orthogonal pairs of eigenvectors per
+% type of task
