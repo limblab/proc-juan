@@ -13,7 +13,7 @@
 %
 %
 
-function results = batch_dimensionality_analysis( varargin )
+function dim_results = batch_dimensionality_analysis( varargin )
 
 
 % -------------------------------------------------------------------------
