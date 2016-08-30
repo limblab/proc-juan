@@ -16,8 +16,7 @@
 %
 %
 
-function [angle, dim_min_angle, ref_task_label, data] = comp_indiv_dims_neural_manifolds( ...
-    dim_red_FR, dims, labels, varargin )
+function angles = comp_indiv_dims_neural_manifolds( dim_red_FR, dims, labels, varargin )
 
 
 
@@ -55,11 +54,11 @@ nbr_comb_bdfs       = size(comb_bdfs,1);
 
 
 % define cells for storing the results
-data.angle          = cell(nbr_bdfs);
-data.dim_min_angle  = cell(nbr_bdfs);
-angle               = cell(nbr_bdfs);
-dim_min_angle       = cell(nbr_bdfs);
-ref_task_label      = cell(nbr_bdfs);
+tasks               = cell(nbr_bdfs); % this will be the labels of the pairs of tasks
+
+min_angle           = zeros(nbr_comb_bdfs,length(dims)); % minimum angle
+dim_min_angle       = zeros(nbr_comb_bdfs,length(dims)); % pairs of dimensions that give smallest angle
+pair_min_angle      = cell(nbr_comb_bdfs,1); % pair of tasks that gives smallest angle (1st is ref)
 
 
 % -------------------------------------------------------------------------
@@ -85,6 +84,10 @@ for p = 1:nbr_comb_bdfs
     % store dimensions that give the smallest angle
     data.dim_min_angle{comb_bdfs(p,1),comb_bdfs(p,2)} = dim_m_ang{comb_bdfs(p,1),comb_bdfs(p,2)};
     data.dim_min_angle{comb_bdfs(p,2),comb_bdfs(p,1)} = dim_m_ang_rev{comb_bdfs(p,2),comb_bdfs(p,1)};
+    
+    % populate field labels, to keep track of what tasks we're comparing
+    tasks{comb_bdfs(p,1),comb_bdfs(p,2)} = [labels(comb_bdfs(p,1)) labels(comb_bdfs(p,2))];
+    tasks{comb_bdfs(p,2),comb_bdfs(p,1)} = [labels(comb_bdfs(p,2)) labels(comb_bdfs(p,1))];
 end
 
 
@@ -125,14 +128,14 @@ for p = 1:nbr_comb_bdfs
     % -----------------------------
     % Store results
     
-    angle{comb_bdfs(p,1),comb_bdfs(p,2)} = data.angle{comb_bdfs(p,ref_task),comb_bdfs(p,non_ref_task)};
-    dim_min_angle{comb_bdfs(p,1),comb_bdfs(p,2)} = data.dim_min_angle{comb_bdfs(p,ref_task),comb_bdfs(p,non_ref_task)};
-    ref_task_label{comb_bdfs(p,1),comb_bdfs(p,2)} = labels{comb_bdfs(p,ref_task)};
-        
-    % make matrices diagonal
-    angle{comb_bdfs(p,2),comb_bdfs(p,1)} = angle{comb_bdfs(p,1),comb_bdfs(p,2)};
-    dim_min_angle{comb_bdfs(p,2),comb_bdfs(p,1)} = dim_min_angle{comb_bdfs(p,1),comb_bdfs(p,2)};
-    ref_task_label{comb_bdfs(p,2),comb_bdfs(p,1)} = ref_task_label{comb_bdfs(p,1),comb_bdfs(p,2)};
+    min_angle(p,:)  = data.angle{comb_bdfs(p,ref_task),comb_bdfs(p,non_ref_task)};
+    dim_min_angle(p,:) = data.dim_min_angle{comb_bdfs(p,ref_task),comb_bdfs(p,non_ref_task)}(:,2);
+    pair_min_angle{p} = [labels(comb_bdfs(p,ref_task)) labels(comb_bdfs(p,non_ref_task))];
+
+%     % make matrices diagonal
+%     angles{comb_bdfs(p,2),comb_bdfs(p,1)} = angles{comb_bdfs(p,1),comb_bdfs(p,2)};
+%     dim_min_angle{comb_bdfs(p,2),comb_bdfs(p,1)} = dim_min_angle{comb_bdfs(p,1),comb_bdfs(p,2)};
+%     ref_task_label{comb_bdfs(p,2),comb_bdfs(p,1)} = ref_task_label{comb_bdfs(p,1),comb_bdfs(p,2)};
 end
 
 
@@ -140,6 +143,16 @@ end
 
 % -------------------------------------------------------------------------
 % add a few more summary fields to angles
+
+
+angles.data         = data;
+angles.labels       = tasks;
+angles.method       = 'min_angle'; % to make it fit nicely with some legacy stuff...
+angles.min_angle    = min_angle;
+angles.dim_min_angle = dim_min_angle;
+angles.pair_min_angle = pair_min_angle;
+
+
 
 % -------------------------------------------------------------------------
 % Plot
@@ -151,7 +164,7 @@ if plot_all_yn
         plot(rad2deg(data.angle{comb_bdfs(p,1),comb_bdfs(p,2)}),'linewidth',2,'marker','d')
         plot(rad2deg(data.angle{comb_bdfs(p,2),comb_bdfs(p,1)}),'linewidth',2,'marker','d','color','r')
         plot([0 dims(end)+1],[angle_orth angle_orth],':','color',[.6 .6 .6],'linewidth',2)
-        plot(rad2deg(angle{comb_bdfs(p,1),comb_bdfs(p,2)}),':k','linewidth',2,'marker','d')
+        plot(rad2deg(angles.min_angle(p,:)),':k','linewidth',2,'marker','d')
         legend(['ref. ' labels{comb_bdfs(p,1)}],['ref. ' labels{comb_bdfs(p,2)}],'orth (P>0.001)','chosen','Location','SouthEast'),legend boxoff
         xlabel('dimension'), ylabel('angle')
         set(gca,'TickDir','out'), set(gca,'FontSize',16)
@@ -172,9 +185,8 @@ figure,hold on
 aux_lgnd            = cell(1,nbr_comb_bdfs+1);
 aux_colors          = distinguishable_colors(nbr_comb_bdfs);
 for p = 1:nbr_comb_bdfs
-    plot(rad2deg(angle{comb_bdfs(p,1),comb_bdfs(p,2)}),'color',aux_colors(p,:),'linewidth',2,'marker','d')
-    aux_lgnd{p}     = [ref_task_label{comb_bdfs(p,1),comb_bdfs(p,2)} ' vs. ' ...
-        labels{comb_bdfs(p,find(strcmpi(labels(comb_bdfs(p,:)),ref_task_label(comb_bdfs(p,1),comb_bdfs(p,2)))==0))}];
+    plot(rad2deg(angles.min_angle(p,:)),'color',aux_colors(p,:),'linewidth',2,'marker','d')
+    aux_lgnd{p}     = [angles.pair_min_angle{p}{1} ' vs. ' angles.pair_min_angle{p}{2}];
 end
 plot([0 dims(end)+1],[angle_orth angle_orth],':','color',[.6 .6 .6],'linewidth',2)
 aux_lgnd{end}       = 'orth (P>0.001)';
