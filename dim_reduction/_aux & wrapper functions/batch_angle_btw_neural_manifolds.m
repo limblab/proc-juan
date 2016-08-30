@@ -84,13 +84,13 @@ for i = 1:meta_info.nbr_monkeys
             length(datasets{dtst}.dim_red_FR{1}.chs) )}(1);
         
         % compute angles btw eigenvectors
-        [angle_eigenv, dim_min_angle_eigenv, ref_task_label] = comp_dims_neural_spaces( ...
+        angles_eigenv   = comp_indiv_dims_neural_manifolds( ...
             datasets{dtst}.dim_red_FR, 1:dim_manifold, datasets{dtst}.labels, ...
             angle_orth );
         
         % -----------------------------------------------------------------
         % 2) angles between manifolds
-        [angles, ~, ~, empir_angle_dist] = comp_neural_spaces_fcn_dim_finding_closest( ...
+        [angles, ~, ~, empir_angle_dist] = comp_neural_manifolds( ...
             [], datasets{dtst}.neural_chs, dim_manifold, datasets{dtst}.labels, '', ...
             [], datasets{dtst}.dim_red_FR, empir_angle_dist_all );
 
@@ -102,21 +102,10 @@ for i = 1:meta_info.nbr_monkeys
         data{dtst}.angle_non_orth_manifolds = empir_angle_dist.angle_non_rand(1:dim_manifold);
         
         % for the eigenvector comparison 
-        
-        % THIS HAS TO BE REORDERED SO IT RESEMBLES THE OTHER STRUCT IN
-        % ANGLES_MANIFOLDS
-        data{dtst}.angles_eigenv.labels = data{dtst}.angles_manifolds.labels;
-        data{dtst}.angles_eigenv.min_angle = angle_eigenv{1,2};
-        data{dtst}.angles_eigenv.ref_task_min_angle = ref_task_label{1,2};
-        data{dtst}.angles_eigenv.pair_dims_min_angle = dim_min_angle_eigenv{1,2};
-        % -- this creates a pair that has the same structure as the
-        % manifold struct
-        data{dtst}.angles_eigenv.pair_min_angle{1} = [data{dtst}.angles_eigenv.ref_task_min_angle, ...
-            data{dtst}.angles_manifolds.pair_min_angle{1}(1,...
-            find(strcmpi(data{dtst}.angles_manifolds.pair_min_angle{1},data{dtst}.angles_eigenv.ref_task_min_angle)==0))];    
-        % UP TO HERE
-        
-        end
+        data{dtst}.angles_eigenv = angles_eigenv;
+        data{dtst}.angle_non_orth_eigenv = angle_orth;
+         
+    end
 end
 
 
