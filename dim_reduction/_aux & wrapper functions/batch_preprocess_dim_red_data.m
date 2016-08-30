@@ -84,7 +84,6 @@ for i = 1:numel(files_indx)
         [sfr, bd]               = gaussian_smoothing( ...
                             cbdf(ii), params.transform, ...
                             params.bin_size, params.kernel_SD );
-        datasets{i}.smoothed_FR{ii} = sfr;
         datasets{i}.binned_data{ii} = bd;
     end
     
@@ -144,9 +143,14 @@ for i = 1:numel(files_indx)
                 % add dim_red data to single trial data struct
                 % add single trial data to the dataset struct
                 datasets{i}.stdata{ii} = stdata;
+                
         end
         % add what data were used
         datasets{i}.dim_red_FR{ii}.data = params.data_pca;
+        
+        % add smoothed_FRs -- it will be the cropped one, if the data were
+        % cropped
+        datasets{i}.smoothed_FR{ii} = sfr;
     end
     
     % clean up
