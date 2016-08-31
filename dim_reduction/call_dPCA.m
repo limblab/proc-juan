@@ -2,13 +2,13 @@
 %
 %
 
-function call_dPCA( single_trial_data, neural_chs, labels, binned_data )
+function call_dPCA( single_trial_data, neural_chs )
 
 
 
 % check if the dimensions in single_trial_data are consistent
-if size(single_trial_data{1}.target{1}.neural_scores.smoothed_fr,2) ~= numel(neural_chs)
-    error('single trial data does not contained all the neural channels')
+if size(single_trial_data{1}.target{1}.neural_data.smoothed_fr,2) ~= numel(neural_chs)
+    error('single trial data does not include all the neural channels')
 end
 
 % make the target averaged responses for each task have equal length.
@@ -16,24 +16,30 @@ end
 % duration is only equalized for each task
 single_trial_data   = equalize_single_trial_dur( single_trial_data );
 
+
+% get rid of the last target, which is all the concatenated targets
+for i = 1:length(single_trial_data)
+    single_trial_data{i}.target(end) = [];
+end
+
 % ------------------------------------------------------------------------
 % 1. arrange the data (as described in dpca_demo)
 
 % N is the number of neurons
 % S is the number of conditions --> tasks in our case
 % D is the number of decisions --> targets in our case
-%       ToDo: see if it can be different for each task
+%       ToDo: so far we are choosing the min, but see if they can be different for each task
 % T is the number of time points --each trial should have the same duration
 % in time !!!
 N                   = numel(neural_chs);
 S                   = numel(single_trial_data);
-D                   = numel(single_trial_data{1}.target);
-T                   = size(single_trial_data{1}.target{1}.neural_scores.data,1);
+D                   = min(cellfun(@(x) length(x.target), single_trial_data));
+T                   = size(single_trial_data{1}.target{1}.neural_data.fr,1);
 % max number of repetitions
 max_trial_num       = 0;
 for i = 1:S
-    if max(cellfun(@(x) size(x.neural_scores.data,3), single_trial_data{1}.target )) > max_trial_num;
-        max_trial_num = max(cellfun(@(x) size(x.neural_scores.data,3), single_trial_data{1}.target ));
+    if max(cellfun(@(x) size(x.neural_data.fr,3), single_trial_data{1}.target )) > max_trial_num;
+        max_trial_num = max(cellfun(@(x) size(x.neural_data.fr,3), single_trial_data{1}.target ));
     end
 end
 
@@ -47,10 +53,9 @@ firing_rates        = nan(N,S,D,T,max_trial_num);
 for n = 1:N
     for s = 1:S
         for d = 1:D
-            % AQUI
-            trials_this = size(single_trial_data{s}.target{d}.neural_scores.smoothed_fr(:,n,:),3);
+            trials_this = size(single_trial_data{s}.target{d}.neural_data.smoothed_fr(:,n,:),3);
             firing_rates(n,s,d,:,1:trials_this) = ...
-                squeeze(single_trial_data{s}.target{d}.neural_scores.smoothed_fr(:,n,:));
+                squeeze(single_trial_data{s}.target{d}.neural_data.smoothed_fr(:,n,:));
         end
     end
 end
@@ -79,7 +84,7 @@ time_events         = 1;
 
 % ------------------------------------------------------------------------
 % 2. Do dPCA without regularization
-num_comps           = 20;
+num_comps           = 15;
 
 [W, V, which_marg]  = dpca( firing_rates_avg, num_comps, 'combinedParams', combined_params );
 
@@ -96,7 +101,7 @@ dpca_plot(firing_rates_avg, W, V, @dpca_plot_default, ...
     'timeMarginalization', 3, ...
     'legendSubplot', 16);                
 
-------------------------------------------------------------------------
+% ------------------------------------------------------------------------
 % 2. Do dPCA in each marginalization separately 
 
 dpca_perMarginalization(firing_rates_avg, @dpca_plot_default, ...
