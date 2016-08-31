@@ -1,11 +1,7 @@
 
 
-function results = batch_cross_manifold_proj( varargin )
+function proj_results = batch_cross_manifold_proj( varargin )
 
-
-% -------------------------------------------------------------------------
-% some options that could be turn into fcn params
-dim_manifold            = 20; % the neural manifolds are defined by the first 20 dimensions
 
 
 % -------------------------------------------------------------------------
@@ -21,8 +17,14 @@ else
     path                = pwd;
 end
 
-if nargin == 2
+if nargin >= 2
     angle_results       = varargin{2};
+end
+
+if nargin == 3
+    params              = varargin{3};
+else
+    params              = batch_cross_manifold_proj_params_defaults;
 end
 
 clear varargin;
@@ -50,20 +52,132 @@ for i = 1:meta_info.nbr_monkeys
      
     for ii = 1:meta_info.nbr_sessions_per_monkey(i)
         
-        % what dataset are we looking at?
+        % what dataset (monkey and session) are we looking at?
         dtst            = meta_info.sessions_per_monkey{i}(ii);
 
-        pc_projs        = transform_and_compare_dim_red_data_all_tasks( ...
+        % compare projections onto each of the dimensions of the within
+        % task and the across task manifold in two cases:
+        %   1) ranking the eigenvectors in the way that yielded the highest
+        %   dimensional, non-orthogonal manifolds ('pc_projs')
+        %   2) using the alternative eigenvector ranking ('pc_projs_pair2')
+        [pc_projs, pc_projs_pair2] = transform_and_compare_dim_red_data_all_tasks( ...
                             datasets{dtst}.dim_red_FR, ...
                             datasets{dtst}.smoothed_FR, ...
                             datasets{dtst}.labels, ...
                             datasets{dtst}.neural_chs, ...
-                            dim_manifold, ...
+                            params.dim_manifold, ...
                             'min_angle', ...
-                            angle_results.data{dtst}.angles.pair_min_angle );
+                            angle_results.data{dtst}.angles_manifolds.pair_min_angle );
                         
         % store all results
         proj_comp{dtst} = pc_projs; 
+        proj_comp_p2{dtst} = pc_projs_pair2;
+        
+        
+        % plot r and R2 and corresponding eigenvectors for both
+        if params.plot_p_pair
+            
+            for j = 1:length(pc_projs)
+                ttl = datasets{dtst}.monkey; 
+                ttl = [ttl ' ' char(angle_results.data{dtst}.angles_manifolds.pair_min_angle{j}(1)) ...
+                    ' - ' char(angle_results.data{dtst}.angles_manifolds.pair_min_angle{j}(2))];
+                figure('units','normalized','outerposition',[1/8 1/4 3/4 1/2]),
+                subplot(131),hold on, 
+                plot(pc_projs(j).r,'linewidth',3,'color','b'),plot(pc_projs_pair2(j).r,'r','linewidth',3)
+                ylabel('r'),xlabel('principal axis'),
+    %             plot(find(pc_projs(j).P_r<0.001),ones(1,length(find(pc_projs(j).P_r<0.001))),'linestyle','none','marker','.','markersize',10,'color','b')
+    %             plot(find(pc_projs_pair2(j).P_r<0.001),1.05*ones(1,length(find(pc_projs_pair2(j).P_r<0.001))),'linestyle','none','marker','.','markersize',10,'color','r')
+                plot(max(pc_projs(j).r_chance),'linewidth',3,'color','c','linestyle',':')
+                plot(max(pc_projs_pair2(j).r_chance),'r','linewidth',3,'color',[1 .6 0],'linestyle',':')
+                plot(max(pc_projs(j).r_other_projs),'linewidth',3,'color','c','linestyle','-.')
+                plot(max(pc_projs_pair2(j).r_other_projs),'linewidth',3,'color',[1 .6 0],'linestyle','-.')
+                legend('min angle','max angle','shuf min angle','shuf max angle',...
+                    'max other PC','max other PC','Location','NorthEast'), legend boxoff
+                ylim([0 1])
+                set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+                title(ttl)
+
+                subplot(132),hold on, plot(pc_projs(j).R2,'linewidth',3),plot(pc_projs_pair2(j).R2,'r','linewidth',3)
+                plot(max(pc_projs(j).R2_chance),'linewidth',3,'color','c','linestyle',':')
+                plot(max(pc_projs_pair2(j).R2_chance),'r','linewidth',3,'color',[1 .6 0],'linestyle',':')
+                plot(max(pc_projs(j).R2_other_projs),'linewidth',3,'color','c','linestyle','-.')
+                plot(max(pc_projs_pair2(j).R2_other_projs),'linewidth',3,'color',[1 .6 0],'linestyle','-.')
+                set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+                ylim([0 1]),ylabel('R^2')
+
+                subplot(133),hold on
+                plot([0 30],[0 30],'color',[.6 .6 .6],'linewidth',3)
+                plot(pc_projs(j).comp_nbr(:,2),pc_projs_pair2(j).comp_nbr(:,2),'.k','markersize',20),
+                xlabel('matched eigenv min angle'),ylabel('matched eigenv max angle')
+                set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+            end
+        end
     end
 end
 
+
+% -------------------------------------------------------------------------
+% Return results
+
+for d = 1:length(datasets)
+    proj_results{d}.min_manifold_angle_pair = proj_comp{d};
+    proj_results{d}.max_manifold_angle_pair = proj_comp_p2{d};
+end
+
+
+
+% -------------------------------------------------------------------------
+% Some checks to see if the dimension that defines the smallest angle also
+% gives the maximum cross-task projection similarity
+
+for d = 1:length(datasets)
+    
+    for p = 1:length(proj_results{d}.min_manifold_angle_pair)
+    
+        % find maximum correlation when projecting on other dimensions
+        [max_r_other_min_mani_angle, eigenv_max_r_other_min_mani_angle] = ...
+                    max(proj_results{d}.min_manifold_angle_pair(p).r_other_projs);
+        [max_r_other_max_mani_angle, eigenv_max_r_other_max_mani_angle] = ...
+                    max(proj_results{d}.max_manifold_angle_pair(p).r_other_projs);
+
+        % compare this max correlation to the correlation onto the direction that
+        % defines the smallest angle
+        indx_higher_r_than_corr_eigenv_min_mani = find( max_r_other_min_mani_angle > ...
+            proj_results{d}.min_manifold_angle_pair(p).r );
+        indx_higher_r_than_corr_eigenv_max_mani = find( max_r_other_max_mani_angle > ...
+                    proj_results{d}.max_manifold_angle_pair(p).r );
+
+        figure,
+        subplot(121),hold on
+        plot(proj_results{d}.min_manifold_angle_pair(p).r,'linewidth',2,'color','b')
+        plot(proj_results{d}.max_manifold_angle_pair(p).r,'linewidth',2,'color','k')
+        plot(max_r_other_min_mani_angle,'linewidth',2,'color','c')
+        plot(max_r_other_max_mani_angle,'linewidth',2,'color',[.6 .6 .6])
+        legend('min mani angle','max mani angle','opt other min mani','opt other max mani')
+        legend boxoff
+        set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+        xlim([0 10])
+        title([meta_info.tasks_per_session{d}{proj_results{d}.min_manifold_angle_pair(p).within_task}, ...
+            ' vs. ' meta_info.tasks_per_session{d}{proj_results{d}.min_manifold_angle_pair(p).across_task}]);
+        
+        subplot(122),hold on
+        plot(proj_results{d}.min_manifold_angle_pair(p).comp_nbr(:,2),'linewidth',2,'color','b')
+        plot(proj_results{d}.max_manifold_angle_pair(p).comp_nbr(:,2),'linewidth',2,'color','k')
+        plot(eigenv_max_r_other_min_mani_angle,'linewidth',2,'color','c')
+        plot(eigenv_max_r_other_max_mani_angle,'linewidth',2,'color',[.6 .6 .6])
+        legend('min mani angle','max mani angle','opt other min mani','opt other max mani')
+        legend boxoff
+        set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+        xlim([0 10])
+    end
+end
+    
+% -------------------------------------------------------------------------
+% Plot to compare the dimension that gives the smallest angle between manifolds
+% and the dimensions that gives the most correlated cross-task projection
+for d = 1:length(datasets)
+   
+    figure,hold on
+    plot(proj_results{d}.min_manifold_angle_pair.comp_nbr(:,2),'b')
+    plot(proj_results{d}.max_manifold_angle_pair.comp_nbr(:,2),'r')
+end
