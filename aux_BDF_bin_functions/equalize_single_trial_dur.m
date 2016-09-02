@@ -7,7 +7,7 @@
 %
 %
 
-function single_trial_data   = equalize_single_trial_dur( single_trial_data )
+function single_trial_data   = equalize_single_trial_dur( single_trial_data, varargin )
 
 
 % -------------------------------------------------------------------------
@@ -98,7 +98,7 @@ for i = 1:numel(single_trial_data)
         end
         % -------------------
         % for the dim reduced neural data
-        if exist('neural_dim_red','var')
+        if exist('neural_dim_red_names','var')
             for f = 1:numel(neural_dim_red_names)
                 data_orig = single_trial_data{i}.target{t}.neural_data.dim_red.(neural_dim_red_names{f});
                 % resample if the data are single trials (e.g., not
@@ -112,7 +112,7 @@ for i = 1:numel(single_trial_data)
         end
         % -------------------
         % for the dim reduced EMG data
-        if exist('emg_dim_red','var')
+        if exist('emg_dim_red_names','var')
             for f = 1:numel(emg_dim_red_names)
                 data_orig = single_trial_data{i}.target{t}.neural_data.dim_red.(emg_dim_red_names{f});
                 % resample if the data are single trials (e.g., not
