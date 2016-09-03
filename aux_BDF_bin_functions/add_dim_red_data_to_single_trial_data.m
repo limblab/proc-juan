@@ -1,6 +1,30 @@
 %
-% add dimensionally reduced neural and EMG data to a single trial data
-% struct 
+% Add dimensionally reduced neural and EMG data to a single_trial_data
+% struct.
+%
+%   function single_trial_data = add_dim_red_data_to_single_trial_data( ...
+%                               single_trial_data, varargin )
+%
+% Inputs (opt)          : [default]
+%   single_trial_data   : single_trial_data struct, to which the data will
+%                           be added
+%   neural_data         : [empty] the dimensionally-reduced neural data
+%                           that will be added. It has to be a dim_red_FR
+%                           struct (generated with dim_reduction.m) 
+%   emg_data            : [empty] the dimensionally-reduced emg data that
+%                           will be added. It has to be a dim_red_emg
+%                           struct (generated with dim_reduction_muscles.m)
+% 
+% Outputs:
+%   single_trial_data   : the input struct with the added fields
+%
+%
+%
+% Note: 
+%   - Not adding the "real time" to the time in dim_red_emg /
+%   dim_red_neural structs, because it is measured w.r.t
+%   cropped_binned_data (rather than binned_data), which means that targets
+%   may start back to back  
 %
 
 function single_trial_data = add_dim_red_data_to_single_trial_data( ...
@@ -60,8 +84,8 @@ if neural_data_yn
         % all concatenated trials
         single_trial_data.target{t}.neural_data.dim_red.scores = ...
             neural_data.scores(single_trial_data.target{t}.bin_indx,:); 
-        single_trial_data.target{t}.neural_data.dim_red.t = ...
-            neural_data.t(single_trial_data.target{t}.bin_indx);
+%         single_trial_data.target{t}.neural_data.dim_red.t = ...
+%             neural_data.t(single_trial_data.target{t}.bin_indx);
         
         % add mean and SD scores
         single_trial_data.target{t}.neural_data.dim_red.st_scores_mn = ...
@@ -77,7 +101,7 @@ if neural_data_yn
     % init vectors to concatenate data
     aux_st_scores       = single_trial_data.target{1}.neural_data.dim_red.st_scores;
     aux_scores          = single_trial_data.target{1}.neural_data.dim_red.scores;
-    aux_t               = single_trial_data.target{1}.neural_data.dim_red.t;
+%     aux_t               = single_trial_data.target{1}.neural_data.dim_red.t;
     
     aux_st_scores_mn    = single_trial_data.target{1}.neural_data.dim_red.st_scores_mn;
     aux_st_scores_sd    = single_trial_data.target{1}.neural_data.dim_red.st_scores_sd;
@@ -92,12 +116,12 @@ if neural_data_yn
     for t = 2:nbr_targets
         aux_st_scores  	= cat(3,aux_st_scores,single_trial_data.target{t}.neural_data.dim_red.st_scores);
         aux_scores      = cat(1,aux_scores,single_trial_data.target{t}.neural_data.dim_red.scores);
-        aux_t           = cat(1,aux_t,single_trial_data.target{t}.neural_data.dim_red.t);
+%         aux_t           = cat(1,aux_t,single_trial_data.target{t}.neural_data.dim_red.t);
         
         aux_st_scores_mn = cat(1,aux_st_scores_mn,single_trial_data.target{t}.neural_data.dim_red.st_scores_mn);
         aux_st_scores_sd = cat(1,aux_st_scores_sd,single_trial_data.target{t}.neural_data.dim_red.st_scores_sd);
     end
-    single_trial_data.target{end}.neural_data.dim_red.t = aux_t;
+%     single_trial_data.target{end}.neural_data.dim_red.t = aux_t;
     single_trial_data.target{end}.neural_data.dim_red.scores = aux_scores;
     
     single_trial_data.target{end}.neural_data.dim_red.eigen = ...
