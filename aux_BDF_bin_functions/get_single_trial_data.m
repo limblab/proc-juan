@@ -465,7 +465,7 @@ for i = 1:nbr_targets
     
     % add info about emgs and neurons
     STD{i}.neural_data.neural_chs = neural_chs;
-    STD{i}.emg_data.emg_names = binned_data.emgguide;
+    STD{i}.emg_data.emg_names = binned_data.emgguide(emg_chs);
 end
 
 
