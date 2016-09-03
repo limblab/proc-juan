@@ -283,7 +283,9 @@ for i = 1:nbr_bdfs
             
             % -------------------        
             % Update other stuff and meta info
-            warning('force data not cut')
+            if isfield(single_trial_data.target{t},'force')
+                warning('force data not cut');
+            end
             warning('some meta info not updated');
                 
                 
@@ -366,7 +368,7 @@ for i = 1:nbr_bdfs
                         % resample if the data are single trials (e.g., not
                         % concatenated), in which case they'll have the same length
                         if size(data_orig,1) == nbr_bins_dataset(i)
-                            data_new = single_trial_data{i}.target{t}.pos.(pos_names{f})(indx_to_keep(i,:),:);
+                            data_new = single_trial_data{i}.target{t}.pos.(pos_names{f})(indx_to_keep(i,:),:,:);
                             single_trial_data{i}.target{t}.pos.(pos_names{f}) = data_new;
                         end
                     end
@@ -380,7 +382,7 @@ for i = 1:nbr_bdfs
                         % resample if the data are single trials (e.g., not
                         % concatenated), in which case they'll have the same length
                         if size(data_orig,1) == nbr_bins_dataset(i)
-                            data_new = single_trial_data{i}.target{t}.vel.(vel_names{f})(indx_to_keep(i,:),:);
+                            data_new = single_trial_data{i}.target{t}.vel.(vel_names{f})(indx_to_keep(i,:),:,:);
                             single_trial_data{i}.target{t}.vel.(vel_names{f}) = data_new;
                         end
                     end
@@ -396,7 +398,9 @@ for i = 1:nbr_bdfs
                 
                 % give warning that cutting force data is not yet
                 % implemented
-                warning('force data not cut');
+                if isfield(single_trial_data{i}.target{t},'force')
+                    warning('force data not cut');
+                end
             end
     end
 end
