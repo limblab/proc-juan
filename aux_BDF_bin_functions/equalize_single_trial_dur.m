@@ -40,6 +40,7 @@ if nargin >= 2
     mode                = varargin{1};
 else
     mode                = 'min_dur';
+    disp('time warping single trials to the duration of the shortest ones')
 end
 if strcmp(mode,'time_win')
     if nargin ~= 3, 
@@ -96,7 +97,8 @@ switch mode
         % Some checks to undestand what happens if the code breaks
         
         % check that the time windows are exact multiples of the bin size
-        if sum(rem(time_window,bin_size)) > 0
+        % the trick of multiplying by 1000 is to avoid problems with rem
+        if sum(rem(time_window*1000,bin_size*1000)) > 0
             error('the times in time_window have to be a multiple of the bin size');
         end
         % check that all of the tasks (BDFs) have trials longer than the
@@ -116,14 +118,13 @@ switch mode
         
         % -----------------------------------------------------------------
         % define matrix with the indexes of the bins to keep:
-        indx_to_keep    = zeros( nbr_bdfs, (time_window(2)-time_window(1)+bin_size)/bin_size );
+        new_nbr_bins    = (time_window(2)-time_window(1)+bin_size)/bin_size;
+        indx_to_keep    = zeros( nbr_bdfs, new_nbr_bins );
         start_indx      = cellfun(@(y) find(y,1), cellfun( @(x) x.target{1}.t==time_window(1), ...
                             single_trial_data, 'UniformOutput',false ) );
         end_indx        = cellfun(@(y) find(y,1), cellfun( @(x) x.target{1}.t==time_window(2), ...
                             single_trial_data, 'UniformOutput',false ) );
-        
-        new_nbr_bins    = numel(start_indx(1):end_indx(1));
-                    
+                            
         for i = 1:nbr_bdfs
             indx_to_keep(i,:) = start_indx(i):1:end_indx(i);
         end
@@ -278,8 +279,14 @@ for i = 1:nbr_bdfs
                     end
                 end
             end
+
             
-            
+            % -------------------        
+            % Update other stuff and meta info
+            warning('force data not cut')
+            warning('some meta info not updated');
+                
+                
         % -----------------------------------------------------------------
         % for cutting the trials between certain t_init and t_end
         
@@ -287,7 +294,7 @@ for i = 1:nbr_bdfs
             
             %--------------------------------------------------------------
             % resample the data for each target
-            for t = 1:numel(single_trial_data{t})
+            for t = 1:numel(single_trial_data{i}.target)
                
                 % cut the time vector
                 single_trial_data{i}.target{t}.t = single_trial_data{i}.target{t}.t(indx_to_keep(i,:));
@@ -378,6 +385,18 @@ for i = 1:nbr_bdfs
                         end
                     end
                 end
+                
+                
+                % -------------------        
+                % Update other stuff and meta info
+                
+                single_trial_data{i}.target{t}.bin_indx_p_trial = ...
+                    single_trial_data{i}.target{t}.bin_indx_p_trial(indx_to_keep(i,:),:);
+                
+                
+                % give warning that cutting force data is not yet
+                % implemented
+                warning('force data not cut');
             end
     end
 end
