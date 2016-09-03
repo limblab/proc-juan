@@ -44,7 +44,7 @@
 % ToDo's
 %   - allow the user to pass a BDF instead of a binned_data struct, since
 %   the functions inside can take binned_data structs
-%
+%   - implement retrieving force data
 
 
 function single_trial_data = get_single_trial_data( binned_data, task, varargin )
@@ -514,6 +514,7 @@ aux_bin_indx_p_trial        = STD{1}.bin_indx_p_trial;
 
 % concatenate trials in 'aux' vars
 for i = 2:nbr_targets
+    
     aux_fr                  = cat(3,aux_fr,STD{i}.neural_data.fr);
     aux_fr_m                = cat(1,aux_fr_m,STD{i}.neural_data.mn);
     aux_fr_sd               = cat(1,aux_fr_sd,STD{i}.neural_data.sd);
