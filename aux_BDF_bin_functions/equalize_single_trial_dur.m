@@ -405,3 +405,13 @@ for i = 1:nbr_bdfs
     end
 end
 
+
+% -------------------------------------------------------------------------
+% overwrite the concatenated fields
+
+for i = 1:nbr_bdfs
+   
+    single_trial_data{i} = concatenate_single_trials( single_trial_data{i} );
+end
+
+end
