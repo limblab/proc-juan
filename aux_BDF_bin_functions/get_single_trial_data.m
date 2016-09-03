@@ -10,10 +10,10 @@
 %                       empty
 %   task            : task the monkey performed. So far compatible with
 %                       'wf', 'mg', 'ball'
-%   (trial_norm)    : ['stretch'] how the trials will be averaged:
-%                       'stretch': resampled ot the duration of the
-%                       shortest trial; 'min_dur': cropped to the duration
-%                       of the shortest trial
+%   (trial_norm)    : ['min_dur'] how the trials will be averaged:
+%                       't_warp': resampled ot the duration of the
+%                       shortest trial (time warping); 'min_dur': cropped
+%                       to the duration of the shortest trial
 %   (neural_chs)    : [all] Neural chs that will be used. All if empty
 %   (emg_chs)       : [all] EMG chs that will be used. All if empty
 %   (w_i)           : ['ot_on'] word that defines trial start ('ot_on', 
@@ -87,7 +87,7 @@ if ~exist('w_i','var')
     w_f                     = 'R';
 end
 if ~exist('trial_norm','var')
-    trial_norm              = 'stretch';
+    trial_norm              = 'min_dur';
 end
 if ~exist('neural_chs','var')
    neural_chs               = 1:size(binned_data.spikeratedata,2); 
@@ -133,7 +133,7 @@ bin_size                    = min(diff(binned_data.timeframe));
 bin_size                    = round(bin_size*100)/100;
 
 % get information about targets: how many and coordinates
-[nbr_targets, target_coord, target_id] = get_targets( cropped_binned_data, task, false );
+[nbr_targets, ~, target_id] = get_targets( cropped_binned_data, task, false );
 
 % chop the dim_red_data to the same bins, if present
 if dim_red_data_yn
@@ -168,7 +168,7 @@ trial_dur(2:nbr_trials)     = diff(end_indx)*bin_size;
 % check that the trials have been retrieved as they should
 % Note: because of the binning, sometimes the last target(s) are missing
 while cropped_binned_data.trialtable(end,end-1)-cropped_binned_data.timeframe(end) > 0
-    warning('last target fall oustide the binned data')
+    warning('last target falls oustide the binned data')
     target_id(end)          = [];
     cropped_binned_data.trialtable(end,:) = [];
 end
@@ -187,9 +187,9 @@ switch trial_norm
     % only take the data from t = 0 : min(duration_all_trials_this_target)
     case 'min_dur'
         st_dur              = min(trial_dur);
-    % 'stretch' all trials in the time domain, so they last the same as
+    % 't_warp' all trials in the time domain, so they last the same as
     % the shortest trial
-    case 'stretch'
+    case 't_warp'
         % st_dur      = ceil(max((trial_dur(trials_this_target)))/bin_size)*bin_size;
         st_dur              = ceil(min(trial_dur)/bin_size)*bin_size;
 end
@@ -219,7 +219,7 @@ for i = 1:nbr_targets
     % get nbr of bins per trial
     nbr_bins                = round(st_dur/bin_size);
 
-    bin_indx_p_trial        = zeros(nbr_bins,length(trials_this_tgt));
+%    bin_indx_p_trial        = zeros(nbr_bins,length(trials_this_tgt));
     
     
     % FIX: create an offset variable that will be adapted if trials are
@@ -338,10 +338,10 @@ for i = 1:nbr_targets
                                 aux_start:aux_end,:);
                 end
                                 
-            case 'stretch'
+            case 't_warp'
                 
                 % -----------------
-                % 1. find trial end: for 'stretch is the real end of the
+                % 1. find trial end: for 't_warp is the real end of the
                 % trial; afterwards the code will make all the trials equal
                 % length
                 aux_end             = aux_start + trial_dur(trials_this_tgt(t))/bin_size - 1;
