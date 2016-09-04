@@ -78,7 +78,7 @@ for i = 1:meta_info.nbr_monkeys
         % 1) angles between pairs of eigenvectors --show angles and
         % corresponding eigenvectors with each of the tasks as reference
         
-        % get non-orthogonality angle
+        % get non-orthogonality angle for 1D vectors in the n-dimensional space
         angle_orth      = empir_angle_dist_all.angle_non_orth_001{ ...
             find( empir_angle_dist_all.space_dim == ...
             length(datasets{dtst}.dim_red_FR{1}.chs) )}(1);
@@ -88,6 +88,10 @@ for i = 1:meta_info.nbr_monkeys
             datasets{dtst}.dim_red_FR, 1:dim_manifold, datasets{dtst}.labels, ...
             angle_orth );
         
+        % compute principal angles
+%         princ_angles    = principal_angles_all_manifolds( datasets{dtst}.dim_red_FR, ...
+%                             1:dim_manifold, datasets{dtst}.labels, angle_orth );
+%         
         % -----------------------------------------------------------------
         % 2) angles between manifolds
         [angles, ~, ~, empir_angle_dist] = comp_neural_manifolds( ...
