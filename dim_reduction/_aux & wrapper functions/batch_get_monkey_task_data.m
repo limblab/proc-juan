@@ -92,7 +92,7 @@ for m = 1:meta.nbr_monkeys
             meta.task_pairs.session(ctr) = meta.sessions_per_monkey{m}(s);
             
             meta.task_pairs.task_pair{ctr} = meta.tasks_per_session{meta.sessions_per_monkey{m}(s)}(pairs_this_session(p,:)); 
-            
+                        
             % sort tasks alphabetically
             meta.task_pairs.task_pair{ctr} = sort(meta.task_pairs.task_pair{ctr});
             
@@ -132,6 +132,18 @@ meta.task_pairs.unique_pairs = cellfun(@(x) sort(x),meta.task_pairs.unique_pairs
                                 'UniformOutput',false);
 
 
+% add a number to identify each task pair. This will give an array that
+% will make plotting and sorting things easier
+meta.task_pairs.task_pair_nbr   = zeros(1,nbr_tasks_pairs);
+for i = 1:length(meta.task_pairs.task_pair)
+    for ii = 1:length(meta.task_pairs.unique_pairs)
+        if sum( strcmpi(meta.task_pairs.task_pair{i},meta.task_pairs.unique_pairs{ii}) ) == 2
+            meta.task_pairs.task_pair_nbr(i) = ii;
+        end
+    end
+end
+
+                            
 % -------------------------------------------------------------------------
 % Some summary stuff
 
