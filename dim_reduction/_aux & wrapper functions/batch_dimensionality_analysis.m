@@ -102,7 +102,7 @@ end
 % find the number of dimensions that explain a % of the variance for each
 % task and monkey
 
-perc_var            = [.6 .7 .8 .9];
+perc_var            = [.6 .7 .75 .8 .9];
 
 for m = 1:meta_info.nbr_monkeys
     for t = 1:length(meta_info.tasks_per_monkey{m})        
@@ -130,7 +130,7 @@ results             = dim_results;
 % realization of each task
 
 % get data for this percentage
-perc_plot           = .7;
+perc_plot           = .75;
 indx_perc_plot      = find(dim_results{1}.perc_var==perc_plot);
 % results will be stored in a 2D matrix with nbr_tasks rows per monkey, and
 % the monkeys ordered sequentially. The number of columns is 5, which is
@@ -163,7 +163,7 @@ aux_dim_perc(:,sum(aux_dim_perc,1)==0) = [];
 
 
 % convert aux_dim_perc into histograms
-x_dims_hist             = 1:15;
+x_dims_hist             = 1:20;
 counts_dims_hist        = zeros(size(aux_dim_perc,1),length(x_dims_hist)-1);
 for i = 1:size(aux_dim_perc,1)
     counts_dims_hist(i,:) = histcounts(aux_dim_perc(i,:),x_dims_hist);
@@ -241,25 +241,25 @@ for i = 1:meta_info.nbr_monkeys
 end
 
 
-% one figure with all meta_info.monkeys and meta_info.tasks
-linestyle_p_monkey = {'-',':','-.','--'};
-
-figure, hold on
-for i = 1:meta_info.nbr_monkeys
-    for ii = 1:numel(meta_info.sessions_per_monkey{i})
-        for iii = 1:length(meta_info.tasks_per_session{meta_info.sessions_per_monkey{i}(ii)})
-            % see what task it is
-            this_task   = meta_info.tasks_per_session{meta_info.sessions_per_monkey{i}(ii)}(iii);
-            % and assign color
-            this_color  = colors_p_task(find(strncmpi(meta_info.tasks, this_task, length(this_task) ),1),:);
-            % plot
-            plot(cumsum(datasets{meta_info.sessions_per_monkey{i}(ii)}.dim_red_FR{iii}.eigen)/...
-                sum(datasets{meta_info.sessions_per_monkey{i}(ii)}.dim_red_FR{iii}.eigen),...
-                'color',this_color,'linewidth',2,'linestyle',linestyle_p_monkey{i})
-            set(gca,'TickDir','out'), ylim([0 1]),set(gca,'FontSize',16)
-%            xlim([0 length(datasets{meta_info.sessions_per_monkey{i}(ii)}.dim_red_FR{iii}.eigen)]);
-            xlim([0 50])
-            xlabel('dimension'), ylabel('variance explained');
-        end
-    end
-end
+% % one figure with all meta_info.monkeys and meta_info.tasks
+% linestyle_p_monkey = {'-',':','-.','--'};
+% 
+% figure, hold on
+% for i = 1:meta_info.nbr_monkeys
+%     for ii = 1:numel(meta_info.sessions_per_monkey{i})
+%         for iii = 1:length(meta_info.tasks_per_session{meta_info.sessions_per_monkey{i}(ii)})
+%             % see what task it is
+%             this_task   = meta_info.tasks_per_session{meta_info.sessions_per_monkey{i}(ii)}(iii);
+%             % and assign color
+%             this_color  = colors_p_task(find(strncmpi(meta_info.tasks, this_task, length(this_task) ),1),:);
+%             % plot
+%             plot(cumsum(datasets{meta_info.sessions_per_monkey{i}(ii)}.dim_red_FR{iii}.eigen)/...
+%                 sum(datasets{meta_info.sessions_per_monkey{i}(ii)}.dim_red_FR{iii}.eigen),...
+%                 'color',this_color,'linewidth',2,'linestyle',linestyle_p_monkey{i})
+%             set(gca,'TickDir','out'), ylim([0 1]),set(gca,'FontSize',16)
+% %            xlim([0 length(datasets{meta_info.sessions_per_monkey{i}(ii)}.dim_red_FR{iii}.eigen)]);
+%             xlim([0 50])
+%             xlabel('dimension'), ylabel('variance explained');
+%         end
+%     end
+% end
