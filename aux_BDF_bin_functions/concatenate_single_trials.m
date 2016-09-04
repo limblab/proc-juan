@@ -112,20 +112,20 @@ for t = 1:length(single_trial_data.target)
     % add concatenated bin indexes
     single_trial_data.target{t}.bin_indx = reshape(single_trial_data.target{t}.bin_indx_p_trial,1,[]);
     
-    % overwrite the time vector associated to the "neural scores" keeping
-    % its integrity
-    if isfield(single_trial_data.target{t}.neural_data,'dim_red')
-    
-        aux_indx_trans      = find(diff(single_trial_data.target{t}.neural_data.dim_red.t) > ...
-                                single_trial_data.target{t}.bin_size*1.1);
-        aux_indx_trans      = [1; aux_indx_trans+1];
-        indx_dim_red_neural_t = zeros( size(single_trial_data.target{t}.neural_data.dim_red.st_scores,3),...
-                                size(single_trial_data.target{t}.neural_data.dim_red.st_scores,1) );
-        for ii = 1:length(aux_indx_trans)
-            indx_dim_red_neural_t(ii,:) = aux_indx_trans(ii) : aux_indx_trans(ii) + ...
-                                size(single_trial_data.target{t}.neural_data.dim_red.st_scores,1) - 1;
-        end
-        indx_dim_red_neural_t = sort(reshape(indx_dim_red_neural_t,1,[]));
+%     % overwrite the time vector associated to the "neural scores" keeping
+%     % its integrity
+%     if isfield(single_trial_data.target{t}.neural_data,'dim_red')
+%     
+%         aux_indx_trans      = find(diff(single_trial_data.target{t}.neural_data.dim_red.t) > ...
+%                                 single_trial_data.target{t}.bin_size*1.1);
+%         aux_indx_trans      = [1; aux_indx_trans+1];
+%         indx_dim_red_neural_t = zeros( size(single_trial_data.target{t}.neural_data.dim_red.st_scores,3),...
+%                                 size(single_trial_data.target{t}.neural_data.dim_red.st_scores,1) );
+%         for ii = 1:length(aux_indx_trans)
+%             indx_dim_red_neural_t(ii,:) = aux_indx_trans(ii) : aux_indx_trans(ii) + ...
+%                                 size(single_trial_data.target{t}.neural_data.dim_red.st_scores,1) - 1;
+%         end
+%         indx_dim_red_neural_t = sort(reshape(indx_dim_red_neural_t,1,[]));
 
 %         single_trial_data.target{t}.neural_data.dim_red.t = ...
 %             single_trial_data.target{t}.neural_data.dim_red.t(indx_dim_red_neural_t,1);
