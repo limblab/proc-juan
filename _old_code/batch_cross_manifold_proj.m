@@ -38,6 +38,12 @@ if ~exist('datasets','var')
 end
 
 
+% run 'angle' analysis as we need it for comparing the projections
+if ~exist('angle_results','var')
+    angle_results       = batch_angle_btw_neural_manifolds( datasets );
+end
+
+
 % -------------------------------------------------------------------------
 % get info about monkeys, tasks, and who did what
 
@@ -89,8 +95,8 @@ for i = 1:meta_info.nbr_monkeys
                 ylabel('r'),xlabel('principal axis'),
     %             plot(find(pc_projs(j).P_r<0.001),ones(1,length(find(pc_projs(j).P_r<0.001))),'linestyle','none','marker','.','markersize',10,'color','b')
     %             plot(find(pc_projs_pair2(j).P_r<0.001),1.05*ones(1,length(find(pc_projs_pair2(j).P_r<0.001))),'linestyle','none','marker','.','markersize',10,'color','r')
-                plot(max(pc_projs(j).r_chance),'linewidth',3,'color','c','linestyle',':')
-                plot(max(pc_projs_pair2(j).r_chance),'r','linewidth',3,'color',[1 .6 0],'linestyle',':')
+                plot(max(pc_projs(j).r_shuffled),'linewidth',3,'color','c','linestyle',':')
+                plot(max(pc_projs_pair2(j).r_shuffled),'r','linewidth',3,'color',[1 .6 0],'linestyle',':')
                 plot(max(pc_projs(j).r_other_projs),'linewidth',3,'color','c','linestyle','-.')
                 plot(max(pc_projs_pair2(j).r_other_projs),'linewidth',3,'color',[1 .6 0],'linestyle','-.')
                 legend('min angle','max angle','shuf min angle','shuf max angle',...
@@ -100,8 +106,8 @@ for i = 1:meta_info.nbr_monkeys
                 title(ttl)
 
                 subplot(132),hold on, plot(pc_projs(j).R2,'linewidth',3),plot(pc_projs_pair2(j).R2,'r','linewidth',3)
-                plot(max(pc_projs(j).R2_chance),'linewidth',3,'color','c','linestyle',':')
-                plot(max(pc_projs_pair2(j).R2_chance),'r','linewidth',3,'color',[1 .6 0],'linestyle',':')
+                plot(max(pc_projs(j).R2_shuffled),'linewidth',3,'color','c','linestyle',':')
+                plot(max(pc_projs_pair2(j).R2_shuffled),'r','linewidth',3,'color',[1 .6 0],'linestyle',':')
                 plot(max(pc_projs(j).R2_other_projs),'linewidth',3,'color','c','linestyle','-.')
                 plot(max(pc_projs_pair2(j).R2_other_projs),'linewidth',3,'color',[1 .6 0],'linestyle','-.')
                 set(gca,'Tickdir','out'),set(gca,'FontSize',14)
