@@ -73,6 +73,8 @@ for i = 1:meta_info.nbr_monkeys
         % what dataset are we looking at?
         dtst            = meta_info.sessions_per_monkey{i}(ii);
 
+        disp(['processing dataset #' num2str(dtst)]);
+
         
         % -----------------------------
         % compare the projections by doing CCA between all pairs of tasks
@@ -81,10 +83,30 @@ for i = 1:meta_info.nbr_monkeys
                             1:params.dim_manifold, datasets{dtst}.labels, ...
                             params.target, params.time_win(dtst,:) );
                         
-
+        
+        % -----------------------------
+        % If want to obtain confidence limit with bootstrapping
+        if params.do_bootstrap
+            signif_boots = zeros(length(can_corrs.lin_transform),params.dim_manifold);
+            for p = 1:length(can_corrs.lin_transform)
+                signif_boots(p,:) = bootstrap_canon_corr( can_corrs.lin_transform(p).U, ...
+                            can_corrs.lin_transform(p).V, params.nbr_shuffles_bootstrap,...
+                            params.prctile_bootstrap );
+            end
+        end
+                        
+                        
         % -----------------------------
         % store all results
+        
+        % the CCA results
         data{dtst}.can_corrs = can_corrs;
+        % bootstrapping results, if done
+        if params.do_bootstrap
+            data{dtst}.can_corrs.signif_boots = signif_boots;
+            data{dtst}.can_corrs.params_boots.prctile_signif = params.prctile_bootstrap;
+            data{dtst}.can_corrs.params_boots.nbr_shuffles = params.nbr_shuffles_bootstrap;
+        end
     end
 end
 
