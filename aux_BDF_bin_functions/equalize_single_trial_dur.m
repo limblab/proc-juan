@@ -24,6 +24,11 @@
 %                               duration for all tasks (and targets)
 %
 %
+% IMPORTANT NOTEs:
+%   - In the last target of each task, which is the concatenated targets,
+%   the trial averaged fields (e.g., fr_mn, emg_mn) have in each row the
+%   n-th trial of target 1, target 2, target m concantenated, and so on...
+%
 % ToDo's:
 %   - need to implement updating the fields with information in
 %   single_trial_data.m 
@@ -59,13 +64,21 @@ end
 
 
 % get number of samples of the average responses for each dataset
-nbr_bins_dataset        = cellfun(@(x) size(x.target{1}.neural_data.fr,1),single_trial_data);
+nbr_bins_dataset        = cellfun( @(x) size(x.target{1}.neural_data.fr,1), single_trial_data );
 
 % get nbr of BDFs (tasks/datasets)
 nbr_bdfs                = length(single_trial_data);
 
+% get nbr targets per BDF
+nbr_targets_p_task      = cellfun( @(x) length(x.target), single_trial_data ) - 1;
+
 % get bin size
 bin_size                = single_trial_data{1}.target{1}.bin_size;
+
+% get original number of bins per task
+nbr_bins_original       = cellfun( @(x) size(x.target{1}.neural_data.fr,1), single_trial_data );
+
+
 
 % generate new time vector depending on the mode for equalizing trial
 % duration that has been chosen  
@@ -120,11 +133,14 @@ switch mode
         % define matrix with the indexes of the bins to keep:
         new_nbr_bins    = (time_window(2)-time_window(1)+bin_size)/bin_size;
         indx_to_keep    = zeros( nbr_bdfs, new_nbr_bins );
-        start_indx      = cellfun(@(y) find(y,1), cellfun( @(x) x.target{1}.t==time_window(1), ...
+        start_indx      = cellfun(@(y) find( abs(y) < 1E-6 ), cellfun( @(x) (x.target{1}.t-time_window(1)), ...
                             single_trial_data, 'UniformOutput',false ) );
-        end_indx        = cellfun(@(y) find(y,1), cellfun( @(x) x.target{1}.t==time_window(2), ...
+%         aux             = cellfun( @(x) (x.target{1}.t-time_window(2)), ...
+%                             single_trial_data, 'UniformOutput',false );
+%         aux2            = cellfun( @(y) find( abs(y) < 1E-6), aux );
+        end_indx        = cellfun( @(y) find( abs(y) < 1E-6 ), cellfun( @(x) (x.target{1}.t-time_window(2)), ...
                             single_trial_data, 'UniformOutput',false ) );
-                            
+                        
         for i = 1:nbr_bdfs
             indx_to_keep(i,:) = start_indx(i):1:end_indx(i);
         end
@@ -404,6 +420,167 @@ for i = 1:nbr_bdfs
             end
     end
 end
+
+
+% -------------------------------------------------------------------------
+% Update some fields in the last target ('all targets')
+%
+% --Remember that the last target in the single_trial_struct is a little
+% bit different, as it is all the concatenated trials. The code above
+% doesn't cut all the variables so it's done here.
+% --Also, it is not necessary if the task only has a single target
+
+for i = 1:nbr_bdfs
+
+    % ----------------------------
+    % see there is more than one target, in which case we need to cut some
+    % of the variables
+    if nbr_targets_p_task(i) > 1
+        
+        % ------------------------
+        % get variables to edit
+        neural_names_end = fieldnames(single_trial_data{i}.target{end}.neural_data);
+        emg_names_end   = fieldnames(single_trial_data{i}.target{end}.emg_data);
+        if isfield(single_trial_data{i}.target{end},'pos')
+            pos_names_end = fieldnames(single_trial_data{i}.target{end}.pos);
+        end 
+        if isfield(single_trial_data{i}.target{end},'vel')
+            vel_names_end = fieldnames(single_trial_data{i}.target{end}.vel);
+        end 
+        if isfield(single_trial_data{i}.target{end},'force')
+            force_names_end = fieldnames(single_trial_data{i}.target{end}.force);
+        end 
+        if isfield(single_trial_data{i}.target{end}.neural_data,'dim_red')
+            neural_dim_red_names_end = fieldnames(single_trial_data{i}.target{end}.neural_data.dim_red);
+        end
+        if isfield(single_trial_data{i}.target{end}.emg_data,'dim_red')
+            emg_dim_red_names_end = fieldnames(single_trial_data{i}.target{end}.emg_data.dim_red);
+        end
+        
+        % ------------------------
+        % rewrite the necessary fields
+        
+        % neural data
+        for f = 1:numel(neural_names_end)
+            data_orig   = single_trial_data{i}.target{end}.neural_data.(neural_names_end{f});
+            % see if this is one of the variables that need to be
+            % overwritten, i.e. if it has data from concatenated trials (in
+            % which case its length will be multiple of the original
+            % nbr_bins)
+            if size(data_orig,1) == nbr_targets_p_task(i)*nbr_bins_original(i)
+                % concatenate the cut data
+                data_new = single_trial_data{i}.target{1}.neural_data.(neural_names_end{f});
+                for t = 2:nbr_targets_p_task(i)
+                    data_new = cat(1,data_new, single_trial_data{i}.target{t}.neural_data.(neural_names_end{f}) );
+                end
+                % and save them
+                single_trial_data{i}.target{end}.neural_data.(neural_names_end{f}) = data_new;
+            end
+        end
+        
+        % emg data
+        for f = 1:numel(emg_names_end)
+            data_orig   = single_trial_data{i}.target{end}.emg_data.(emg_names_end{f});
+            % see if this is one of the variables that need to be
+            % overwritten, i.e. if it has data from concatenated trials (in
+            % which case its length will be multiple of the original
+            % nbr_bins)
+            if size(data_orig,1) == nbr_targets_p_task(i)*nbr_bins_original(i)
+                % concatenate the cut data
+                data_new = single_trial_data{i}.target{1}.emg_data.(emg_names_end{f});
+                for t = 2:nbr_targets_p_task(i)
+                    data_new = cat(1,data_new, single_trial_data{i}.target{t}.emg_data.(emg_names_end{f}) );
+                end
+                % and save them
+                single_trial_data{i}.target{end}.emg_data.(emg_names_end{f}) = data_new;
+            end
+        end
+        
+        % dim red neural data
+        if exist('neural_dim_red_names_end','var')
+            for f = 1:numel(neural_dim_red_names_end)
+                data_orig   = single_trial_data{i}.target{end}.neural_data.dim_red.(neural_dim_red_names_end{f});
+                % see if this is one of the variables that need to be
+                % overwritten, i.e. if it has data from concatenated trials (in
+                % which case its length will be multiple of the original
+                % nbr_bins)
+                if size(data_orig,1) == nbr_targets_p_task(i)*nbr_bins_original(i)
+                    % concatenate the cut data
+                    data_new = single_trial_data{i}.target{1}.neural_data.dim_red.(neural_dim_red_names_end{f});
+                    for t = 2:nbr_targets_p_task(i)
+                        data_new = cat(1,data_new, single_trial_data{i}.target{t}.neural_data.dim_red.(neural_dim_red_names_end{f}) );
+                    end
+                    % and save them
+                    single_trial_data{i}.target{end}.neural_data.dim_red.(neural_dim_red_names_end{f}) = data_new;
+                end
+            end
+        end
+        
+        % dim red emg data
+        if exist('emg_dim_red_names_end','var')
+            for f = 1:numel(emg_dim_red_names_end)
+                data_orig   = single_trial_data{i}.target{end}.emg_data.dim_red.(emg_dim_red_names_end{f});
+                % see if this is one of the variables that need to be
+                % overwritten, i.e. if it has data from concatenated trials (in
+                % which case its length will be multiple of the original
+                % nbr_bins)
+                if size(data_orig,1) == nbr_targets_p_task(i)*nbr_bins_original(i)
+                    % concatenate the cut data
+                    data_new = single_trial_data{i}.target{1}.emg_data.dim_red.(emg_dim_red_names_end{f});
+                    for t = 2:nbr_targets_p_task(i)
+                        data_new = cat(1,data_new, single_trial_data{i}.target{t}.emg_data.dim_red.(emg_dim_red_names_end{f}) );
+                    end
+                    % and save them
+                    single_trial_data{i}.target{end}.emg_data.dim_red.(emg_dim_red_names_end{f}) = data_new;
+                end
+            end
+        end
+        
+        % pos data
+        if exist('pos_names_end','var')
+            for f = 1:numel(pos_names_end)
+                data_orig   = single_trial_data{i}.target{end}.pos.(pos_names_end{f});
+                % see if this is one of the variables that need to be
+                % overwritten, i.e. if it has data from concatenated trials (in
+                % which case its length will be multiple of the original
+                % nbr_bins)
+                if size(data_orig,1) == nbr_targets_p_task(i)*nbr_bins_original(i)
+                    % concatenate the cut data
+                    data_new = single_trial_data{i}.target{1}.pos.(pos_names_end{f});
+                    for t = 2:nbr_targets_p_task(i)
+                        data_new = cat(1,data_new, single_trial_data{i}.target{t}.pos.(pos_names_end{f}) );
+                    end
+                    % and save them
+                    single_trial_data{i}.target{end}.pos.(pos_names_end{f}) = data_new;
+                end
+            end
+        end
+        
+        % vel data
+        if exist('vel_names_end','var')
+            for f = 1:numel(vel_names_end)
+                data_orig   = single_trial_data{i}.target{end}.vel.(vel_names_end{f});
+                % see if this is one of the variables that need to be
+                % overwritten, i.e. if it has data from concatenated trials (in
+                % which case its length will be multiple of the original
+                % nbr_bins)
+                if size(data_orig,1) == nbr_targets_p_task(i)*nbr_bins_original(i)
+                    % concatenate the cut data
+                    data_new = single_trial_data{i}.target{1}.vel.(vel_names_end{f});
+                    for t = 2:nbr_targets_p_task(i)
+                        data_new = cat(1,data_new, single_trial_data{i}.target{t}.vel.(vel_names_end{f}) );
+                    end
+                    % and save them
+                    single_trial_data{i}.target{end}.vel.(vel_names_end{f}) = data_new;
+                end
+            end
+        end
+        
+        
+        
+    end
+end
+
 
 
 % -------------------------------------------------------------------------
