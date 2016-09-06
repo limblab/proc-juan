@@ -104,16 +104,38 @@ summary_data.canon_corrs = struct('pair',[meta_info.task_pairs.unique_pairs],...
                             'nbr_canon_corrs_above_chance',[],...
                             'cc',zeros(1,params.dim_manifold));
 
-% create array with all canonical correlations
-cc_matrix               = zeros(nbr_manifold_pairs,params.dim_manifold);
 
-for d = 1:length(can_corrs)
+                        
+% ------------------------
+% ToDo: replace this by bootstrapped estimates
+pooled_stats            = cell2mat(cellfun(@(y) y.can_corrs.stats, data,...
+                                'UniformOutput',false));
+pooled_P_vals           = cell2mat(arrayfun(@(x) x.p, pooled_stats,'UniformOutput',false)');
+
+
+% ------------------------
+% Fill 2D matrices with results, so it's easier to compile them
+
+% matrix with all canonical correlations
+nbr_projs_above_chance  = zeros(1,nbr_manifold_pairs);
+cc_matrix               = zeros(nbr_manifold_pairs,params.dim_manifold);
+ctr                     = 1;
+    
+for d = 1:length(data)
     for p = 1:size(data{d}.can_corrs.cc,1)
         
+        % get number of projections that are greater than change
+        % ToDo: implement bootstrapping to assess this
+        nbr_projs_above_chance(ctr) = sum( pooled_P_vals(ctr,:) < params.P_thr );
+        
+        % fill matrix with all CCs
+        cc_matrix(ctr,:) = data{d}.can_corrs.cc(p,:);
+        ctr             = ctr + 1;
     end
 end
-                        
-                        
+
+
+                    
 % ------------------------
 % summarize, for each pair of tasks (e.g., tube vs ball, or iso vs mov) the
 % canonical correlation for each pair of projections
@@ -127,9 +149,17 @@ for i = 1:nbr_manifold_pairs
             % store the canoncorrs per task. Just append each trial one
             % after the other
             if numel(unique(summary_data.canon_corrs(ii).cc)) == 1 
-                % summary_data.canon_corrs(ii).cc(1,:) = 
+                summary_data.canon_corrs(ii).cc(1,:) = cc_matrix(i,:);
             else
+                summary_data.canon_corrs(ii).cc = [summary_data.canon_corrs(ii).cc;
+                    cc_matrix(i,:)];
             end
+            % get nbr projections whose correlations are above chance
+            summary_data.canon_corrs(ii).nbr_canon_corrs_above_chance = [...
+                summary_data.canon_corrs(ii).nbr_canon_corrs_above_chance, ...
+            nbr_projs_above_chance(i)];
+        
+            break;
         end
    end
 end
@@ -138,7 +168,7 @@ end
 
 % -------------------------------------------------------------------------
 % return variable
-proj_results.data = can_corrs;
+proj_results.data = data;
 proj_results.summary_data = summary_data;
 
 
@@ -150,18 +180,28 @@ proj_results.summary_data = summary_data;
 colors                      = parula(nbr_pairs_tasks);
 
 figure, hold on
-for i = 2:nbr_pairs_tasks
-    these_angles            = rad2deg(summary_data.princ_angles(i).angles');
-    these_last_eig_below_thr = summary_data.princ_angles(i).nbr_eigenv_below_thr;
+for i = 1:nbr_pairs_tasks
+    these_ccs               = summary_data.canon_corrs(i).cc';
+    these_proj_below_chane  = summary_data.canon_corrs(i).nbr_canon_corrs_above_chance;
     
     % plot the traces
-	plot(these_angles,'color',colors(i,:),'linewidth',2)
+	plot(these_ccs,'color',colors(i,:),'linewidth',2)
     % and add markers showing the last dim below the randomness threshold
-    for ii = 1:size(these_angles,2)
-        plot(these_last_eig_below_thr(ii),these_angles(these_last_eig_below_thr(ii),ii),'marker','.','markersize',38,...
+    for ii = 1:size(these_ccs,2)
+        plot(these_proj_below_chane(ii),these_ccs(these_proj_below_chane(ii),ii),'marker','.','markersize',38,...
             'color',colors(i,:),'linestyle','none')
     end
 end
 set(gca,'Tickdir','out'),set(gca,'FontSize',14)
-xlabel('dimension'),ylabel('principal angle (deg)')
-xlim([0 dim_manifold+1]),ylim([0 90])
+xlabel('projection'),ylabel('canonical correlation')
+xlim([0 params.dim_manifold+1]),ylim([0 1])
+
+
+% 
+% % ---------------------------------------------
+% % P vals of CC
+% 
+% figure,plot(pooled_P_vals','color',[.6 .6 .6])
+% set(gca,'TickDir','out'), set(gca,'FontSize',14);
+% xlabel('projection'), ylabel('P val')
+% ylim([0 .01])
