@@ -44,7 +44,7 @@ nbr_bdfs                = length(single_trial_data);
 nbr_targets_p_task      = cellfun( @(x) length(x.target)-1, single_trial_data );
 
 % get the number of trials per target
-nbr_trials_p_target_n_task  = cellfun( @(x) size(x.target{1}.neural_data.fr,3), ...
+nbr_trials_p_target_n_task = cellfun( @(x) size(x.target{1}.neural_data.fr,3), ...
                                 single_trial_data );
 
 % and total number of targets of that task
@@ -56,18 +56,52 @@ total_nbr_trials_p_task = cellfun( @(x) size(x.target{end}.neural_data.fr,3), ..
 % cut to the selected number of trials, depending on what we want to
 % compare
 
+
 switch target
     case 'all_conc'
         target_to_edit  = nbr_targets_p_task + 1;
         nbr_trials_to_keep  = min(total_nbr_trials_p_task);
         % get number of trials to keep
-        nbr_trials_p_tgt_to_keep = repmat(nbr_trials_to_keep,1,2)./nbr_targets_p_task;
+        nbr_trials_p_tgt_to_keep = floor(repmat(nbr_trials_to_keep,1,nbr_bdfs)./nbr_targets_p_task);
     otherwise
         target_to_edit  = target;
         nbr_trials_p_tgt_to_keep = min(nbr_trials_p_target_n_task);
         warning('this mode has not been tested');
         pause;
 end
+
+
+
+
+% -------------------------------------------------------------------------
+% DIRTY FIX: fix possibly different number of trials across tasks with
+% different number of targets. In that case, and since the trials won't be
+% perfectly matched, just get rid of some trials of the last target
+if strcmp(target,'all_conc')
+    nbr_trials_final    = nbr_trials_p_tgt_to_keep.*nbr_targets_p_task;
+    if length(unique(nbr_trials_final)) > 1
+        warning('for some tasks the number of trials will not be balanced across targets so the total number is the same');
+    end
+    % keep nbr_trials_p_tgt_to_keep, and make a matrix with the nbr of
+    % trials to keep per target --note that this is compatible with the
+    % code to equalize nbr trials for one specific target
+    nbr_trials_p_tgt_to_keep_orig = nbr_trials_p_tgt_to_keep; 
+    nbr_trials_p_tgt_to_keep = zeros(max(nbr_targets_p_task),nbr_bdfs);
+    for i = 1:nbr_bdfs
+        nbr_trials_p_tgt_to_keep(1:nbr_targets_p_task(i),i) = nbr_trials_p_tgt_to_keep_orig(i);
+    end
+    % get rid of the necessary trials in the last column
+    nbr_trials_p_task_kept  = sum(nbr_trials_p_tgt_to_keep,1);
+    min_nbr_trials_across_tasks = min(nbr_trials_p_task_kept);
+    for i = 1:nbr_bdfs
+        if nbr_trials_p_task_kept(i) > min_nbr_trials_across_tasks
+            nbr_trials_p_tgt_to_keep( nbr_targets_p_task(i), i ) = ...
+                nbr_trials_p_tgt_to_keep( nbr_targets_p_task(i), i ) - ...
+                (nbr_trials_p_task_kept(i) - min_nbr_trials_across_tasks);
+        end
+    end
+end
+
 
 
 % -------------------------------------------------------------------------
@@ -95,7 +129,7 @@ if isfield(single_trial_data{1}.target{1},'force')
 end
 
 
-for i = 1:2
+for i = 1:nbr_bdfs
 
     % -----------------
     % neural data
@@ -106,7 +140,7 @@ for i = 1:2
             for t = 1:nbr_targets_p_task(i)
                 single_trial_data{i}.target{t}.neural_data.(neural_names{ii}) = ...
                     single_trial_data{i}.target{t}.neural_data.(neural_names{ii})...
-                    (:,:,1:nbr_trials_p_tgt_to_keep);
+                    (:,:,1:nbr_trials_p_tgt_to_keep(t,i));
             end
             % and for the concatenated target (last target in the struct)
             aux_cat     = single_trial_data{i}.target{1}.neural_data.(neural_names{ii});
@@ -126,7 +160,7 @@ for i = 1:2
             for t = 1:nbr_targets_p_task(i)
                 single_trial_data{i}.target{t}.emg_data.(emg_names{ii}) = ...
                     single_trial_data{i}.target{t}.emg_data.(emg_names{ii})...
-                    (:,:,1:nbr_trials_p_tgt_to_keep);
+                    (:,:,1:nbr_trials_p_tgt_to_keep(t,i));
             end
             % and for the concatenated target (last target in the struct)
             aux_cat     = single_trial_data{i}.target{1}.emg_data.(emg_names{ii});
@@ -147,7 +181,7 @@ for i = 1:2
                 for t = 1:nbr_targets_p_task(i)
                     single_trial_data{i}.target{t}.neural_data.dim_red.(neural_dim_red_names{ii}) = ...
                         single_trial_data{i}.target{t}.neural_data.dim_red.(neural_dim_red_names{ii})...
-                        (:,:,1:nbr_trials_p_tgt_to_keep);
+                        (:,:,1:nbr_trials_p_tgt_to_keep(t,i));
                 end
                 % and for the concatenated target (last target in the struct)
                 aux_cat     = single_trial_data{i}.target{1}.neural_data.dim_red.(neural_dim_red_names{ii});
@@ -169,7 +203,7 @@ for i = 1:2
                 for t = 1:nbr_targets_p_task(i)
                     single_trial_data{i}.target{t}.emg_data.dim_red.(emg_dim_red_names{ii}) = ...
                         single_trial_data{i}.target{t}.emg_data.dim_red.(emg_dim_red_names{ii})...
-                        (:,:,1:nbr_trials_p_tgt_to_keep);
+                        (:,:,1:nbr_trials_p_tgt_to_keep(t,i));
                 end
                 % and for the concatenated target (last target in the struct)
                 aux_cat     = single_trial_data{i}.target{1}.emg_data.dim_red.(emg_dim_red_names{ii});
@@ -191,7 +225,7 @@ for i = 1:2
                 for t = 1:nbr_targets_p_task(i)
                     single_trial_data{i}.target{t}.pos.(pos_names{ii}) = ...
                         single_trial_data{i}.target{t}.pos.(pos_names{ii})...
-                        (:,:,1:nbr_trials_p_tgt_to_keep);
+                        (:,:,1:nbr_trials_p_tgt_to_keep(t,i));
                 end
                 % and for the concatenated target (last target in the struct)
                 aux_cat     = single_trial_data{i}.target{1}.pos.(pos_names{ii});
@@ -213,7 +247,7 @@ for i = 1:2
                 for t = 1:nbr_targets_p_task(i)
                     single_trial_data{i}.target{t}.vel.(vel_names{ii}) = ...
                         single_trial_data{i}.target{t}.vel.(vel_names{ii})...
-                        (:,:,1:nbr_trials_p_tgt_to_keep);
+                        (:,:,1:nbr_trials_p_tgt_to_keep(t,i));
                 end
                 % and for the concatenated target (last target in the struct)
                 aux_cat     = single_trial_data{i}.target{1}.vel.(vel_names{ii});
@@ -229,6 +263,7 @@ for i = 1:2
     % Update other stuff and meta info
     
 end
+
 
 
 % -------------------------------------------------------------------------
