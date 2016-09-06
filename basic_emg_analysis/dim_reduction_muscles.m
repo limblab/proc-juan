@@ -43,6 +43,9 @@ end
 
 
 % get all EMGs
+if ~exist('chosen_emgs','var')
+    chosen_emgs         = 1:length(binned_data(1).emgguide);
+end
 if strcmp(chosen_emgs,'all')
     chosen_emgs         = 1:length(binned_data(1).emgguide);
 end
