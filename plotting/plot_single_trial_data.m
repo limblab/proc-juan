@@ -1,323 +1,168 @@
 %
 % Plot single trial data struct
 %
+%   function plot_single_trial_data( single_trial_data, var, params )
+%
+%
+% Inputs (opt)          : [default]
+%   single_trial_data   : single_trial_data struct
+%   var                 : variable to plot ('neuron', 'emg', 'neural PC',
+%                           'muscle synergy', 'pos', 'vel', 'force') 
+%   param               : what neurons/emgs/pcs/synergies/pos signals/vel
+%                           signals/force signals to plot
+%   (target)            : ['each'] target number: 'each') one plot per
+%                           target; scalar 1:n) target number; 'all') for
+%                           all concatenated trials
+%
+%
 
-function plot_single_trial_data(single_trial_data )
+function plot_single_trial_data( single_trial_data, var, params, varargin )
 
 
-
-
-% make these parameters
-neural_PCs              = 1:6;
-neural_PCs_vs_muscles   = 1:3;
-muscle_PCs              = 1:min(3,size(dim_red_emg.scores,2));
-
-plot_all                = false; % plot all or just mean +/- SD
-
-
-colors                  = parula(nbr_targets);
-
-% neural PCs only
-nbr_rows                = floor(sqrt(length(neural_PCs)));
-nbr_cols                = ceil(length(neural_PCs)/nbr_rows);
-max_score               = max(cell2mat(cellfun(@(x) max(max(max(abs(x.neural_scores.data(:,neural_PCs,:))))),...
-                            single_trial_data,'UniformOutput',false))); % improve coding !!
-
-figure('units','normalized','outerposition',[0 0 1 1])
-for i = 1:length(neural_PCs)
-   subplot(nbr_rows,nbr_cols,i), hold on
-   for t = 1:nbr_targets
-        t_axis           = 0:bin_size:(size(single_trial_data{t}.neural_scores.data,1)...
-                            -1)*bin_size;
-        if plot_all
-            plot(t_axis,squeeze(single_trial_data{t}.neural_scores.data(:,neural_PCs(i),:)),...
-                'color',colors(t,:));
-        else
-            plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs(i)),...
-                            'color',colors(t,:),'linewidth',6);
-            plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs(i)) + ...
-                single_trial_data{t}.neural_scores.sd(:,neural_PCs(i)), ...
-                'color',colors(t,:),'linewidth',2,'linestyle','-.');
-            plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs(i)) - ...
-                single_trial_data{t}.neural_scores.sd(:,neural_PCs(i)), ...
-                'color',colors(t,:),'linewidth',2,'linestyle','-.');
-        end
-        clear t_axis;
-        ylim([-max_score, max_score])
-   end
-   set(gca,'TickDir','out'),set(gca,'FontSize',14); 
-   title(['neural comp ' num2str(neural_PCs(i))]);
-   if i == 1 || rem(i-1,nbr_cols) == 0
-       ylabel('a.u.','FontSize',14)
-   end
-   if i > nbr_cols*(nbr_rows-1)
-       xlabel('time (s)','FontSize',14)
-   end
+% -------------------------------------------------------------------------
+% read inputs
+if nargin == 4
+    target              = varargin{1};
+else
+    target              = 'each';
 end
 
 
 
-% neural PCs vs muscles
-nbr_rows                = floor(sqrt(length([neural_PCs_vs_muscles, muscle_PCs])));
-nbr_cols                = ceil(length([neural_PCs_vs_muscles, muscle_PCs])/nbr_rows);
+% -------------------------------------------------------------------------
+% get some info about what to plot 
 
-max_score               = max(cell2mat(cellfun(@(x) max(max(max(abs(x.neural_scores.data(:,neural_PCs,:))))),...
-                            single_trial_data,'UniformOutput',false))); % improve coding !!
 
-figure('units','normalized','outerposition',[0 0 1 1])
-for i = 1:length(neural_PCs_vs_muscles)
-   subplot(nbr_rows,nbr_cols,i), hold on
-   for t = 1:nbr_targets
-        t_axis           = 0:bin_size:(size(single_trial_data{t}.neural_scores.data,1)...
-                            -1)*bin_size;
-        if plot_all
-            plot(t_axis,squeeze(single_trial_data{t}.neural_scores.data(:,neural_PCs_vs_muscles(i),:)),...
-                'color',colors(t,:));
-        else
-            plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)),...
-                            'color',colors(t,:),'linewidth',6);
-            plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)) + ...
-                single_trial_data{t}.neural_scores.sd(:,neural_PCs_vs_muscles(i)), ...
-                'color',colors(t,:),'linewidth',2,'linestyle','-.');
-            plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)) - ...
-                single_trial_data{t}.neural_scores.sd(:,neural_PCs_vs_muscles(i)), ...
-                'color',colors(t,:),'linewidth',2,'linestyle','-.');
-        end
-        clear t_axis;
-        ylim([-max_score, max_score])
-   end
-   set(gca,'TickDir','out'),set(gca,'FontSize',14); 
-   title(['neural comp ' num2str(neural_PCs_vs_muscles(i))]);
-   if i == 1 || rem(i-1,nbr_cols) == 0
-       ylabel('a.u.','FontSize',14)
-   end
-end
+% nbr of tasks (they will be plotted on top of each other)
+nbr_bdfs                = length(single_trial_data);
 
-for i = 1:length(muscle_PCs)
-   subplot(nbr_rows,nbr_cols,i+length(neural_PCs_vs_muscles)), hold on
-   for t = 1:nbr_targets
-        t_axis           = 0:bin_size:(size(single_trial_data{t}.emg_scores.data,1)...
-                            -1)*bin_size;
-        if plot_all
-            plot(t_axis,squeeze(single_trial_data{t}.emg_scores.data(:,muscle_PCs(i),:)),...
-                'color',colors(t,:));
-        else
-            plot(t_axis,single_trial_data{t}.emg_scores.mn(:,muscle_PCs(i)),...
-                            'color',colors(t,:),'linewidth',6);
-            plot(t_axis,single_trial_data{t}.emg_scores.mn(:,muscle_PCs(i)) + ...
-                single_trial_data{t}.emg_scores.sd(:,muscle_PCs(i)), ...
-                'color',colors(t,:),'linewidth',2,'linestyle','-.');
-            plot(t_axis,single_trial_data{t}.emg_scores.mn(:,muscle_PCs(i)) - ...
-                single_trial_data{t}.emg_scores.sd(:,muscle_PCs(i)), ...
-                'color',colors(t,:),'linewidth',2,'linestyle','-.');
-        end
-        clear t_axis;
-   end
-   set(gca,'TickDir','out'),set(gca,'FontSize',14); 
-   title(['muscle comp ' num2str(muscle_PCs(i))]);
-   if i == 1 || rem(i-1,nbr_cols) == 0
-       ylabel('a.u.','FontSize',14)
-   end
-   xlabel('time (s)','FontSize',14)
+% nbr of vars (neurons, forces, ...)
+nbr_vars                = length(params);
+
+% nbr of targets to plot per task
+if isscalar(target)
+    
+    % if passed the trial number
+    targets_to_plot     = num2cell( repmat(target,1,nbr_bdfs), 1);
+    if numel( unique(cell2mat(targets_to_plot)) ) > 1, error('plotting multiple trials not implemented yet!'); end
+    nbr_targets_to_plot = length(target);
+    
+elseif ischar(target)
+    switch target
+        % if want to plot each target (in a separate plot)
+        case 'each'
+            % create a cell with nbr_bdfs fields, each containing a vector
+            % with the targets to plot for that BDF
+            targets_to_plot = arrayfun( @(y) 1:y, cellfun( @(x) length(x.target)-1, single_trial_data ), ...
+                                'UniformOutput', false );
+            % get maximum number of targets across all tasks
+            nbr_targets_to_plot = length( 1:max(cellfun( @(x) length(x.target)-1, ...
+                                    single_trial_data )) );
+                                
+        % if want to plot all concatenated trials (last target in
+        % single_trial_data struct)
+        case 'all'
+            % create a cell with nbr_bdfs fields, each containing the
+            % position of the last target (i.e. the concatenated trials
+            % across all targets)
+            targets_to_plot = num2cell( cellfun( @(x) length(x.target), single_trial_data ), 1);
+            % only plotting one target per task now:
+            nbr_targets_to_plot = 1;
+    end
 end
 
 
+% what variable to plot
+switch var
+    case 'neuron'
+        var_type{1}     = 'neural_data';
+        var_type{2}     = 'fr';
+    case 'emg'
+        var_type{1}     = 'emg_data';
+        var_type{2}     = 'emg';
+    case 'pos'
+        var_type{1}     = 'pos';
+        var_type{2}     = 'data';
+    case 'vel'
+        var_type{1}     = 'vel';
+        var_type{2}     = 'data';
+    case 'force'
+        var_type{1}     = 'force';
+        var_type{2}     = 'data';
+    case 'neural PC'
+        var_type{1}     = 'neural_data';
+        var_type{2}     = 'dim_red';
+        var_type{3}     = 'st_scores';
+    case 'muscle synergy'
+        var_type{1}     = 'emg_data';
+        var_type{2}     = 'dim_red';
+        var_type{3}     = 'st_scores';
+end
+        
+
+% define colors
+colors_plot             = parula(nbr_vars*nbr_bdfs);
+
+% rows and columns in the plot
+cols_plot               = ceil(sqrt(nbr_vars));
+rows_plot               = ceil(nbr_vars/cols_plot);
+
+% create time vectors
+nbr_bins_p_bdf          = cellfun( @(x) size(x.target{1}.neural_data.fr,1), ...
+                            single_trial_data );
+for b = 1:nbr_bdfs
+    t_axis{b}           = 0 : single_trial_data{b}.target{1}.bin_size : ...
+                            single_trial_data{b}.target{1}.bin_size*(nbr_bins_p_bdf(b)-1);
+end
+    
 
 
-% neural PCs vs position
-if ~isempty(cropped_binned_data.cursorposbin)
-                    
-    nbr_rows                = floor(sqrt(length([neural_PCs_vs_muscles, muscle_PCs])));
-    nbr_cols                = ceil(length([neural_PCs_vs_muscles, muscle_PCs])/nbr_rows);
+% -------------------------------------------------------------------------
+% Plot
+    
 
-    max_score               = max(cell2mat(cellfun(@(x) max(max(max(abs(x.neural_scores.data(:,neural_PCs,:))))),...
-                                single_trial_data,'UniformOutput',false))); % improve coding !!
 
+for t = 1:nbr_targets_to_plot
+
+    % independent plot per target
     figure('units','normalized','outerposition',[0 0 1 1])
-    for i = 1:length(neural_PCs_vs_muscles)
-       subplot(nbr_rows,nbr_cols,i), hold on
-       for t = 1:nbr_targets
-            t_axis           = 0:bin_size:(size(single_trial_data{t}.neural_scores.data,1)...
-                                -1)*bin_size;
-            if plot_all
-                plot(t_axis,squeeze(single_trial_data{t}.neural_scores.data(:,neural_PCs_vs_muscles(i),:)),...
-                    'color',colors(t,:));
-            else
-                plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)),...
-                                'color',colors(t,:),'linewidth',6);
-                plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)) + ...
-                    single_trial_data{t}.neural_scores.sd(:,neural_PCs_vs_muscles(i)), ...
-                    'color',colors(t,:),'linewidth',2,'linestyle','-.');
-                plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)) - ...
-                    single_trial_data{t}.neural_scores.sd(:,neural_PCs_vs_muscles(i)), ...
-                    'color',colors(t,:),'linewidth',2,'linestyle','-.');
+
+    % overlay plot per BDF (task)
+    for b = 1:nbr_bdfs
+        % independent plot in this figure for each neuron/force/emg...
+        for v = 1:nbr_vars
+            
+            % see if there's a target to plot
+            if t <= length(targets_to_plot{b})
+                this_tgt        = targets_to_plot{b}(t);
+            
+                % the corresponding subplot
+                subplot(rows_plot,cols_plot,v), hold on
+            
+                % check if var name is a 3-by-1 cell (for the neural pcs or
+                % muscle synergies) or a 2-by-1 cell (for the rest) 
+                if length(var_type) == 2
+                    aux_data    = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2})...
+                                    (:,params(v),:));
+                else
+                    aux_data    = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2}).(var_type{3})...
+                                    (:,params(v),:));
+                end
+                aux_mean        = mean(aux_data,2);
+                aux_sd          = std(aux_data,0,2);
+                color_indx      = v+(b-1)*nbr_vars;
+%                plot( t_axis{b}, aux_data, 'color',[.65 .65 .65]);
+                plot( t_axis{b}, aux_mean, 'color',colors_plot(color_indx,:),'linewidth',3);
+                plot( t_axis{b}, aux_mean+aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                plot( t_axis{b}, aux_mean-aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                set(gca,'TickDir','out'), set(gca,'FontSize',14);
             end
-            clear t_axis;
-            ylim([-max_score, max_score])
-       end
-       set(gca,'TickDir','out'),set(gca,'FontSize',14); 
-       title(['neural comp ' num2str(neural_PCs_vs_muscles(i))]);
-       if i == 1 || rem(i-1,nbr_cols) == 0
-           ylabel('a.u.','FontSize',14)
-       end
-    end
-
-    for i = 1:size(single_trial_data{1}.pos.data,2)
-       subplot(nbr_rows,nbr_cols,i+length(neural_PCs_vs_muscles)), hold on
-       for t = 1:nbr_targets
-            t_axis           = 0:bin_size:(size(single_trial_data{t}.pos.data,1)...
-                                -1)*bin_size;
-            if plot_all
-                plot(t_axis,squeeze(single_trial_data{t}.pos.data(:,i,:)),...
-                    'color',colors(t,:));
-            else
-                plot(t_axis,single_trial_data{t}.pos.mn(:,i),...
-                                'color',colors(t,:),'linewidth',6);
-                plot(t_axis,single_trial_data{t}.pos.mn(:,i) + ...
-                    single_trial_data{t}.pos.sd(:,muscle_PCs(i)), ...
-                    'color',colors(t,:),'linewidth',2,'linestyle','-.');
-                plot(t_axis,single_trial_data{t}.pos.mn(:,i) - ...
-                    single_trial_data{t}.pos.sd(:,i), ...
-                    'color',colors(t,:),'linewidth',2,'linestyle','-.');
+        
+            % add labels
+            if v > cols_plot*(rows_plot-1)
+                xlabel('time (s)')
             end
-            clear t_axis;
-       end
-       set(gca,'TickDir','out'),set(gca,'FontSize',14); 
-       title(['pos/force ' num2str(i)]);
-       if i == 1 || rem(i-1,nbr_cols) == 0
-           ylabel('a.u.','FontSize',14)
-       end
-       xlabel('time (s)','FontSize',14)
+            ylabel([var ' ' num2str(v)],'Interpreter','none');
+        end
     end
-
-
-    % neural PCs vs velocity
-    nbr_rows                = floor(sqrt(length([neural_PCs_vs_muscles, muscle_PCs])));
-    nbr_cols                = ceil(length([neural_PCs_vs_muscles, muscle_PCs])/nbr_rows);
-
-    max_score               = max(cell2mat(cellfun(@(x) max(max(max(abs(x.neural_scores.data(:,neural_PCs,:))))),...
-                                single_trial_data,'UniformOutput',false))); % improve coding !!
-
-    figure('units','normalized','outerposition',[0 0 1 1])
-    for i = 1:length(neural_PCs_vs_muscles)
-       subplot(nbr_rows,nbr_cols,i), hold on
-       for t = 1:nbr_targets
-            t_axis           = 0:bin_size:(size(single_trial_data{t}.neural_scores.data,1)...
-                                -1)*bin_size;
-            if plot_all
-                plot(t_axis,squeeze(single_trial_data{t}.neural_scores.data(:,neural_PCs_vs_muscles(i),:)),...
-                    'color',colors(t,:));
-            else
-                plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)),...
-                                'color',colors(t,:),'linewidth',6);
-                plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)) + ...
-                    single_trial_data{t}.neural_scores.sd(:,neural_PCs_vs_muscles(i)), ...
-                    'color',colors(t,:),'linewidth',2,'linestyle','-.');
-                plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)) - ...
-                    single_trial_data{t}.neural_scores.sd(:,neural_PCs_vs_muscles(i)), ...
-                    'color',colors(t,:),'linewidth',2,'linestyle','-.');
-            end
-            clear t_axis;
-            ylim([-max_score, max_score])
-       end
-       set(gca,'TickDir','out'),set(gca,'FontSize',14); 
-       title(['neural comp ' num2str(neural_PCs_vs_muscles(i))]);
-       if i == 1 || rem(i-1,nbr_cols) == 0
-           ylabel('a.u.','FontSize',14)
-       end
-    end
-
-    for i = 1:size(single_trial_data{1}.vel.data,2)
-       subplot(nbr_rows,nbr_cols,i+length(neural_PCs_vs_muscles)), hold on
-       for t = 1:nbr_targets
-            t_axis           = 0:bin_size:(size(single_trial_data{t}.vel.data,1)...
-                                -1)*bin_size;
-            if plot_all
-                plot(t_axis,squeeze(single_trial_data{t}.vel.data(:,i,:)),...
-                    'color',colors(t,:));
-            else
-                plot(t_axis,single_trial_data{t}.vel.mn(:,i),...
-                                'color',colors(t,:),'linewidth',6);
-                plot(t_axis,single_trial_data{t}.vel.mn(:,i) + ...
-                    single_trial_data{t}.vel.sd(:,i), ...
-                    'color',colors(t,:),'linewidth',2,'linestyle','-.');
-                plot(t_axis,single_trial_data{t}.vel.mn(:,i) - ...
-                    single_trial_data{t}.vel.sd(:,i), ...
-                    'color',colors(t,:),'linewidth',2,'linestyle','-.');
-            end
-            clear t_axis;
-       end
-       set(gca,'TickDir','out'),set(gca,'FontSize',14); 
-       title(['velocity ' num2str(i)]);
-       if i == 1 || rem(i-1,nbr_cols) == 0
-           ylabel('a.u.','FontSize',14)
-       end
-       xlabel('time (s)','FontSize',14)
-    end
-
 end
-
-% % neural PCs vs some EMGs
-% emgs_to_plot            = 10:12;
-% nbr_rows                = floor(sqrt(length([neural_PCs_vs_muscles, emgs_to_plot])));
-% nbr_cols                = ceil(length([neural_PCs_vs_muscles, emgs_to_plot])/nbr_rows);
-% 
-% max_score               = max(cell2mat(cellfun(@(x) max(max(max(abs(x.neural_scores.data(:,neural_PCs,:))))),...
-%                             single_trial_data,'UniformOutput',false))); % improve coding !!
-% 
-% figure('units','normalized','outerposition',[0 0 1 1])
-% for i = 1:length(neural_PCs_vs_muscles)
-%    subplot(nbr_rows,nbr_cols,i), hold on
-%    for t = 1:nbr_targets
-%         t_axis           = 0:bin_size:(size(single_trial_data{t}.neural_scores.data,1)...
-%                             -1)*bin_size;
-%         if plot_all
-%             plot(t_axis,squeeze(single_trial_data{t}.neural_scores.data(:,neural_PCs_vs_muscles(i),:)),...
-%                 'color',colors(t,:));
-%         else
-%             plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)),...
-%                             'color',colors(t,:),'linewidth',6);
-%             plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)) + ...
-%                 single_trial_data{t}.neural_scores.sd(:,neural_PCs_vs_muscles(i)), ...
-%                 'color',colors(t,:),'linewidth',2,'linestyle','-.');
-%             plot(t_axis,single_trial_data{t}.neural_scores.mn(:,neural_PCs_vs_muscles(i)) - ...
-%                 single_trial_data{t}.neural_scores.sd(:,neural_PCs_vs_muscles(i)), ...
-%                 'color',colors(t,:),'linewidth',2,'linestyle','-.');
-%         end
-%         clear t_axis;
-%         ylim([-max_score, max_score])
-%    end
-%    set(gca,'TickDir','out'),set(gca,'FontSize',14); 
-%    title(['neural comp ' num2str(neural_PCs_vs_muscles(i))]);
-%    if i == 1 || rem(i-1,nbr_cols) == 0
-%        ylabel('a.u.','FontSize',14)
-%    end
-% end
-% 
-% for i = 1:numel(emgs_to_plot)
-%    subplot(nbr_rows,nbr_cols,i+length(neural_PCs_vs_muscles)), hold on
-%    for t = 1:nbr_targets
-%         t_axis           = 0:bin_size:(size(single_trial_data{t}.vel.data,1)...
-%                             -1)*bin_size;
-%         if plot_all
-%             plot(t_axis,squeeze(single_trial_data{t}.vel.data(:,i,:)),...
-%                 'color',colors(t,:));
-%         else
-%             plot(t_axis,single_trial_data{t}.vel.mn(:,i),...
-%                             'color',colors(t,:),'linewidth',6);
-%             plot(t_axis,single_trial_data{t}.vel.mn(:,i) + ...
-%                 single_trial_data{t}.vel.sd(:,muscle_PCs(i)), ...
-%                 'color',colors(t,:),'linewidth',2,'linestyle','-.');
-%             plot(t_axis,single_trial_data{t}.vel.mn(:,i) - ...
-%                 single_trial_data{t}.vel.sd(:,i), ...
-%                 'color',colors(t,:),'linewidth',2,'linestyle','-.');
-%         end
-%         clear t_axis;
-%    end
-%    set(gca,'TickDir','out'),set(gca,'FontSize',14); 
-%    title(['velocity ' num2str(i)]);
-%    if i == 1 || rem(i-1,nbr_cols) == 0
-%        ylabel('a.u.','FontSize',14)
-%    end
-%    xlabel('time (s)','FontSize',14)
-% end
