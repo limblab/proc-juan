@@ -55,7 +55,6 @@ nbr_comb_bdfs       = size(comb_bdfs,1);
 % -------------------------------------------------------------------------
 % do
 
-
 for p = 1:nbr_comb_bdfs
     
     % compute principal (canonical) angles
