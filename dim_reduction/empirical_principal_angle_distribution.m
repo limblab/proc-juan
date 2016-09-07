@@ -19,9 +19,9 @@
 %                       will create one distribution of 'samples' samples
 %                       for each of the dimensionalities in plane_dim
 %   samples         : number of angles in the distribution
-%   P_orth          : [0.001] area under the PDF above which we'll consider
+%   (P_orth)        : [0.001] area under the PDF above which we'll consider
 %                       the hyperplanes not to be different from orthogonal
-%   plot_yn         : [false] plot the PDF (bool)
+%   (plot_yn)       : [false] plot the PDF (bool)
 %
 % Outputs:
 %   dist_princ_angles : vector or matrix with the distribution of principal
