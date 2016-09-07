@@ -204,6 +204,8 @@ colors                      = parula(nbr_pairs_tasks);
 figure, hold on
 for i = 1:nbr_pairs_tasks
     these_ccs               = summary_data.canon_corrs(i).cc';
+    % what projections are above the chance level according to matlab's
+    % test?
     these_proj_below_chane  = summary_data.canon_corrs(i).nbr_canon_corrs_above_chance;
     
     % plot the traces
@@ -217,6 +219,62 @@ end
 set(gca,'Tickdir','out'),set(gca,'FontSize',14)
 xlabel('projection'),ylabel('canonical correlation')
 xlim([0 params.dim_manifold+1]),ylim([0 1])
+
+
+% ---------------------------------------------
+% 1 plot with canonical correlations for all the task the monkey performed
+% in that session (i.e.) one plot per task
+
+
+for i = 1:length(meta_info.tasks_per_session)
+    
+    these_ccs               = data{i}.can_corrs.cc';
+    % get bootstrapping traces if they were computed, otherwise use
+    % matlab's canon_corr significance test
+    if isfield(proj_results_w_bs.data{1}.can_corrs,'signif_boots') 
+        % read bootstrap correlations
+        these_bootstrap     = data{i}.can_corrs.signif_boots';
+    else
+        % find what is the last projection whose correlation is higher than
+        % chance
+        these_P_chance      = cell2mat(arrayfun( @(x) x.p, proj_results_w_bs.data{i}.can_corrs.stats,...
+                                'UniformOutput',false )');
+        these_above_P_chance =  these_P_chance > params.P_thr;
+        these_last_proj_below_P_chance = repmat(params.dim_manifold,size(these_ccs,2),1) ...
+                - sum(these_above_P_chance,2) - ones(size(these_ccs,2),1);
+    end
+    
+    % get what task pair these are, in the big scheme of things, to choose
+    % the color for plotting and make the legend
+    these_task_pairs        = meta_info.task_pairs.task_pair_nbr( meta_info.task_pairs.session == i );
+    % make legend
+    for p = 1:length(these_task_pairs)
+        this_legend{p}         = [meta_info.task_pairs.task_pair{these_task_pairs(p)}{1} ' vs ' ...
+                                    meta_info.task_pairs.task_pair{these_task_pairs(p)}{2}];
+    end
+    if exist('these_bootstrap','var')
+        this_legend{length(this_legend)+1} = 'bootstrapped';
+    end
+    
+    % plot!
+    figure, hold on
+    for p = 1:size(these_ccs,2)
+        plot(these_ccs(:,p),'linewidth',2,'color',colors(these_task_pairs(p),:))
+        if ~exist('these_bootstrap','var')
+            plot(these_last_proj_below_P_chance(i),these_ccs(these_last_proj_below_P_chance(i),p),...
+                'marker','.','markersize',24,'color',colors(these_task_pairs(p),:))
+        end
+    end
+    if exist('these_bootstrap','var')
+        plot(these_bootstrap(:,p),':','linewidth',2,'color',[.6 .6 .6])
+    end
+    legend(this_legend,'Location','NorthEast'), legend boxoff
+    set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+    xlim([0 params.dim_manifold+1]),ylim([0 1])
+    xlabel('projection'),ylabel('canonical correlation')
+    
+    clear this_legend;
+end
 
 
 % 
