@@ -140,7 +140,7 @@ nbr_pairs_tasks      	= length(meta_info.task_pairs.unique_pairs);
 %     for all pairs of tasks, and 
 %     b) the number of eigenvectors that are non orthogonal (1:dim_manifold)
 
-nbr_eigenv_below_thr    = zeros(1,size(meta_info.task_pairs.task_pair,2));
+nbr_eigenv_below_thr    = zeros(1,nbr_manifold_pairs);
 angles_matrix           = zeros(nbr_manifold_pairs,dim_manifold);
 ctr                     = 1;
 for d = 1:length(data)
@@ -317,7 +317,7 @@ angle_results.summary_data = summary_data;
 colors                      = parula(nbr_pairs_tasks);
 
 figure,hold on
-for i = 2:nbr_pairs_tasks
+for i = 1:nbr_pairs_tasks
     these_angles            = rad2deg(summary_data.princ_angles(i).angles');
     these_last_eig_below_thr = summary_data.princ_angles(i).nbr_eigenv_below_thr;
     
