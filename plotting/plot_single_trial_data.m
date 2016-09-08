@@ -5,7 +5,7 @@
 %
 %
 % Inputs (opt)          : [default]
-%   single_trial_data   : single_trial_data struct
+%   single_trial_data   : single_trial_data cell struct
 %   var                 : variable to plot ('neuron', 'emg', 'neural PC',
 %                           'muscle synergy', 'pos', 'vel', 'force') 
 %   param               : what neurons/emgs/pcs/synergies/pos signals/vel
@@ -65,7 +65,7 @@ elseif ischar(target)
             % create a cell with nbr_bdfs fields, each containing the
             % position of the last target (i.e. the concatenated trials
             % across all targets)
-            targets_to_plot = num2cell( cellfun( @(x) length(x.target), single_trial_data ), 1);
+            targets_to_plot = num2cell( arrayfun( @(x) length(x.target), single_trial_data ), 1);
             % only plotting one target per task now:
             nbr_targets_to_plot = 1;
     end
@@ -108,7 +108,7 @@ cols_plot               = ceil(sqrt(nbr_vars));
 rows_plot               = ceil(nbr_vars/cols_plot);
 
 % create time vectors
-nbr_bins_p_bdf          = cellfun( @(x) size(x.target{1}.neural_data.fr,1), ...
+nbr_bins_p_bdf          = arrayfun( @(x) size(x.target{1}.neural_data.fr,1), ...
                             single_trial_data );
 for b = 1:nbr_bdfs
     t_axis{b}           = 0 : single_trial_data{b}.target{1}.bin_size : ...
