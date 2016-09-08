@@ -50,7 +50,7 @@ for i = 1:meta_info.nbr_monkeys
         % what dataset are we looking at?
         dtst            = meta_info.sessions_per_monkey{i}(ii);
 
-        disp(['analysing dataset #' num2str(dtst)]);
+        disp(['comparing neural projs. dataset #' num2str(dtst)]);
 
         
         % -----------------------------
