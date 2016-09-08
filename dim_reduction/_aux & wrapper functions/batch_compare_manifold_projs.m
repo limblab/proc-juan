@@ -6,7 +6,7 @@ function proj_results = batch_compare_manifold_projs( varargin )
 
 
 % -------------------------------------------------------------------------
-% read input params
+% read inputs
 
 if nargin >= 1
     if iscell(varargin{1})
@@ -18,33 +18,10 @@ else
     path                = pwd;
 end
 if nargin == 2
-    params              = varargin{2};
+    params              = batch_compare_manifold_projs_defaults( varargin{2} );
 else
     params              = batch_compare_manifold_projs_defaults();
 end
-
-
-% -------------------------------------------------------------------------
-% load data
-
-if ~exist('datasets','var')
-    load([path filesep 'all_manifold_datasets.mat'])
-end
-
-
-% -------------------------------------------------------------------------
-% read input params
-
-if nargin
-    if iscell(varargin{1})
-        datasets        = varargin{1};
-    else
-        path            = varargin{1};
-    end
-else
-    path                = pwd;
-end
-clear varargin;
 
 
 % -------------------------------------------------------------------------
@@ -73,7 +50,7 @@ for i = 1:meta_info.nbr_monkeys
         % what dataset are we looking at?
         dtst            = meta_info.sessions_per_monkey{i}(ii);
 
-        disp(['processing dataset #' num2str(dtst)]);
+        disp(['analysing dataset #' num2str(dtst)]);
 
         
         % -----------------------------
@@ -129,7 +106,8 @@ summary_data.canon_corrs = struct('pair',[meta_info.task_pairs.unique_pairs],...
 
                         
 % ------------------------
-% ToDo: replace this by bootstrapped estimates
+% Get P value obtained with Matlab's built-in stat test; in case haven't
+% decided not to do bootstrapping
 pooled_stats            = cell2mat(cellfun(@(y) y.can_corrs.stats, data,...
                                 'UniformOutput',false));
 pooled_P_vals           = cell2mat(arrayfun(@(x) x.p, pooled_stats,'UniformOutput',false)');
@@ -190,8 +168,9 @@ end
 
 % -------------------------------------------------------------------------
 % return variable
-proj_results.data = data;
-proj_results.summary_data = summary_data;
+proj_results.data           = data;
+proj_results.summary_data   = summary_data;
+proj_results.params         = params;
 
 
 % -------------------------------------------------------------------------
@@ -231,13 +210,13 @@ for i = 1:length(meta_info.tasks_per_session)
     these_ccs               = data{i}.can_corrs.cc';
     % get bootstrapping traces if they were computed, otherwise use
     % matlab's canon_corr significance test
-    if isfield(proj_results_w_bs.data{1}.can_corrs,'signif_boots') 
+    if isfield(data{1}.can_corrs,'signif_boots') 
         % read bootstrap correlations
         these_bootstrap     = data{i}.can_corrs.signif_boots';
     else
         % find what is the last projection whose correlation is higher than
         % chance
-        these_P_chance      = cell2mat(arrayfun( @(x) x.p, proj_results_w_bs.data{i}.can_corrs.stats,...
+        these_P_chance      = cell2mat(arrayfun( @(x) x.p, data{i}.can_corrs.stats,...
                                 'UniformOutput',false )');
         these_above_P_chance =  these_P_chance > params.P_thr;
         these_last_proj_below_P_chance = repmat(params.dim_manifold,size(these_ccs,2),1) ...
@@ -261,7 +240,7 @@ for i = 1:length(meta_info.tasks_per_session)
     for p = 1:size(these_ccs,2)
         plot(these_ccs(:,p),'linewidth',2,'color',colors(these_task_pairs(p),:))
         if ~exist('these_bootstrap','var')
-            plot(these_last_proj_below_P_chance(i),these_ccs(these_last_proj_below_P_chance(i),p),...
+            plot(these_last_proj_below_P_chance(p),these_ccs(these_last_proj_below_P_chance(p),p),...
                 'marker','.','markersize',24,'color',colors(these_task_pairs(p),:))
         end
     end
