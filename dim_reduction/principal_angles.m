@@ -12,19 +12,32 @@
 % Outputs (opt):
 %   angles      : principal angles
 %   (C)         : singular values of Qa'*Qb
+%   (U)         : matrix S when doing [U C V] = svd(Qa'*Qb)
+%   (V)         : matrix S when doing [U C V] = svd(Qa'*Qb)
 %
 %
+% Syntax:
+%   angles      = principal_angles(A,B)
+%   [angles, C]  = principal_angles(A,B)
+%   [angles, U, C, V]  = principal_angles(A,B)
 %
-% Note: largely inspired by this post: http://goo.gl/eMclEw
+%
+% Note: inspired by this post: http://goo.gl/eMclEw
+%
 
 
 function [angles, varargout] = principal_angles(A,B)
 
 [Qa,~]          = qr(A,0);
 [Qb,~]          = qr(B,0);
-C               = svd(Qa'*Qb,0);
-angles          = acos(C);
+[U,C,V]         = svd(Qa'*Qb,0);
+angles          = acos(diag(C));
 
 if nargout == 2
     varargout{1} = C;
+end
+if nargout == 4
+    varargout{1} = U;
+    varargout{2} = C;
+    varargout{3} = V;
 end
