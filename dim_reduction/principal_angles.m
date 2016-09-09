@@ -31,7 +31,8 @@ function [angles, varargout] = principal_angles(A,B)
 [Qa,~]          = qr(A,0);
 [Qb,~]          = qr(B,0);
 [U,C,V]         = svd(Qa'*Qb,0);
-angles          = acos(diag(C));
+% make sure none of the elements in C is > 1
+angles          = acos( min( ones(length(diag(C)),1), diag(C) ) );
 
 if nargout == 2
     varargout{1} = C;
