@@ -112,7 +112,8 @@ switch mode
         % check that the time windows are exact multiples of the bin size
         % the trick of multiplying by 1000 is to avoid problems with rem
         if sum(rem(time_window*1000,bin_size*1000)) > 0
-            error('the times in time_window have to be a multiple of the bin size');
+            warning('rouding the times in time_window have to multiples of the bin size');
+            time_window = floor(time_window/bin_size)*bin_size;
         end
         % check that all of the tasks (BDFs) have trials longer than the
         % specified time window
@@ -131,7 +132,8 @@ switch mode
         
         % -----------------------------------------------------------------
         % define matrix with the indexes of the bins to keep:
-        new_nbr_bins    = (time_window(2)-time_window(1)+bin_size)/bin_size;
+        % round is a fix because of some rounding problems...
+        new_nbr_bins    = round( (time_window(2)-time_window(1)+bin_size)/bin_size );
         indx_to_keep    = zeros( nbr_bdfs, new_nbr_bins );
         start_indx      = cellfun(@(y) find( abs(y) < 1E-6 ), cellfun( @(x) (x.target{1}.t-time_window(1)), ...
                             single_trial_data, 'UniformOutput',false ) );
