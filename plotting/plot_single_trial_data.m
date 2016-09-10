@@ -35,6 +35,15 @@ end
 
 % nbr of tasks (they will be plotted on top of each other)
 nbr_bdfs                = length(single_trial_data);
+% --if single_trial_data is not a cell of tasks but a single task, convert
+% it to a cell, so the code doesn't break
+if nbr_bdfs == 1
+    single_trial_data_new{1} = single_trial_data;
+    clear single_trial_data;
+    single_trial_data   = single_trial_data_new;
+    clear single_trial_data_new;
+end
+
 
 % nbr of vars (neurons, forces, ...)
 nbr_vars                = length(params);
@@ -108,7 +117,7 @@ cols_plot               = ceil(sqrt(nbr_vars));
 rows_plot               = ceil(nbr_vars/cols_plot);
 
 % create time vectors
-nbr_bins_p_bdf          = arrayfun( @(x) size(x.target{1}.neural_data.fr,1), ...
+nbr_bins_p_bdf          = cellfun( @(x) size(x.target{1}.neural_data.fr,1), ...
                             single_trial_data );
 for b = 1:nbr_bdfs
     t_axis{b}           = 0 : single_trial_data{b}.target{1}.bin_size : ...
