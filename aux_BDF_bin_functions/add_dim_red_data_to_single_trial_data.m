@@ -91,18 +91,21 @@ for v = 1:length(indx_vars_to_add)
         % individual trials
         nbr_trials_this_tgt = size(single_trial_data.target{t}.bin_indx_p_trial,2);
 
+        switch this_var
+            case 'neural_data'
+                single_trial_data.target{t}.(this_var).dim_red.st_scores = ...
+                    zeros(nbr_bins,nbr_chs,nbr_trials_this_tgt);
+            case 'emg_data'
+                single_trial_data.target{t}.(this_var).dim_red.st_scores = ...
+                    zeros(nbr_bins,size(emg_data.w,2),nbr_trials_this_tgt);
+        end
+        
         for r = 1:nbr_trials_this_tgt
             switch this_var
                 case 'neural_data'
-                    single_trial_data.target{t}.(this_var).dim_red.st_scores = ...
-                        zeros(nbr_bins,nbr_chs,nbr_trials_this_tgt);
-                    
                     single_trial_data.target{t}.(this_var).dim_red.st_scores(:,:,r) = ...
                         neural_data.scores(single_trial_data.target{t}.bin_indx_p_trial(:,r),:);
                 case 'emg_data'
-                    single_trial_data.target{t}.(this_var).dim_red.st_scores = ...
-                        zeros(nbr_bins,size(emg_data.w,2),nbr_trials_this_tgt);
-                    
                     single_trial_data.target{t}.(this_var).dim_red.st_scores(:,:,r) = ...
                         emg_data.scores(single_trial_data.target{t}.bin_indx_p_trial(:,r),:);
             end
