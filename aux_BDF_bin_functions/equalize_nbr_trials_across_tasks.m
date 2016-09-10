@@ -116,7 +116,7 @@ if isfield(single_trial_data{1}.target{1}.neural_data,'dim_red')
     neural_dim_red_names = fieldnames(single_trial_data{1}.target{1}.neural_data.dim_red);
 end
 if isfield(single_trial_data{1}.target{1}.emg_data,'dim_red')
-    emg_dim_red_names   = fieldnames(single_trial_data{1}.target{end}.emg_data.dim_red);
+    emg_dim_red_names   = fieldnames(single_trial_data{1}.target{1}.emg_data.dim_red);
 end
 if isfield(single_trial_data{1}.target{1},'pos')
     pos_names           = fieldnames(single_trial_data{1}.target{end}.pos);
