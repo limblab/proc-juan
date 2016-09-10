@@ -136,23 +136,25 @@ if plot_yn
     % plane and space dimensionalities
     for s = 1:length(space_dim)
         
-        this_plane_dim = 1;
-        this_space_dim = s;
-        nbr_dims_this = numel(find(dist_princ_angles(1,:,this_plane_dim,this_space_dim)));
-        aux_colors_hist = parula(nbr_dims_this);
-        figure, hold on
-        for d = 1:nbr_dims_this
-            plot(rad2deg(hist_x(1:(length(hist_x)-1))),hist_dist_princ_angles(:,d,this_plane_dim,this_space_dim),...
-                'color',aux_colors_hist(d,:))
+        for p = 1:length(plane_dim)
+            this_plane_dim = p;
+            this_space_dim = s;
+            nbr_dims_this = numel(find(dist_princ_angles(1,:,this_plane_dim,this_space_dim)));
+            aux_colors_hist = parula(nbr_dims_this);
+            figure, hold on
+            for d = 1:nbr_dims_this
+                plot(rad2deg(hist_x(1:(length(hist_x)-1))),hist_dist_princ_angles(:,d,this_plane_dim,this_space_dim),...
+                    'color',aux_colors_hist(d,:))
+            end
+            xlim([0 90]), xlabel('angle (deg)'),
+            set(gca,'TickDir','out'),set(gca,'FontSize',14);
+            ylabel(['normalized counts - space dim: ' num2str(space_dim(s)) ' - plane dim: ' num2str(plane_dim(p))])
+            aux_legend = cell(1,nbr_dims_this);
+            for d = 1:nbr_dims_this
+                aux_legend{d} = ['p.a. = ' num2str(d)];
+            end
+            legend(aux_legend,'Location','Northwest'), legend boxoff
         end
-        xlim([0 90]), xlabel('angle (deg)'),
-        set(gca,'TickDir','out'),set(gca,'FontSize',14);
-        ylabel(['normalized counts - space dim: ' num2str(space_dim(s))])
-        aux_legend = cell(1,nbr_dims_this);
-        for d = 1:nbr_dims_this
-            aux_legend{d} = ['p.a. = ' num2str(d)];
-        end
-        legend(aux_legend,'Location','Northwest'), legend boxoff
     end
     
     
