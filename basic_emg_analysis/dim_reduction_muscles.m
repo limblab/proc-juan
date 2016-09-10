@@ -4,13 +4,17 @@
 % function dim_red_emg = dim_reduction_muscles( binned_data, varargin )
 %
 % Inputs (opt)          : [default]
-%   binned_data         : binned_data struct or array of structs. Can be
-%                           cropped 
-%   (method)            : ['pca'] dim reduction method ('pca','nnmf','none')
-%   (chosen_emgs)       : [all] EMGs to be used for the analysis. 'all'
+%   binned_data         : binned_data struct or array of structs --can be
+%                           cropped with 'cropped_bin_data.m' Alternatively
+%                           this can be a matrix with EMGs (1 col is time)
+%                           or a cell array of matrices of EMGs (again col
+%                           1 is time, each task is a different cell)
+%   (method)            : ['pca'] dim reduction method ('pca','nmf','none')
+%   (chosen_emgs)       : ['all'] EMGs to be used for the analysis. 'all'
 %                           will chose all
 %   (labels)            : name of the task in each binned_data struct
 %   (nbr_factors)       : nbr of factors we want to extract (only with NMF)
+%   (plot_yn)           : [false] summary plot
 %
 % Outputs
 %   dim_red_emg         : cell with fields:
@@ -21,9 +25,56 @@
 %       chs             : EMG signals included in the analysis
 %       method          : method used (stores input)
 %
+%
 
-function dim_red_emg = dim_reduction_muscles( binned_data, varargin )
 
+function dim_red_emg = dim_reduction_muscles( emg_data, varargin )
+
+
+% ------------------------------------------------------------------------
+% see what type of EMG input data has been passed, and reformat it to a
+% struct called emg, with one databin and emgguide per input task
+
+% see if it is a cell of either binned data structs or data matrices
+if iscell( emg_data )
+
+    emg(1:length(emg_data)) = struct('databin',[],'emgguide',[]);
+    % see if it is a cell of binned data structs
+    if isfield(emg_data{1},'emgguide')  
+        for i = 1:length(emg_data)
+            emg(i).databin = emg_data{i}.emgdatabin;
+            emg(i).emgguide = emg_data{i}.emgguide;
+            emg(i).timeframe = emg_data{i}.timeframe;
+        end
+    % or a cell of 2D matrices --note that column 1 is time
+    else
+        for i = 1:length(emg_data)
+            emg(i).databin = emg_data{i}(:,2:end);
+            emg(i).emgguide = cell(1,size(emg_data{i},2)-1);
+            for ii = 1:(size(emg_data{i},2)-1)
+                emg(i).emgguide{ii} = ['EMG' num2str(ii)];
+            end
+            emg(i).timeframe = emg_data{1}(:,1);
+        end
+    end
+% or a single binned data struct
+elseif isstruct( emg_data )
+    emg.databin         = emg_data.emgdatabin;
+    emg.emgguide        = emg_data.emgguide;
+    emg.timeframe       = emg_data.timeframe;
+% or a 2D array --note that column 1 is time
+else
+    emg.databin         = emg_data(:,2:end);
+    for ii = 1:(size(emg_data,2)-1)
+        emg.emgguide{ii} = ['EMG' num2str(ii)];
+    end
+    emg.timeframe       = emg_data(:,1);
+end
+clear emg_data;
+        
+        
+
+% ------------------------------------------------------------------------
 % get input params
 if nargin == 1
     method              = 'pca';
@@ -40,20 +91,37 @@ end
 if nargin == 5
     nbr_factors         = varargin{4};
 end
+if nargin == 6
+    plot_yn             = varargin{5};
+end
 
 
-% get all EMGs
-if ~exist('chosen_emgs','var')
-    chosen_emgs         = 1:length(binned_data(1).emgguide);
+% define var with the EMG channels that will be used
+if isempty(chosen_emgs)
+    chosen_emgs         = 'all';
 end
 if strcmp(chosen_emgs,'all')
-    chosen_emgs         = 1:length(binned_data(1).emgguide);
+    chosen_emgs         = 1:length(emg(1).emgguide);
 end
+if ~exist('chosen_emgs','var')
+    chosen_emgs         = 1:length(emg(1).emgguide);
+end
+if ~exist('plot_yn','var')
+    plot_yn             = false;
+end
+
+
+% clear labels if it's empty, so it won't break when plotting
+if isempty(labels), clear labels; end
 
 
 % nbr of BDFs
-nbr_bdfs                = length(binned_data);
-% nbr of EMGs
+nbr_bdfs                = length(emg);
+% nbr of EMGs --note that the input data may only comprise the chosen EMG
+% channels, so check for that here
+if size(emg(1).databin,2) == length(chosen_emgs);
+    chosen_emgs         = 1:length(chosen_emgs);
+end
 nbr_emgs                = length(chosen_emgs);
 
 
@@ -64,31 +132,31 @@ switch method
     % PCA
     case 'pca'
         for i = 1:nbr_bdfs
-            [w_emg, scores_emg, eigen_emg] = pca(binned_data(i).emgdatabin(:,chosen_emgs));
+            [w_emg, scores_emg, eigen_emg] = pca(emg(i).databin(:,chosen_emgs));
 
             % store results
             dim_red_emg{i}.w        = w_emg;
             dim_red_emg{i}.eigen    = eigen_emg;
             dim_red_emg{i}.scores   = scores_emg;
-            dim_red_emg{i}.t_axis   = binned_data(i).timeframe;
+            dim_red_emg{i}.t_axis   = emg(i).timeframe;
             dim_red_emg{i}.chs      = chosen_emgs;
             dim_red_emg{i}.method   = 'pca';
             clear w_emg scores_emg eigen_emg
         end
-    case 'nnmf'
+    case 'nmf'
         if ~exist('nbr_factors','var')
-            disp('you need to pass the number of factors for NNMF');
+            disp('you need to pass the number of factors for NMF');
         end
         for i = 1:nbr_bdfs
-            [scores_emg, w_emg]     = nnmf(binned_data(i).emgdatabin(:,chosen_emgs),...
+            [scores_emg, w_emg]     = nnmf(emg(i).databin(:,chosen_emgs),...
                                         nbr_factors);
                                     
             % store results
             dim_red_emg{i}.w        = w_emg;
             dim_red_emg{i}.scores   = scores_emg;
-            dim_red_emg{i}.t_axis   = binned_data(i).timeframe;
+            dim_red_emg{i}.t_axis   = emg(i).timeframe;
             dim_red_emg{i}.chs      = chosen_emgs;
-            dim_red_emg{i}.method   = 'nnmf';
+            dim_red_emg{i}.method   = 'nmf';
             clear w_emg scores_emg
         end
     case 'none'
@@ -97,10 +165,10 @@ switch method
             % store results
             % -- the weights are just 1s because it is the raw EMGs
             dim_red_emg{i}.w        = ones(nbr_emgs);
-            if size(binned_data(i).emgdatabin,2) ~= nbr_emgs
-                dim_red_emg{i}.scores = binned_data(i).emgdatabin(:,chosen_emgs);
+            if size(emg(i).databin,2) ~= nbr_emgs
+                dim_red_emg{i}.scores = emg(i).databin(:,chosen_emgs);
             else
-                dim_red_emg{i}.scores = binned_data(i).emgdatabin;
+                dim_red_emg{i}.scores = emg(i).databin;
             end
             dim_red_emg{i}.chs      = chosen_emgs;
             dim_red_emg{i}.method   = 'none';
@@ -109,7 +177,7 @@ end
 
 % ------------------------------------------------------------------------
 % Plot variance
-if exist('labels','var')
+if plot_yn
     
     switch method
         case 'pca'
@@ -124,7 +192,7 @@ if exist('labels','var')
                 figure(f1h), subplot(rows_plot,cols_plot,i)
                 bar(dim_red_emg{i}.eigen/sum(dim_red_emg{i}.eigen)),set(gca,'TickDir','out'),set(gca,'FontSize',14)
                 xlim([0 nbr_emgs+1]),ylim([0 1])
-                title(labels{i})
+                if exist('labels','var'), title(labels{i}); else title(['task #' num2str(i)]); end
                 if rem(i-1,cols_plot) == 0
                     ylabel('norm. explained variance','FontSize',14)
                 end
@@ -136,7 +204,7 @@ if exist('labels','var')
                 bar(cumsum(dim_red_emg{i}.eigen)/sum(dim_red_emg{i}.eigen))
                 set(gca,'TickDir','out'),set(gca,'FontSize',14)
                 xlim([0 nbr_emgs+1]),ylim([0 1])
-                title(labels{i})
+                if exist('labels','var'), title(labels{i}); else title(['task #' num2str(i)]); end                
                 if rem(i-1,cols_plot) == 0
                     ylabel('% norm. explained variance','FontSize',14)
                 end
@@ -146,7 +214,7 @@ if exist('labels','var')
             end
             clear rows_plot cols_plot
             
-        case 'nnmf'
+        case 'nmf'
             colors_bars                 = parula(nbr_factors);
             
             figure('units','normalized','outerposition',[0 0 1 1])
@@ -164,7 +232,7 @@ if exist('labels','var')
                     end
                     if i == nbr_bdfs
                         set(gca,'XTick',1:nbr_emgs)
-                        set(gca,'XTickLabel',binned_data(1).emgguide(chosen_emgs))
+                        set(gca,'XTickLabel',emg(1).emgguide(chosen_emgs))
                         set(gca,'XTickLabelRotation',45)
                     else
                         set(gca,'XTick',[]);
