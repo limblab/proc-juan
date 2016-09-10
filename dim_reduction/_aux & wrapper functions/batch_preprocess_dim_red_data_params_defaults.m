@@ -16,7 +16,8 @@ params_defaults     = struct( ...
                         'w_i',              'ot_on', ...
                         'w_f',              'R', ...
                         'norm_trial_data',  'min_dur', ... % 'min_dur', 'stretch'
-                        'dim_red_emg',      'none'); % 'none', 'pca','nnmf'
+                        'dim_red_emg',      'nmf', ... % 'none', 'pca','nmf'
+                        'emg_factors',       4 ); % only used with NMF
 
                 
 % read input params, if passed
