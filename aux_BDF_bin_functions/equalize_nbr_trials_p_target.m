@@ -104,8 +104,8 @@ end
 
 if isfield(single_trial_data.target{1}.emg_data,'dim_red')
     aux_emg_scores      = single_trial_data.target{1}.emg_data.dim_red.st_scores;
-    aux_emg_scores_m    = single_trial_data.target{1}.emg_data.dim_red.mn;
-    aux_emg_scores_sd   = single_trial_data.target{1}.emg_data.dim_red.sd;
+    aux_emg_scores_m    = single_trial_data.target{1}.emg_data.dim_red.st_scores_mn;
+    aux_emg_scores_sd   = single_trial_data.target{1}.emg_data.dim_red.st_scores_sd;
 end
 
 % add the rest of the targets
@@ -142,8 +142,8 @@ for i = 2:nbr_targets
     
     if isfield(single_trial_data.target{1}.emg_data,'dim_red')
         aux_emg_scores      = cat(3,aux_emg_scores,single_trial_data.target{i}.emg_data.dim_red.st_scores);
-        aux_emg_scores_m    = cat(1,aux_emg_scores_m,single_trial_data.target{i}.emg_data.dim_red.mn);
-        aux_emg_scores_sd   = cat(1,aux_emg_scores_sd,single_trial_data.target{i}.emg_data.dim_red.sd);
+        aux_emg_scores_m    = cat(1,aux_emg_scores_m,single_trial_data.target{i}.emg_data.dim_red.st_scores_mn);
+        aux_emg_scores_sd   = cat(1,aux_emg_scores_sd,single_trial_data.target{i}.emg_data.dim_red.st_scores_sd);
     end
 end
 
