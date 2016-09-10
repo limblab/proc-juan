@@ -348,7 +348,7 @@ for i = 1:nbr_targets
                 
                 % -----------------
                 % 2. for interpolating, define time axis of the data
-                t_orig              = 1:trial_dur(trials_this_tgt(t))/bin_size;
+                t_orig              = 1:round(trial_dur(trials_this_tgt(t))/bin_size);
                 t_new               = 1:nbr_bins;
                 
                 fr_orig             = cropped_binned_data.spikeratedata(aux_start:aux_end,:);
