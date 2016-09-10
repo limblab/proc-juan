@@ -29,9 +29,9 @@ params_defaults     = struct( ...
                         'neural_to_output_delay',   0.05, ... % positive = neural first
                         'output',                   'emg', ... % pos, vel, force, dim_red_emg
                         'trial_averaged',           true, ...
-                        'time_win',                 [0.5 1.1; 0.3 0.9; 0.4 1;
-                                                    0 0.6; 0 0.6; 0 0.6; 
-                                                    0.3 0.9; 0.2 0.8] );
+                        'time_win',                 [0.2 1.2; 0.2 1.2; 0.2 1.2;
+                                                    0 0.74; 0 0.74; 0 0.74; 
+                                                    0.1 1; 0.1 1] );
 
                     
 % read input params, if passed
