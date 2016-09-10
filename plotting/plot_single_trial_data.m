@@ -49,11 +49,14 @@ end
 nbr_vars                = length(params);
 
 % nbr of targets to plot per task
-if isscalar(target)
+if isnumeric(target)
     
     % if passed the trial number
-    targets_to_plot     = num2cell( repmat(target,1,nbr_bdfs), 1);
-    if numel( unique(cell2mat(targets_to_plot)) ) > 1, error('plotting multiple trials not implemented yet!'); end
+    targets_to_plot     = cell(1,nbr_bdfs);
+    for b = 1:nbr_bdfs
+        targets_to_plot{b} = target;
+    end
+    % if numel( unique(cell2mat(targets_to_plot)) ) > 1, error('plotting multiple trials not implemented yet!'); end
     nbr_targets_to_plot = length(target);
     
 elseif ischar(target)
@@ -74,7 +77,12 @@ elseif ischar(target)
             % create a cell with nbr_bdfs fields, each containing the
             % position of the last target (i.e. the concatenated trials
             % across all targets)
-            targets_to_plot = num2cell( arrayfun( @(x) length(x.target), single_trial_data ), 1);
+            if ~iscell(single_trial_data)
+                targets_to_plot = num2cell( arrayfun( @(x) length(x.target), single_trial_data ), 1);
+            else
+                targets_to_plot = num2cell( cellfun( @(x) length(x.target), single_trial_data ), 1);
+            end
+                
             % only plotting one target per task now:
             nbr_targets_to_plot = 1;
     end
@@ -130,24 +138,36 @@ end
 % Plot
     
 
+% get list of targets --can be different across tasks, and whether we want
+% to plot all concatenated targets or just one of them
+switch target
+    case 'all'
+        possible_tgts = cellfun( @(x) length(x.target), single_trial_data, 'UniformOutput', false );
+        warning('this calculates the mean across all targets, rather than plotting one, the another, etc');
+    otherwise
+        possible_tgts = cellfun( @(x) 1:length(x.target)-1, single_trial_data, 'UniformOutput', false );
+end
 
+% do a plot per target
 for t = 1:nbr_targets_to_plot
 
     % independent plot per target
-    figure('units','normalized','outerposition',[0 0 1 1])
-
+    % figure('units','normalized','outerposition',[0 0 1 1])
+    figure
+    
     % overlay plot per BDF (task)
     for b = 1:nbr_bdfs
         % independent plot in this figure for each neuron/force/emg...
         for v = 1:nbr_vars
-            
-            % see if there's a target to plot
-            if t <= length(targets_to_plot{b})
+
+            if ismember(targets_to_plot{b}(t),possible_tgts{b})
                 this_tgt        = targets_to_plot{b}(t);
             
                 % the corresponding subplot
                 subplot(rows_plot,cols_plot,v), hold on
             
+                % get mean +/-SD of the variable 
+                %
                 % check if var name is a 3-by-1 cell (for the neural pcs or
                 % muscle synergies) or a 2-by-1 cell (for the rest) 
                 if length(var_type) == 2
