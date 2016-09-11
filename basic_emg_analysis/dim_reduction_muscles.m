@@ -18,10 +18,11 @@
 %
 % Outputs
 %   dim_red_emg         : cell with fields:
-%       w               : weights PCA decomposition (cov matrix)
+%       w               : 'pca': eigenvectors in columns, 'nmf': weights in
+%                           columns (muscles x nbr_factors)
 %       eigen           : eigenvalues of w
 %       scores          : result of applying w to smoothed_FR
-%       t_axis          : time axis for scores
+%       t               : time axis for scores
 %       chs             : EMG signals included in the analysis
 %       method          : method used (stores input)
 %
@@ -138,7 +139,7 @@ switch method
             dim_red_emg{i}.w        = w_emg;
             dim_red_emg{i}.eigen    = eigen_emg;
             dim_red_emg{i}.scores   = scores_emg;
-            dim_red_emg{i}.t_axis   = emg(i).timeframe;
+            dim_red_emg{i}.t        = emg(i).timeframe;
             dim_red_emg{i}.chs      = chosen_emgs;
             dim_red_emg{i}.method   = 'pca';
             clear w_emg scores_emg eigen_emg
@@ -152,9 +153,9 @@ switch method
                                         nbr_factors);
                                     
             % store results
-            dim_red_emg{i}.w        = w_emg;
+            dim_red_emg{i}.w        = w_emg';
             dim_red_emg{i}.scores   = scores_emg;
-            dim_red_emg{i}.t_axis   = emg(i).timeframe;
+            dim_red_emg{i}.t        = emg(i).timeframe;
             dim_red_emg{i}.chs      = chosen_emgs;
             dim_red_emg{i}.method   = 'nmf';
             clear w_emg scores_emg
@@ -175,8 +176,20 @@ switch method
         end
 end
 
+
+
 % ------------------------------------------------------------------------
-% Plot variance
+% Return vars
+
+% Turn a 1 element cell into an array
+if length(dim_red_emg) == 1
+    dim_red_emg                     = cell2mat(dim_red_emg);
+end
+
+
+% ------------------------------------------------------------------------
+% Plot variance plots
+
 if plot_yn
     
     switch method
