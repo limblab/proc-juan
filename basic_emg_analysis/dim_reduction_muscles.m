@@ -65,11 +65,15 @@ elseif isstruct( emg_data )
     emg.timeframe       = emg_data.timeframe;
 % or a 2D array --note that column 1 is time
 else
-    emg.databin         = emg_data(:,2:end);
-    for ii = 1:(size(emg_data,2)-1)
+    % check if column 1 is time --if it is, get rid of it
+    if length(unique(diff(emg_data(:,1)))) == 1
+        emg.timeframe   = emg_data(:,1);
+        emg_data(:,1)   = [];
+    end
+    emg.databin         = emg_data;
+    for ii = 1:size(emg_data,2)
         emg.emgguide{ii} = ['EMG' num2str(ii)];
     end
-    emg.timeframe       = emg_data(:,1);
 end
 clear emg_data;
         
@@ -89,7 +93,7 @@ end
 if nargin >= 4
     labels              = varargin{3};
 end
-if nargin == 5
+if nargin >= 5
     nbr_factors         = varargin{4};
 end
 if nargin == 6
@@ -155,7 +159,9 @@ switch method
             % store results
             dim_red_emg{i}.w        = w_emg';
             dim_red_emg{i}.scores   = scores_emg;
-            dim_red_emg{i}.t        = emg(i).timeframe;
+            if isfield(emg,'timeframe') % if not here will be filled by the calling fcn
+                dim_red_emg{i}.t    = emg(i).timeframe;
+            end
             dim_red_emg{i}.chs      = chosen_emgs;
             dim_red_emg{i}.method   = 'nmf';
             clear w_emg scores_emg
