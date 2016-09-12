@@ -64,16 +64,19 @@ end
 chosen_emgs             = data_set.chosen_emgs;
 
 % -------------------------------------------------------------------------
+% Do dimensionality reduction
+
 % nbr of tasks in dataset
 nbr_bdfs                    = length(data_set.stdata);
 
-% concatenate all the EMGs
+% concatenate all the EMGs into a single sample x channel array, which will
+% be used to do PCA/NMF on
 conc_emg                    = data_set.stdata{1}.target{end}.emg_data.conc_emg;
 for i = 2:nbr_bdfs
     conc_emg                = cat(1,conc_emg,data_set.stdata{i}.target{end}.emg_data.conc_emg);
 end
 
-% do !
+% do PCA/NMF
 dim_red_emg                 = dim_reduction_muscles( conc_emg, method, chosen_emgs, ...
                                 labels, nbr_factors, plot_yn );
                             

@@ -150,7 +150,7 @@ switch method
         end
     case 'nmf'
         if ~exist('nbr_factors','var')
-            disp('you need to pass the number of factors for NMF');
+            error('you need to pass the number of factors for NMF');
         end
         for i = 1:nbr_bdfs
             [scores_emg, w_emg]     = nnmf(emg(i).databin(:,chosen_emgs),...
