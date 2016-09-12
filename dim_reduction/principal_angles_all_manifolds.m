@@ -11,9 +11,10 @@
 %                       components) for which principal angles will be
 %                       computed
 %   labels          : cell array with teh labels for each task
-%   (angle_orth)    : [angle P<0.001] smallest angle that will be obtained
-%                       generating 1D vectors in a space with the
-%                       dimensionality of the manifold
+%   (angle_orth)    : [empty] principal angles between randomly generated
+%                       sets of manifolds with the same dimensionality as
+%                       those in dim_red_FR, and that live in a space with
+%                       the same dimensionality
 %
 % Outputs:
 %   princ_angles    : struct with fields:
@@ -38,14 +39,9 @@ if nargin == 4
     angle_orth      = varargin{1};
 end
 
-% if not, passed, compute the orthogonality angle for P < 0.001 
-if ~exist('angle_orth','var')
-    angle_orth      = rad2deg(acos(3.3/sqrt(length(datasets{1}.dim_red_FR{1}.chs))));
-end
-
 
 % -------------------------------------------------------------------------
-% get some meta info
+% get some info about how many tasks and task pairs
 nbr_bdfs            = length(dim_red_FR);
 
 comb_bdfs           = nchoosek(1:nbr_bdfs,2);
@@ -70,4 +66,6 @@ for p = 1:nbr_comb_bdfs
 end
 
 % add angle orthgonality
-princ_angles.angle_orth = angle_orth;
+if exist('angle_orth','var')
+    princ_angles.angle_orth = deg2rad(angle_orth)';
+end
