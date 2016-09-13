@@ -5,16 +5,18 @@
 %
 %
 % 'params' is a struct with fields:
-%   dim_manifold        : number of dimensions of the neural manifold
-%   P_thr               : P value for assessing the significance of the
-%                           principal angles (obtained from the empirically
-%                           generated principal angles)
-%   empir_angle_dist_file : absolute path to the file with the empirical
-%                           principal angle data
-%   nbr_planes_bootstrap : if it is necessary to generate a new empirical
-%                           distribution of principal angles, this is the
-%                           number of samples that will be used
-%   plot_p_session      : (bool) whether to plot one figure per session or
+%
+% Field                 : [default]
+%   dim_manifold        : [20] number of dimensions of the neural manifold
+%   P_thr               : [0.001] P value for assessing the significance of
+%                           the principal angles (obtained from the
+%                           empirically generated principal angles)
+%   empir_angle_dist_file : [see code] absolute path to the file with the
+%                           empirical principal angle data
+%   nbr_planes_bootstrap : [10000] if it is necessary to generate a new
+%                           empirical distribution of principal angles,
+%                           this is the number of samples that will be used
+%   plot_p_session      : [false] whether to plot one figure per session or
 %                           not, besides the summary plots
 %
 %
@@ -30,7 +32,7 @@ params_defaults     = struct( ...
                                                     '_Dimensionality reduction/_control analyses/' ...
                                                     'empirical principal angle distributions all datasets.mat'], ...
                         'nbr_planes_bootstrap', 10000, ...
-                        'plot_p_session',       true );
+                        'plot_p_session',       false );
                     
                     
 % read input params, if passed
