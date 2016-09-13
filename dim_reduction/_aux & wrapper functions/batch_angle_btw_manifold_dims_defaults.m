@@ -3,6 +3,22 @@
 %
 %   function params = batch_angle_btw_manifold_dims_defaults( varargin )
 %
+%
+% 'params' is a struct with fields:
+%   dim_manifold        : number of dimensions of the neural manifold
+%   P_thr               : P value for assessing the significance of the
+%                           principal angles (obtained from the empirically
+%                           generated principal angles)
+%   empir_angle_dist_file : absolute path to the file with the empirical
+%                           principal angle data
+%   nbr_planes_bootstrap : if it is necessary to generate a new empirical
+%                           distribution of principal angles, this is the
+%                           number of samples that will be used
+%   plot_p_session      : (bool) whether to plot one figure per session or
+%                           not, besides the summary plots
+%
+%
+
 
 function params = batch_angle_btw_manifold_dims_defaults( varargin )
 
@@ -10,10 +26,11 @@ function params = batch_angle_btw_manifold_dims_defaults( varargin )
 params_defaults     = struct( ...
                         'dim_manifold',         20, ...
                         'P_thr',                0.001, ...
-                        'P_empir_angle_dist_file', ['/Users/juangallego/Documents/NeuroPlast/Data/' ...
+                        'empir_angle_dist_file', ['/Users/juangallego/Documents/NeuroPlast/Data/' ...
                                                     '_Dimensionality reduction/_control analyses/' ...
                                                     'empirical principal angle distributions all datasets.mat'], ...
-                        'nbr_planes_bootstrap', 10000 );
+                        'nbr_planes_bootstrap', 10000, ...
+                        'plot_p_session',       true );
                     
                     
 % read input params, if passed
