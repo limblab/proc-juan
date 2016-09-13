@@ -11,23 +11,14 @@
 function angle_results = batch_angle_btw_manifold_dims( varargin )
 
 
-% -------------------------------------------------------------------------
-% some options that could be turn into fcn params
-
-% the dimensionality of the neural manifolds, and how many eigenvectors
-% will be compared in the eigenvector comparisons
-dim_manifold            = 20; 
-
-empir_angle_dist_file   = ['/Users/juangallego/Documents/NeuroPlast/Data/' ...
-                            '_Dimensionality reduction/_control analyses/' ...
-                            'empirical angle distribution all datasets.mat'];
-Pval_empir_angle_dist   = 0.001; % can be 0.01 --this needs to be improved
+% check that the parallel pool is running, otherwise start it
+gcp;
 
 
 % -------------------------------------------------------------------------
-% read input params
+% read inputs
 
-if nargin
+if nargin >= 1
     if iscell(varargin{1})
         datasets        = varargin{1};
     else
@@ -36,38 +27,40 @@ if nargin
 else
     path                = pwd;
 end
+if nargin == 2
+    params              = batch_angle_btw_manifold_dims_defaults( varargin{2} );
+else
+    params              = batch_angle_btw_manifold_dims_defaults();
+end
 clear varargin;
 
 
 % -------------------------------------------------------------------------
 % load data
 
+% monkey data
 if ~exist('datasets','var')
     load([path filesep 'all_manifold_datasets.mat'])
 end
 
-empir_angle_dist_all    = load(empir_angle_dist_file);
 
-% choose the random distributions based on the threshold 
-% -- ToDo: improve this code
-switch Pval_empir_angle_dist
-    case 0.01
-        % do not need to do anything because this is the by-default Pval
-    case 0.001
-        % replace the angle_non_orth, which is for P = 0.01, for the
-        % distribution for P = 0.001
-        empir_angle_dist_all.angle_non_orth_01 = empir_angle_dist_all.angle_non_orth;
-        empir_angle_dist_all.angle_non_orth = empir_angle_dist_all.angle_non_orth_001;
+% empirical angle distribution
+if ~isempty(params.empir_angle_dist_file)
+    empir_angle_dist_all    = load(params.empir_angle_dist_file);
 end
-% add Pval to empir_angle_dist_all for plotting
-empir_angle_dist_all.Pval = Pval_empir_angle_dist;
+    
+% check that the P_val in the empirical angle distribution file is the same
+% that is defined in params
+if empir_angle_dist_all.P_orth ~= params.P_thr
+    warning('P value in params.P_thr is different to Pval in the empirical angle distribution file');
+    disp('ToDo: implement small function to compute the angles for a given P');
+end
 
 
 % -------------------------------------------------------------------------
 % get info about monkeys, tasks, and who did what
 
 meta_info               = batch_get_monkey_task_data( datasets );
-
 
 
 % -------------------------------------------------------------------------
@@ -84,22 +77,24 @@ for i = 1:meta_info.nbr_monkeys
         dtst            = meta_info.sessions_per_monkey{i}(ii);
         
         % -----------------------------------------------------------------
-        % 1) angles between pairs of task-manifold dimensions 
+        % 1) principal angles between pairs of task-manifold dimensions 
          
-        % get non-orthogonality angle for 1D vectors in the n-dimensional space
-        angle_orth      = empir_angle_dist_all.angle_non_orth_001{ ...
-            find( empir_angle_dist_all.space_dim == ...
-            length(datasets{dtst}.dim_red_FR{1}.chs) )}(1);
+        
+        % get random principal angles for this space dimensionality
+        angle_orth      = empir_angle_dist_all.angle_non_orth(:,...
+                            empir_angle_dist_all.plane_dim == params.dim_manifold,...
+                            empir_angle_dist_all.space_dim ...
+                            == length(datasets{dtst}.neural_chs));
 
         % compute principal angles between all pairs of tasks in this
         % session
         princ_angles    = principal_angles_all_manifolds( datasets{dtst}.dim_red_FR, ...
-                            1:dim_manifold, datasets{dtst}.labels, angle_orth );
+                            1:params.dim_manifold, datasets{dtst}.labels, angle_orth );
         
 %         % -----------------------------------------------------------------
 %         % 2) angles between manifolds
 %         [angles, ~, ~, empir_angle_dist] = comp_neural_manifolds( ...
-%             [], datasets{dtst}.neural_chs, dim_manifold, datasets{dtst}.labels, '', ...
+%             [], datasets{dtst}.neural_chs, params.dim_manifold, datasets{dtst}.labels, '', ...
 %             [], datasets{dtst}.dim_red_FR, empir_angle_dist_all );
 
         % -----------------------------------------------------------------
@@ -127,7 +122,7 @@ nbr_pairs_tasks      	= length(meta_info.task_pairs.unique_pairs);
 % % For the manifold analysis
 % % var to store the dimensionality of the highest dimensional manifold below
 % % the "randomness threshold" for each pair of manifolds --note that it will
-% % be a NaN if it doesn't go above the threshold for the 1:dim_manifold
+% % be a NaN if it doesn't go above the threshold for the 1:params.dim_manifold
 % % first dimensions
 % last_dim_below_th       = nan(1,nbr_manifold_pairs);
 % manifold_pair           = cell(1,nbr_manifold_pairs);
@@ -138,10 +133,10 @@ nbr_pairs_tasks      	= length(meta_info.task_pairs.unique_pairs);
 % 1. find: 
 %     a) the dimension at which the angle goes above the random threshold
 %     for all pairs of tasks, and 
-%     b) the number of eigenvectors that are non orthogonal (1:dim_manifold)
+%     b) the number of eigenvectors that are non orthogonal (1:params.dim_manifold)
 
 nbr_eigenv_below_thr    = zeros(1,nbr_manifold_pairs);
-angles_matrix           = zeros(nbr_manifold_pairs,dim_manifold);
+angles_matrix           = zeros(nbr_manifold_pairs,params.dim_manifold);
 ctr                     = 1;
 for d = 1:length(data)
     for p = 1:size(data{d}.princ_angles.angles,1)
@@ -158,7 +153,7 @@ for d = 1:length(data)
         % b) the number of eigenvectors that are non orthogonal
 
         nbr_eigenv_below_thr(ctr)   = sum(rad2deg(data{d}.princ_angles.angles(p,:)) < ...
-                                        data{d}.princ_angles.angle_orth);
+                                        rad2deg(data{d}.princ_angles.angle_orth));
         angles_matrix(ctr,:)        = data{d}.princ_angles.angles(p,:);
         % update ctr
         ctr             = ctr + 1;
@@ -171,7 +166,7 @@ end
 
 % create 
 summary_data.princ_angles   = struct('pair',[meta_info.task_pairs.unique_pairs],...
-                            'nbr_eigenv_below_thr',[],'angles',zeros(1,dim_manifold));
+                            'nbr_eigenv_below_thr',[],'angles',zeros(1,params.dim_manifold));
 
 
 
@@ -218,8 +213,8 @@ end
 % now do the histogram of this
 for p = 1:numel(meta_info.task_pairs.unique_pairs)
     [counts_this_pair, edges_this_pair] = histcounts(...
-        summary_data.princ_angles(p).nbr_eigenv_below_thr,1:dim_manifold+1);
-    edges_this_pair         = edges_this_pair(1:dim_manifold);
+        summary_data.princ_angles(p).nbr_eigenv_below_thr,1:params.dim_manifold+1);
+    edges_this_pair         = edges_this_pair(1:params.dim_manifold);
     % store
     summary_data.princ_angles(p).hist.counts_below_th = counts_this_pair;
     summary_data.princ_angles(p).hist.edges = edges_this_pair;
@@ -245,8 +240,8 @@ end
 % % -------------------------------------------------------------------------
 % 
 % % do a histogram to summarize this
-% [counts_dim_below_th, edges_dim_below_th] = histcounts(last_dim_below_th,1:dim_manifold+1);
-% edges_dim_below_th      = edges_dim_below_th(1:dim_manifold);
+% [counts_dim_below_th, edges_dim_below_th] = histcounts(last_dim_below_th,1:params.dim_manifold+1);
+% edges_dim_below_th      = edges_dim_below_th(1:params.dim_manifold);
 % 
 % counts_non_orth_pairs   = sum(isnan(last_dim_below_th));
 % 
@@ -285,8 +280,8 @@ end
 % % now do histograms for each pair of tasks
 % for p = 1:numel(meta_info.task_pairs.unique_pairs)
 %     [counts_this_pair, edges_this_pair] = histcounts(...
-%         summary_data.per_pair(p).last_dim_below_th,1:dim_manifold+1);
-%     edges_this_pair         = edges_this_pair(1:dim_manifold);
+%         summary_data.per_pair(p).last_dim_below_th,1:params.dim_manifold+1);
+%     edges_this_pair         = edges_this_pair(1:params.dim_manifold);
 %     % store
 %     summary_data.per_pair(p).hist.counts_below_th = counts_this_pair;
 %     summary_data.per_pair(p).hist.edges = edges_this_pair;
@@ -331,7 +326,7 @@ for i = 1:nbr_pairs_tasks
 end
 set(gca,'Tickdir','out'),set(gca,'FontSize',14)
 xlabel('dimension'),ylabel('principal angle (deg)')
-xlim([0 dim_manifold+1]),ylim([0 90])
+xlim([0 params.dim_manifold+1]),ylim([0 90])
 
 
 
@@ -353,6 +348,33 @@ end
 figure,
 bar(summary_data.princ_angles(1).hist.edges', matrix_stack_hist_princ_angles','stack','EdgeColor',[1 1 1])
 set(gca,'TickDir','out'), set(gca,'FontSize',16)
-ylim([0 max(sum(matrix_stack_hist_princ_angles))+1]), xlim([0 dim_manifold+1])
-ylabel('counts'),xlabel(['number non-orthogonal dimensions (P<' num2str(Pval_empir_angle_dist) ')'])
+ylim([0 max(sum(matrix_stack_hist_princ_angles))+1]), xlim([0 params.dim_manifold+1])
+ylabel('counts'),xlabel(['number non-orthogonal dimensions (P<' num2str(params.P_thr) ')'])
 legend(legend_plot,'Location','NorthWest'), legend boxoff
+
+
+% -------------------------------------------------------------------------
+% One plot with principal angles per session, if specified
+if params.plot_p_session
+    
+   for d = 1:length(data)
+       
+       nbr_pairs_this       = size(data{d}.princ_angles.angles,1);
+       this_lgnd            = cell(1,nbr_pairs_this+1);
+       if nbr_pairs_this > 1
+            colors          = parula(nbr_pairs_this);
+       else
+            colors          = [0 0 1];
+       end
+       figure,hold on
+       for p = 1:nbr_pairs_this
+            plot(rad2deg(data{d}.princ_angles.angles(p,:)),'color',colors(p,:),'linewidth',1.5)
+            this_lgnd{p}    = [data{d}.princ_angles.labels{p}{1} ' vs ' data{d}.princ_angles.labels{p}{2}];
+       end
+       this_lgnd{end}       = ['random P<' num2str(params.P_thr)]; 
+       plot(rad2deg(data{d}.princ_angles.angle_orth),':','color',[.6 .6 .6],'linewidth',1.5)
+       set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+       xlabel('dimension'),ylabel('principal angle (deg)')
+       legend(this_lgnd,'Location','NorthWest'), legend boxoff
+   end
+end
