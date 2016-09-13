@@ -62,7 +62,7 @@ for p = 1:nbr_comb_bdfs
     princ_angles.svdec(p).U = U;
     princ_angles.svdec(p).S = S;
     princ_angles.svdec(p).V = V;
-    princ_angles.labels{p} = [labels(comb_bdfs(p,1)) labels(comb_bdfs(p,1))];    
+    princ_angles.labels{p} = [labels(comb_bdfs(p,1)) labels(comb_bdfs(p,2))];    
 end
 
 % add angle orthgonality
