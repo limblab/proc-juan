@@ -1,6 +1,7 @@
 %
-% concatenate single trials from a single_trial_data struct and add them to
-% the single_trial_data struct
+% concatenate single trial neural, emg, pos, vel, force data from a
+% single_trial_data struct and add them as a "concatenated" time x chs
+% array to the respective field in the single_trial_data struct 
 %
 %   function single_trial_data = concatenate_single_trials( single_trial_data )
 %
