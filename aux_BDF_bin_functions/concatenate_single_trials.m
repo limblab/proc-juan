@@ -70,7 +70,7 @@ for t = 1:length(single_trial_data.target)
     % 5) the dimensionally-reduced EMGs
     if isfield(single_trial_data.target{t}.emg_data,'dim_red')
         
-        aux             = single_trial_data.target{t}.emg_data.dim_red.scores;
+        aux             = single_trial_data.target{t}.emg_data.dim_red.st_scores;
         conc            = zeros(size(aux,1)*size(aux,3),size(aux,2));    
         for d = 1:size(aux,2)
             sq_conc     = reshape( squeeze(aux(:,d,:)), [], 1 );
