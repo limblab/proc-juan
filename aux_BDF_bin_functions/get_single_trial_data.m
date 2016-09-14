@@ -45,6 +45,9 @@
 %   - allow the user to pass a BDF instead of a binned_data struct, since
 %   the functions inside can take binned_data structs
 %   - implement retrieving force data
+%   - integrate this with the new add_conc_target_single_trial_data fc
+%
+%
 
 
 function single_trial_data = get_single_trial_data( binned_data, task, varargin )
