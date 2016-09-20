@@ -180,7 +180,7 @@ for t = 1:nbr_targets_to_plot
                 aux_mean        = mean(aux_data,2);
                 aux_sd          = std(aux_data,0,2);
                 color_indx      = v+(b-1)*nbr_vars;
-%                plot( t_axis{b}, aux_data, 'color',[.65 .65 .65]);
+                if nbr_bdfs == 1, plot( t_axis{b}, aux_data, 'color',[.65 .65 .65]); end
                 plot( t_axis{b}, aux_mean, 'color',colors_plot(color_indx,:),'linewidth',3);
                 plot( t_axis{b}, aux_mean+aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
                 plot( t_axis{b}, aux_mean-aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
