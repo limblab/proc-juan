@@ -9,6 +9,7 @@
 %   single_trial_data   : a single single_trial_data struct
 %   (nbr_chunks)        : [2] nbr of single_trial_data structs into which
 %                           single_trial_data will be split
+%   (random_order_yn)   : [false] randomize the order of the trials
 %
 % Outputs:
 %   single_trial_data   : cell array w the split single_trial_data structs
@@ -22,10 +23,16 @@ function single_trial_data = split_single_trial_data( single_trial_data, varargi
 
 % -------------------------------------------------------------------------
 % read inputs
-if nargin == 2
+if nargin >= 2
     nbr_chunks          = varargin{1};
 else
     nbr_chunks          = 2;
+end
+
+if nargin == 3
+    random_order_yn     = varargin{2};
+else
+    random_order_yn     = false;
 end
 
 
@@ -48,6 +55,54 @@ trial_offset            = zeros(1,nbr_targets);
 aux_to                  = repmat(nbr_trials_to_keep_p_target,nbr_chunks-1,1);
 trial_offset            = [trial_offset; cumsum(aux_to,1)];
 clear aux_to;
+
+
+% create a cell array with the trials to keep for each target and "chunk"
+for t = 1:nbr_targets
+    % if want to keep consecutive trials
+    if ~random_order_yn
+        % get start and end trial indexes for the n trials that each chunk
+        % will comprise of --note that they can be different for each
+        % target, as the number of trials does not necessarily have to be
+        % the same
+        for c = 1:nbr_chunks
+            start_this      = 1 + trial_offset(c,t);
+            end_this        = nbr_trials_to_keep_p_target(t) + trial_offset(c,t);
+            indxs_this{c,t} = start_this:end_this;
+        end
+    % or randomly ordered_trials
+    else
+        % randomly order the trials and then take the n trials that will be
+        % each chunk
+        aux_rand_indexes    = randperm(nbr_trials_p_target(t));
+        for c = 1:nbr_chunks
+            start_this      = 1 + trial_offset(c,t);
+            end_this        = nbr_trials_to_keep_p_target(t) + trial_offset(c,t);
+            indxs_this{c,t} = aux_rand_indexes(start_this:end_this);
+        end
+    end
+end
+
+
+% create a cell array with the trials to keep for each target and "chunk"
+for t = 1:nbr_targets
+
+    % if want to keep consecutive trials just keep the number that
+    % correspond to each chunk
+    if ~random_order_yn
+        aux_rand_indexes = 1:nbr_trials_p_target(t);
+    % if we want to randomly choose the trials for each chunk
+    else
+        aux_rand_indexes = randperm(nbr_trials_p_target(t));
+    end
+
+    % store them here
+    for c = 1:nbr_chunks
+        start_this      = 1 + trial_offset(c,t);
+        end_this        = nbr_trials_to_keep_p_target(t) + trial_offset(c,t);
+        indxs_this{c,t} = aux_rand_indexes(start_this:end_this);
+    end
+end
 
 
 % see what optional fields we have
@@ -78,11 +133,6 @@ for c = 1:nbr_chunks
     
     for t = 1:nbr_targets
     
-        % get start and end trial indexes for this new single_trial_data
-        % struct
-        start_this      = 1 + trial_offset(c,t);
-        end_this        = nbr_trials_to_keep_p_target(t) + trial_offset(c,t);
-        
         
         % -----------------------------------------------------------------
         % store the data
@@ -91,10 +141,10 @@ for c = 1:nbr_chunks
         % 1) neural data vars
         
         % a) FRs
-        stdata{c}.target{t}.neural_data.fr              = single_trial_data.target{t}.neural_data.fr(:,:,start_this:end_this);
+        stdata{c}.target{t}.neural_data.fr              = single_trial_data.target{t}.neural_data.fr(:,:,indxs_this{c,t});
         
         if smoothed_fr_yn
-            stdata{c}.target{t}.neural_data.smoothed_fr = single_trial_data.target{t}.neural_data.smoothed_fr(:,:,start_this:end_this);
+            stdata{c}.target{t}.neural_data.smoothed_fr = single_trial_data.target{t}.neural_data.smoothed_fr(:,:,indxs_this{c,t});
         end
         
         % b) summary stats
@@ -114,7 +164,7 @@ for c = 1:nbr_chunks
         if dim_red_neural_yn
             % single trial data
             stdata{c}.target{t}.neural_data.dim_red.st_scores = ...
-                single_trial_data.target{t}.neural_data.dim_red.st_scores(:,:,start_this:end_this);
+                single_trial_data.target{t}.neural_data.dim_red.st_scores(:,:,indxs_this{c,t});
             % summary stats
             stdata{c}.target{t}.neural_data.dim_red.st_scores_mn = mean(stdata{c}.target{t}.neural_data.dim_red.st_scores,3);
             stdata{c}.target{t}.neural_data.dim_red.st_scores_sd = std(stdata{c}.target{t}.neural_data.dim_red.st_scores,0,3);
@@ -125,7 +175,7 @@ for c = 1:nbr_chunks
         % emg data vars
         
         % a) EMGs
-        stdata{c}.target{t}.emg_data.emg                = single_trial_data.target{t}.emg_data.emg(:,:,start_this:end_this);
+        stdata{c}.target{t}.emg_data.emg                = single_trial_data.target{t}.emg_data.emg(:,:,indxs_this{c,t});
         
         % b) summary stats
         stdata{c}.target{t}.emg_data.mn                 = mean(stdata{c}.target{t}.emg_data.emg,3);
@@ -138,7 +188,7 @@ for c = 1:nbr_chunks
         % d) dim_red EMGs
         if dim_red_emg_yn
             % single trial muscle synergies
-            stdata{c}.target{t}.emg_data.dim_red.st_scores = single_trial_data.target{t}.emg_data.dim_red.st_scores(:,:,start_this:end_this);
+            stdata{c}.target{t}.emg_data.dim_red.st_scores = single_trial_data.target{t}.emg_data.dim_red.st_scores(:,:,indxs_this{c,t});
             % summary stats
             stdata{c}.target{t}.emg_data.dim_red.st_scores_mn = mean(stdata{c}.target{t}.emg_data.dim_red.st_scores,3);
             stdata{c}.target{t}.emg_data.dim_red.st_scores_sd = std(stdata{c}.target{t}.emg_data.dim_red.st_scores,0,3);
@@ -151,7 +201,7 @@ for c = 1:nbr_chunks
            
             if other_vars_yn(v)
                 % single trial pos/vel/force
-                stdata{c}.target{t}.(other_vars{v}).data = single_trial_data.target{t}.(other_vars{v}).data(:,:,start_this:end_this);
+                stdata{c}.target{t}.(other_vars{v}).data = single_trial_data.target{t}.(other_vars{v}).data(:,:,indxs_this{c,t});
                 % summary stats
                 stdata{c}.target{t}.(other_vars{v}).mn  = mean( stdata{c}.target{t}.(other_vars{v}).data, 3);
                 stdata{c}.target{t}.(other_vars{v}).sd  = std( stdata{c}.target{t}.(other_vars{v}).data, 0, 3);
@@ -163,7 +213,7 @@ for c = 1:nbr_chunks
         % some other stuff
         
         % bin indx
-        stdata{c}.target{t}.bin_indx_p_trial            = single_trial_data.target{t}.bin_indx_p_trial(:,start_this:end_this);
+        stdata{c}.target{t}.bin_indx_p_trial            = single_trial_data.target{t}.bin_indx_p_trial(:,indxs_this{c,t});
         
         % bin_size, method for getting the trials (cutting vs. time
         % warping), words for finding the trials, and time vector
