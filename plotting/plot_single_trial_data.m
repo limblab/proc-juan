@@ -14,9 +14,15 @@
 %                           target, showing the data from all the trials,
 %                           as well as the mean (+/-SD); scalar 1:n) target
 %                           number, same format as 'each'; 'all') for all
-%                           trials in the same plot
+%                           trials in the same plot. Note that 'each' &
+%                           scalar plot multiple BDFs on top of each other,
+%                           while 'all' generates one figure per BDF
 %   (superimpose)       : [false] plot the data from each target in the
 %                           same subplot
+%
+%
+% Note: this code is pretty messy, it'd be good to clean it up, overall the
+% last part
 %
 %
 
@@ -87,17 +93,20 @@ elseif ischar(target)
             % position of the last target (i.e. the concatenated trials
             % across all targets)
             if ~iscell(single_trial_data)
-                targets_to_plot = num2cell( arrayfun( @(x) length(x.target), single_trial_data ), 1);
+                targets_to_plot = num2cell( arrayfun( @(x) 1:length(x.target)-1, single_trial_data, ...
+                                    'UniformOutput', false ), 1 );
             else
-                targets_to_plot = num2cell( cellfun( @(x) length(x.target), single_trial_data ), 1);
+                targets_to_plot = cellfun( @(x) 1:length(x.target)-1, single_trial_data, ...
+                                    'UniformOutput', false );
             end
                 
             % only plotting one target per task now:
-            nbr_targets_to_plot = 1;
+            nbr_targets_to_plot = length(targets_to_plot{1});
     end
 end
 
 
+% ---------------------------------
 % what variable to plot
 switch var
     case 'neuron'
@@ -126,13 +135,27 @@ switch var
 end
         
 
-% define colors
-colors_plot             = parula(nbr_vars*nbr_bdfs);
+% ---------------------------------
+% define colors & nbr rows/cols
+
+if ischar(target)
+    % for the case that we want to plot all the targets one on top of
+    % another...
+    if strcmp(target,'all')
+        colors_plot     = parula(nbr_targets_to_plot);
+    end
+end
+%
+if ~exist('colors_plot','var')
+    colors_plot         = parula(nbr_vars*nbr_bdfs);
+end
 
 % rows and columns in the plot
 cols_plot               = ceil(sqrt(nbr_vars));
 rows_plot               = ceil(nbr_vars/cols_plot);
 
+
+% ---------------------------------
 % create time vectors
 nbr_bins_p_bdf          = cellfun( @(x) size(x.target{1}.neural_data.fr,1), ...
                             single_trial_data );
@@ -148,21 +171,75 @@ end
     
 % get list of targets --can be different across tasks, and whether we want
 % to plot all concatenated targets or just one of them
+possible_tgts           = cellfun( @(x) 1:length(x.target), single_trial_data, ...
+                            'UniformOutput', false );
+
+
+% see if we want everything in a single figure or one per target
+
 if ischar(target)
-    switch target
-        case 'all'
-            possible_tgts = cellfun( @(x) length(x.target), single_trial_data, 'UniformOutput', false );
-            warning('this calculates the mean across all targets, rather than plotting one, the another, etc');
-        otherwise
-            possible_tgts = cellfun( @(x) 1:length(x.target)-1, single_trial_data, 'UniformOutput', false );
+
+    % ---------------------------------------------------------------
+    % for the case that we want to plot all the targets one on top of
+    % another...
+    if strcmp(target,'all')
+        for b = 1:nbr_bdfs
+            % one figure per BDF
+            figure
+            
+            % independent plot in this figure for each neuron/force/emg...
+            for v = 1:nbr_vars
+
+                % retrieve subplot
+                subplot(rows_plot,cols_plot,v), hold on
+
+                % now plot mean +/- SD per target in this plot
+                for t = 1:nbr_targets_to_plot
+
+                    if ismember(targets_to_plot{b}(t),possible_tgts{b})
+                        this_tgt = targets_to_plot{b}(t);
+
+                        % get mean +/-SD of the variable
+                        %
+                        % check if var name is a 3-by-1 cell (for the neural pcs or
+                        % muscle synergies) or a 2-by-1 cell (for the rest)
+                        if length(var_type) == 2
+                            aux_data    = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2})...
+                                (:,params(v),:));
+                        else
+                            aux_data    = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2}).(var_type{3})...
+                                (:,params(v),:));
+                        end
+                        aux_mean        = mean(aux_data,2);
+                        aux_sd          = std(aux_data,0,2);
+                        color_indx      = t;
+
+                        plot( t_axis{b}, aux_mean, 'color',colors_plot(color_indx,:),'linewidth',3);
+                        plot( t_axis{b}, aux_mean+aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                        plot( t_axis{b}, aux_mean-aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                        set(gca,'TickDir','out'), set(gca,'FontSize',14);
+                        
+                        % add labels
+                        if v > cols_plot*(rows_plot-1)
+                            xlabel('time (s)')
+                        end
+                        if strcmp(var,'emg')
+                            ylabel(single_trial_data{1}.target{1}.emg_data.emg_names{v});
+                        else
+                            ylabel([var ' ' num2str(v)],'Interpreter','none');
+                        end
+                    end
+                end
+            end
+        end
+    else
+        % dirty fix
+        aux_each_target     = true; 
     end
-elseif isnumeric(target)
-    possible_tgts = cellfun( @(x) 1:length(x.target)-1, single_trial_data, 'UniformOutput', false );
 end
-
-
-% do a plot per target
-if ~superimpose 
+% -------------------------------------------------------------------
+% when we want one figure per target
+if isnumeric(target) || exist('aux_each_target','var')
     for t = 1:nbr_targets_to_plot
 
         % independent plot per target
@@ -209,7 +286,4 @@ if ~superimpose
             end
         end
     end
-%superimpose the data from each target
-else
-    
 end
