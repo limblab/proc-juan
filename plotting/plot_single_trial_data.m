@@ -17,7 +17,7 @@
 %                           trials in the same plot. Note that 'each' &
 %                           scalar plot multiple BDFs on top of each other,
 %                           while 'all' generates one figure per BDF
-%   (superimpose)       : [false] plot the data from each target in the
+%   (plot_SD)           : [true] plot the data from each target in the
 %                           same subplot
 %
 %
@@ -33,13 +33,13 @@ function plot_single_trial_data( single_trial_data, var, params, varargin )
 % read inputs
 if nargin == 4
     target              = varargin{1};
-    superimpose         = false;
+    plot_SD             = false;
 elseif nargin == 5
     target              = varargin{1};
-    superimpose         = varargin{2};
+    plot_SD             = varargin{2};
 else
     target              = 'each';
-    superimpose         = false;
+    plot_SD             = false;
 end
 
 
@@ -211,12 +211,16 @@ if ischar(target)
                                 (:,params(v),:));
                         end
                         aux_mean        = mean(aux_data,2);
-                        aux_sd          = std(aux_data,0,2);
+                        if plot_SD
+                            aux_sd      = std(aux_data,0,2);
+                        end
                         color_indx      = t;
 
                         plot( t_axis{b}, aux_mean, 'color',colors_plot(color_indx,:),'linewidth',3);
-                        plot( t_axis{b}, aux_mean+aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
-                        plot( t_axis{b}, aux_mean-aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                        if plot_SD
+                            plot( t_axis{b}, aux_mean+aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                            plot( t_axis{b}, aux_mean-aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                        end
                         set(gca,'TickDir','out'), set(gca,'FontSize',14);
                         
                         % add labels
@@ -269,12 +273,16 @@ if isnumeric(target) || exist('aux_each_target','var')
                                         (:,params(v),:));
                     end
                     aux_mean        = mean(aux_data,2);
-                    aux_sd          = std(aux_data,0,2);
+                    if plot_SD
+                        aux_sd      = std(aux_data,0,2);
+                    end
                     color_indx      = v+(b-1)*nbr_vars;
                     if nbr_bdfs == 1, plot( t_axis{b}, aux_data, 'color',[.65 .65 .65]); end
                     plot( t_axis{b}, aux_mean, 'color',colors_plot(color_indx,:),'linewidth',3);
-                    plot( t_axis{b}, aux_mean+aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
-                    plot( t_axis{b}, aux_mean-aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                    if plot_SD
+                        plot( t_axis{b}, aux_mean+aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                        plot( t_axis{b}, aux_mean-aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
+                    end
                     set(gca,'TickDir','out'), set(gca,'FontSize',14);
                 end
 
