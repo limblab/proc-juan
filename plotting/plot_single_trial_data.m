@@ -43,6 +43,9 @@ else
 end
 
 
+% option to smooth the neuron's PSTHs
+smooth_PSTH_yn          = true;
+
 
 % -------------------------------------------------------------------------
 % get some info about what to plot 
@@ -180,8 +183,8 @@ possible_tgts           = cellfun( @(x) 1:length(x.target), single_trial_data, .
 if ischar(target)
 
     % ---------------------------------------------------------------
-    % for the case that we want to plot all the targets one on top of
-    % another...
+    % 1) for the case that we want to PLOT ALL THE TARGETS ON TOP OF ONE
+    % ANOTHER...
     if strcmp(target,'all')
         for b = 1:nbr_bdfs
             % one figure per BDF
@@ -210,12 +213,25 @@ if ischar(target)
                             aux_data    = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2}).(var_type{3})...
                                 (:,params(v),:));
                         end
+                        
+                        
                         aux_mean        = mean(aux_data,2);
+
                         if plot_SD
                             aux_sd      = std(aux_data,0,2);
                         end
                         color_indx      = t;
 
+                        % smooth neuron firing rates
+                        if strcmp(var,'neuron')
+                            if smooth_PSTH_yn
+                                aux_mean = filt_nodelay(aux_mean, 1/single_trial_data{b}.target{this_tgt}.bin_size, 10);
+                                if plot_SD
+                                    aux_sd = filt_nodelay(aux_sd, 1/single_trial_data{b}.target{this_tgt}.bin_size, 10);
+                                end
+                            end
+                        end
+                        
                         plot( t_axis{b}, aux_mean, 'color',colors_plot(color_indx,:),'linewidth',3);
                         if plot_SD
                             plot( t_axis{b}, aux_mean+aux_sd, ':','color',colors_plot(color_indx,:),'linewidth',3);
@@ -230,7 +246,34 @@ if ischar(target)
                         if strcmp(var,'emg')
                             ylabel(single_trial_data{1}.target{1}.emg_data.emg_names{v});
                         else
-                            ylabel([var ' ' num2str(v)],'Interpreter','none');
+                            ylabel([var ' ' num2str(params(v))],'Interpreter','none');
+                        end
+                    end
+                end
+            end
+            
+            % alo plot 2D trajectories for force/pos/vel
+            if find(strcmp(var,{'force','pos','vel'}))
+                
+                figure, hold on
+                for t = 1:nbr_targets_to_plot
+                    
+                    if ismember(targets_to_plot{b}(t),possible_tgts{b})
+                        this_tgt = targets_to_plot{b}(t);
+                
+                        aux_data_x          = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2})...
+                                                (:,params(1),:));
+                        aux_data_y          = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2})...
+                                                (:,params(2),:));
+                        aux_mean_x          = mean(aux_data_x,2);
+                        aux_mean_y          = mean(aux_data_y,2);
+                        plot(aux_mean_x,aux_mean_y, 'color',colors_plot(t,:),'linewidth',3);
+                        if plot_SD
+                            aux_std_x       = std(aux_data_x,0,2);
+                            aux_std_y       = std(aux_data_y,0,2);
+                        
+                            plot(aux_mean_x+aux_std_x,aux_mean_y+aux_std_y, 'color',colors_plot(t,:),'linewidth',3,'linestyle','-.');
+                            plot(aux_mean_x-aux_std_x,aux_mean_y-aux_std_y, 'color',colors_plot(t,:),'linewidth',3,'linestyle','-.');
                         end
                     end
                 end
@@ -242,7 +285,7 @@ if ischar(target)
     end
 end
 % -------------------------------------------------------------------
-% when we want one figure per target
+% when we want ONE FIGURE PER TARGET
 if isnumeric(target) || exist('aux_each_target','var')
     for t = 1:nbr_targets_to_plot
 
@@ -276,7 +319,19 @@ if isnumeric(target) || exist('aux_each_target','var')
                     if plot_SD
                         aux_sd      = std(aux_data,0,2);
                     end
+                    
                     color_indx      = v+(b-1)*nbr_vars;
+                    
+                     % smooth neuron firing rates
+                     if strcmp(var,'neuron')
+                         if smooth_PSTH_yn
+                             aux_mean = filt_nodelay(aux_mean, 1/single_trial_data{b}.target{this_tgt}.bin_size, 10);
+                             if plot_SD
+                                 aux_sd = filt_nodelay(aux_sd, 1/single_trial_data{b}.target{this_tgt}.bin_size, 10);
+                             end
+                         end
+                     end
+                     
                     if nbr_bdfs == 1, plot( t_axis{b}, aux_data, 'color',[.65 .65 .65]); end
                     plot( t_axis{b}, aux_mean, 'color',colors_plot(color_indx,:),'linewidth',3);
                     if plot_SD
@@ -290,7 +345,7 @@ if isnumeric(target) || exist('aux_each_target','var')
                 if v > cols_plot*(rows_plot-1)
                     xlabel('time (s)')
                 end
-                ylabel([var ' ' num2str(v)],'Interpreter','none');
+                ylabel([var ' ' num2str(params(v))],'Interpreter','none');
             end
         end
     end
