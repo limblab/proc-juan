@@ -105,6 +105,18 @@ for t = 1:length(single_trial_data.target)
         single_trial_data.target{t}.vel.conc_data = conc;
     end
     
+    % 7) the force
+    if isfield(single_trial_data.target{t},'force')
+       
+        aux             = single_trial_data.target{t}.force.data;
+        conc            = zeros(size(aux,1)*size(aux,3),size(aux,2));
+        for d = 1:size(aux,2)
+            sq_conc     = reshape( squeeze(aux(:,d,:)), [], 1 );
+            conc(:,d)   = sq_conc;
+        end
+        
+        single_trial_data.target{t}.force.conc_data = conc;    
+    end
 
     % add concatenated (continuous) time (arbitrarily starting at 0)
     single_trial_data.target{t}.conc_t = 0:single_trial_data.target{t}.bin_size:...
