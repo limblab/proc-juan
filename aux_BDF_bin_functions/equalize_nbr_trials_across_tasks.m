@@ -125,7 +125,7 @@ if isfield(single_trial_data{1}.target{1},'vel')
     vel_names           = fieldnames(single_trial_data{1}.target{end}.vel);
 end
 if isfield(single_trial_data{1}.target{1},'force')
-    warning('EQUALIZE_SINGLE_TRIAL_DUR: force data length equalization not implemented yet');
+    force_names         = fieldnames(single_trial_data{1}.target{end}.force);
 end
 
 
@@ -255,6 +255,28 @@ for i = 1:nbr_bdfs
                     aux_cat = cat(3,aux_cat,single_trial_data{i}.target{t}.vel.(vel_names{ii}));
                 end
                 single_trial_data{i}.target{end}.vel.(vel_names{ii}) = aux_cat;
+            end
+        end
+    end
+    
+    % -------------------
+    % Force data
+    if exist('force_names','var')
+        for ii = 1:numel(force_names)
+            % see if it is a 3D matrix, because dim 3 is the trial nbr
+            if size(single_trial_data{i}.target{1}.force.(force_names{ii}),3) > 1
+                % do for each of the targets
+                for t = 1:nbr_targets_p_task(i)
+                    single_trial_data{i}.target{t}.force.(force_names{ii}) = ...
+                        single_trial_data{i}.target{t}.force.(force_names{ii})...
+                        (:,:,1:nbr_trials_p_tgt_to_keep(t,i));
+                end
+                % and for the concatenated target (last target in the struct)
+                aux_cat     = single_trial_data{i}.target{1}.force.(force_names{ii});
+                for t = 2:nbr_targets_p_task(i)
+                    aux_cat = cat(3,aux_cat,single_trial_data{i}.target{t}.force.(force_names{ii}));
+                end
+                single_trial_data{i}.target{end}.force.(force_names{ii}) = aux_cat;
             end
         end
     end
