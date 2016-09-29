@@ -246,10 +246,18 @@ for i = 1:nbr_targets
     STD{i}.emg_data.emg     = zeros( nbr_bins,...
                                 nbr_emgs, nbr_trials_this_tgt );
 	if ~isempty(cropped_binned_data.cursorposbin)
+        nbr_pos             = size(cursorposbin,2);
+        nbr_vels            = size(velocbin,2);
         STD{i}.pos.data     = zeros( nbr_bins,...
-                                2, nbr_trials_this_tgt );
+                                nbr_pos, nbr_trials_this_tgt );
         STD{i}.vel.data     = zeros( nbr_bins,...
-                                3, nbr_trials_this_tgt );
+                                nbr_vels, nbr_trials_this_tgt );
+    end
+    
+    if ~isempty(cropped_binned_data.forcedatabin)
+        nbr_forces          = size(forcedatabin,2);
+        STD{i}.force.data   = zeros( nbr_bins, ...
+                                nbr_forces, nbr_trials_this_tgt );
     end
     
     % some statistics (mean, SD)
@@ -262,8 +270,12 @@ for i = 1:nbr_targets
     STD{i}.emg_data.mn      = zeros( nbr_bins,...
                                 nbr_emgs );
     if ~isempty(cropped_binned_data.cursorposbin)
-        STD{i}.pos.mn       = zeros( nbr_bins, 2 );
-        STD{i}.vel.mn       = zeros( nbr_bins, 3 );
+        STD{i}.pos.mn       = zeros( nbr_bins, nbr_pos );
+        STD{i}.vel.mn       = zeros( nbr_bins, nbr_vels );
+    end
+    
+    if ~isempty(cropped_binned_data.forcedatabin)
+        STD{i}.force.mn     = zeros( nbr_bins, nbr_forces );
     end
     
     STD{i}.neural_data.sd   = zeros( nbr_bins,...
@@ -275,8 +287,12 @@ for i = 1:nbr_targets
     STD{i}.emg_data.sd      = zeros( nbr_bins,...
                                 nbr_emgs );
     if ~isempty(cropped_binned_data.cursorposbin)            
-        STD{i}.pos.sd       = zeros( nbr_bins, 2 );
-        STD{i}.vel.sd       = zeros( nbr_bins, 3 );
+        STD{i}.pos.sd       = zeros( nbr_bins, nbr_pos );
+        STD{i}.vel.sd       = zeros( nbr_bins, nbr_vels );
+    end
+    
+    if ~isempty(cropped_binned_data.forcedatabin)
+        STD{i}.force.sd     = zeros( nbr_bins, nbr_forces );
     end
     
     % for the dimensionality-reduced data
@@ -333,6 +349,11 @@ for i = 1:nbr_targets
                         cropped_binned_data.velocbin(aux_start:aux_end,:);
                 end
                 
+                if ~isempty(cropped_binned_data.forcedatabin)
+                    STD{i}.force.data(:,:,t) = ...
+                        cropped_binned_data.forcedatabin(aux_start:aux_end,:);
+                end
+                
                 % dimensionality reduced data
                 if dim_red_data_yn
                     STD{i}.neural_data.dim_red.scores(:,:,t) = dim_red_FR.scores(...
@@ -363,6 +384,9 @@ for i = 1:nbr_targets
                     pos_data_orig   = cropped_binned_data.cursorposbin(aux_start:aux_end,:);
                     vel_data_orig   = cropped_binned_data.velocbin(aux_start:aux_end,:);
                 end
+                if ~isempty(cropped_binned_data.forcedatabin)
+                   force_data_orig  = cropped_binned_data.forcedatabin(aux_start:aux_end,:);
+                end
                 
                 if dim_red_data_yn
                     neural_scores_orig = dim_red_FR.scores(...
@@ -382,7 +406,10 @@ for i = 1:nbr_targets
                     pos_data_new    = interp1(t_orig,pos_data_orig,t_new,'linear','extrap');
                     vel_data_new    = interp1(t_orig,vel_data_orig,t_new,'linear','extrap');
                 end
-
+                if ~isempty(cropped_binned_data.forcedatabin)
+                    force_data_new  = interp1(t_orig,force_data_orig,t_new,'linear','extrap');
+                end
+                
                 if dim_red_data_yn
                     neural_scores_new = interp1(t_orig,neural_scores_orig,t_new,'linear','extrap');
                     emg_scores_new  = interp1(t_orig,emg_scores_orig,t_new,'linear','extrap');
@@ -398,6 +425,9 @@ for i = 1:nbr_targets
                 if ~isempty(cropped_binned_data.cursorposbin)
                     STD{i}.pos.data(:,:,t) = pos_data_new;
                     STD{i}.vel.data(:,:,t) = vel_data_new;
+                end
+                if ~isempty(cropped_binned_data.forcedatabin)
+                    STD{i}.force.data(:,:,t) = force_data_new;
                 end
                 
                 if dim_red_data_yn
@@ -446,6 +476,11 @@ for i = 1:nbr_targets
 
         STD{i}.vel.mn       = mean(STD{i}.vel.data,3);
         STD{i}.vel.sd       = std(STD{i}.vel.data,0,3);
+    end
+    
+    if ~isempty(cropped_binned_data.forcedatabin)
+        STD{i}.force.mn     = mean(STD{i}.pos.data,3);
+        STD{i}.force.sd     = std(STD{i}.pos.data,0,3);
     end
     
     if dim_red_data_yn
@@ -501,6 +536,12 @@ if ~isempty(cropped_binned_data.cursorposbin)
     aux_vel_sd              = STD{1}.vel.sd;
 end
 
+if ~isempty(cropped_binned_data.forcedatabin)
+    aux_force               = STD{1}.force.data;
+    aux_force_m             = STD{1}.force.mn;
+    aux_force_sd            = STD{1}.force.sd;
+end
+
 if dim_red_data_yn
     aux_neural_scores       = STD{1}.neural_data.dim_red.scores;
     aux_neural_scores_m     = STD{1}.neural_data.dim_red.mn;
@@ -541,6 +582,12 @@ for i = 2:nbr_targets
         aux_vel_sd          = cat(1,aux_vel_sd,STD{i}.vel.sd);
     end
     
+    if ~isempty(cropped_binned_data.forcedatabin)
+        aux_force           = cat(3,aux_force,STD{i}.force.data);
+        aux_force_m         = cat(1,aux_force_m,STD{i}.force.mn);
+        aux_force_sd        = cat(1,aux_force_sd,STD{i}.force.sd);
+    end
+    
     if dim_red_data_yn
         aux_neural_scores   = cat(3,aux_neural_scores,STD{i}.neural_data.dim_red.scores);
         aux_neural_scores_m = cat(1,aux_neural_scores_m,STD{i}.neural_data.dim_red.mn);
@@ -578,6 +625,12 @@ if ~isempty(cropped_binned_data.cursorposbin)
     STD{ptr}.vel.data       = aux_vel;
     STD{ptr}.vel.mn         = aux_vel_m;
     STD{ptr}.vel.sd         = aux_vel_sd;
+end
+
+if ~isempty(cropped_binned_data.forcedatabin)
+    STD{ptr}.force.data     = aux_force;
+    SDT{ptr}.force.mn       = aux_force_m;
+    SDT{ptr}.force.sd       = aux_force_sd;
 end
 
 if dim_red_data_yn
