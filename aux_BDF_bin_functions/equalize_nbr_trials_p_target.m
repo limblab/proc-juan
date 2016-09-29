@@ -64,7 +64,8 @@ for t = 1:nbr_targets
     
     % force data
     if isfield(single_trial_data.target{t},'force')
-        warning('force data not implemented yet');
+        single_trial_data.target{t}.force.data = ...
+            single_trial_data.target{t}.force.data(:,:,1:min_nbr_trials_p_tgt);    
     end
 end
 
@@ -93,7 +94,12 @@ if isfield(single_trial_data.target{1},'pos')
     aux_vel             = single_trial_data.target{1}.vel.data;
     aux_vel_m           = single_trial_data.target{1}.vel.mn;
     aux_vel_sd          = single_trial_data.target{1}.vel.sd;
+end
 
+if isfield(single_trial_data.target{1},'force')
+    aux_force         	= single_trial_data.target{1}.force.data;
+    aux_force_m         = single_trial_data.target{1}.force.mn;
+    aux_force_sd        = single_trial_data.target{1}.force.sd;
 end
 
 if isfield(single_trial_data.target{1}.neural_data,'dim_red')
@@ -134,6 +140,12 @@ for i = 2:nbr_targets
         aux_vel_sd      = cat(1,aux_vel_sd,single_trial_data.target{i}.vel.sd);
     end
     
+    if isfield(single_trial_data.target{1},'force')
+        aux_force    	= cat(3,aux_force,single_trial_data.target{i}.force.data);
+        aux_force_m     = cat(1,aux_force_m,single_trial_data.target{i}.force.mn);
+        aux_force_sd    = cat(1,aux_force_sd,single_trial_data.target{i}.force.sd);
+    end
+    
     if isfield(single_trial_data.target{1}.neural_data,'dim_red')
         aux_neural_scores   = cat(3,aux_neural_scores,single_trial_data.target{i}.neural_data.dim_red.st_scores);
         aux_neural_scores_m = cat(1,aux_neural_scores_m,single_trial_data.target{i}.neural_data.dim_red.st_scores_mn);
@@ -171,6 +183,12 @@ if isfield(single_trial_data.target{1},'pos')
     single_trial_data.target{end}.vel.data       = aux_vel;
     single_trial_data.target{end}.vel.mn         = aux_vel_m;
     single_trial_data.target{end}.vel.sd         = aux_vel_sd;
+end
+
+if isfield(single_trial_data.target{1},'force')
+    single_trial_data.target{end}.force.data   	= aux_force;
+    single_trial_data.target{end}.force.mn      = aux_force_m;
+    single_trial_data.target{end}.force.sd      = aux_force_sd;
 end
 
 if isfield(single_trial_data.target{1}.neural_data,'dim_red')
