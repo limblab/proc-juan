@@ -45,7 +45,7 @@ if nargin >= 2
     mode                = varargin{1};
 else
     mode                = 'min_dur';
-    disp('time warping single trials to the duration of the shortest ones')
+    disp('chopping single trials to the duration of the shortest ones')
 end
 if strcmp(mode,'time_win')
     if nargin ~= 3, 
@@ -164,7 +164,7 @@ if isfield(single_trial_data{1}.target{1},'vel')
     vel_names           = fieldnames(single_trial_data{1}.target{end}.vel);
 end
 if isfield(single_trial_data{1}.target{1},'force')
-    warning('EQUALIZE_SINGLE_TRIAL_DUR: force data length equalization not implemented yet');
+    force_names         = fieldnames(single_trial_data{1}.target{end}.force);
 end
 
 % get rid of vars that are structs (like 'dim_red' 'neural_data' and in
@@ -291,7 +291,22 @@ for i = 1:nbr_bdfs
                         % concatenated), in which case they'll have the same length
                         if size(data_orig,1) == nbr_bins_dataset(i)
                             data_new    = interp1(t_orig,data_orig,t_new,'linear','extrap');
-                            single_trial_data{i}.target{t}.pos.(vel_names{f}) = ...
+                            single_trial_data{i}.target{t}.vel.(vel_names{f}) = ...
+                                data_new;
+                        end
+                    end
+                end
+                
+                % -------------------
+                % Force data
+                if exist('force_names','var')
+                    for f = 1:numel(force_names)
+                        data_orig   = single_trial_data{i}.target{t}.force.(force_names{f});
+                        % resample if the data are single trials (e.g., not
+                        % concatenated), in which case they'll have the same length
+                        if size(data_orig,1) == nbr_bins_dataset(i)
+                            data_new    = interp1(t_orig,data_orig,t_new,'linear','extrap');
+                            single_trial_data{i}.target{t}.force.(force_names{f}) = ...
                                 data_new;
                         end
                     end
@@ -301,7 +316,7 @@ for i = 1:nbr_bdfs
             
             % -------------------        
             % Update other stuff and meta info
-            if isfield(single_trial_data.target{t},'force')
+            if isfield(single_trial_data{i}.target{t},'force')
                 warning('force data not cut');
             end
             warning('some meta info not updated');
@@ -405,7 +420,20 @@ for i = 1:nbr_bdfs
                         end
                     end
                 end
-                
+  
+                % -------------------
+                % Force data
+                if exist('force_names','var')
+                    for f = 1:numel(force_names)
+                        data_orig   = single_trial_data{i}.target{t}.force.(force_names{f});
+                        % resample if the data are single trials (e.g., not
+                        % concatenated), in which case they'll have the same length
+                        if size(data_orig,1) == nbr_bins_dataset(i)
+                            data_new = single_trial_data{i}.target{t}.force.(force_names{f})(indx_to_keep(i,:),:,:);
+                            single_trial_data{i}.target{t}.force.(force_names{f}) = data_new;
+                        end
+                    end
+                end
                 
                 % -------------------        
                 % Update other stuff and meta info
@@ -578,7 +606,25 @@ for i = 1:nbr_bdfs
             end
         end
         
-        
+        % force data
+        if exist('force_names_end','var')
+            for f = 1:numel(force_names_end)
+                data_orig   = single_trial_data{i}.target{end}.force.(force_names_end{f});
+                % see if this is one of the variables that need to be
+                % overwritten, i.e. if it has data from concatenated trials (in
+                % which case its length will be multiple of the original
+                % nbr_bins)
+                if size(data_orig,1) == nbr_targets_p_task(i)*nbr_bins_original(i)
+                    % concatenate the cut data
+                    data_new = single_trial_data{i}.target{1}.force.(force_names_end{f});
+                    for t = 2:nbr_targets_p_task(i)
+                        data_new = cat(1,data_new, single_trial_data{i}.target{t}.force.(force_names_end{f}) );
+                    end
+                    % and save them
+                    single_trial_data{i}.target{end}.force.(force_names_end{f}) = data_new;
+                end
+            end
+        end
         
     end
 end
