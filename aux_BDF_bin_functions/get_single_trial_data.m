@@ -246,8 +246,8 @@ for i = 1:nbr_targets
     STD{i}.emg_data.emg     = zeros( nbr_bins,...
                                 nbr_emgs, nbr_trials_this_tgt );
 	if ~isempty(cropped_binned_data.cursorposbin)
-        nbr_pos             = size(cursorposbin,2);
-        nbr_vels            = size(velocbin,2);
+        nbr_pos             = size(cropped_binned_data.cursorposbin,2);
+        nbr_vels            = size(cropped_binned_data.velocbin,2);
         STD{i}.pos.data     = zeros( nbr_bins,...
                                 nbr_pos, nbr_trials_this_tgt );
         STD{i}.vel.data     = zeros( nbr_bins,...
@@ -255,7 +255,7 @@ for i = 1:nbr_targets
     end
     
     if ~isempty(cropped_binned_data.forcedatabin)
-        nbr_forces          = size(forcedatabin,2);
+        nbr_forces          = size(cropped_binned_data.forcedatabin,2);
         STD{i}.force.data   = zeros( nbr_bins, ...
                                 nbr_forces, nbr_trials_this_tgt );
     end
@@ -479,8 +479,8 @@ for i = 1:nbr_targets
     end
     
     if ~isempty(cropped_binned_data.forcedatabin)
-        STD{i}.force.mn     = mean(STD{i}.pos.data,3);
-        STD{i}.force.sd     = std(STD{i}.pos.data,0,3);
+        STD{i}.force.mn     = mean(STD{i}.force.data,3);
+        STD{i}.force.sd     = std(STD{i}.force.data,0,3);
     end
     
     if dim_red_data_yn
