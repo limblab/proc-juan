@@ -2,19 +2,30 @@
 %
 %
 
-function call_dPCA( single_trial_data, neural_chs )
+function dPCA_results = call_dPCA( single_trial_data, varargin )
 
 
+% read input params
+if nargin == 2
+    num_comps       = varargin{1};
+else
+    num_comps       = 15;
+end
+    
+% retrieve neural chs
+neural_chs          = single_trial_data{1}.target{1}.neural_data.neural_chs;
 
+    
 % check if the dimensions in single_trial_data are consistent
 if size(single_trial_data{1}.target{1}.neural_data.smoothed_fr,2) ~= numel(neural_chs)
     error('single trial data does not include all the neural channels')
 end
 
 % make the target averaged responses for each task have equal length.
-% This is not done in single_trial_analysis_dim_red.m, where single trial
+% This is not done in single_trial_analysis.m, where single trial
 % duration is only equalized for each task
 single_trial_data   = equalize_single_trial_dur( single_trial_data );
+
 
 
 % get rid of the last target, which is all the concatenated targets
@@ -75,16 +86,28 @@ firing_rates_avg    = nanmean(firing_rates, 5);
 % [1 2] - task/target interaction
 % [1 2 3] - rest
 
-combined_params     = { {1,[1 3]}, {2,[2,3]}, {3}, {[1 2],[1 2 3]} };
-marg_names          = {'task','target','time','task/target interaction'};
-marg_colors         = [23 100 171; 187 20 25; 150 150 150; 114 97 171]/256;
+% we have datasets that only have one target (D=1), like the ball task, in
+% that case the params have to be different
+if D > 1
+    combined_params = { {1,[1 3]}, {2,[2,3]}, {3}, {[1 2],[1 2 3]} };
+    marg_names      = {'task','target','time','task/target interaction'};
+    marg_colors     = [23 100 171; 187 20 25; 150 150 150; 114 97 171]/256;
 
-time                = (1:T)*single_trial_data{1}.target{1}.bin_size;
-time_events         = 1;
+    time            = (1:T)*single_trial_data{1}.target{1}.bin_size;
+    time_events     = 1;
+else
+    combined_params = { {1,[1 3]}, {3} };
+    marg_names      = {'task','time'};
+    marg_colors     = [23 100 171; 187 20 25; 150 150 150]/256;
+
+    time            = (1:T)*single_trial_data{1}.target{1}.bin_size;
+    time_events     = 1;    
+end
+    
 
 % ------------------------------------------------------------------------
 % 2. Do dPCA without regularization
-num_comps           = 15;
+
 
 [W, V, which_marg]  = dpca( firing_rates_avg, num_comps, 'combinedParams', combined_params );
 
@@ -106,3 +129,13 @@ dpca_plot(firing_rates_avg, W, V, @dpca_plot_default, ...
 
 dpca_perMarginalization(firing_rates_avg, @dpca_plot_default, ...
    'combinedParams', combined_params);
+
+
+% ------------------------------------------------------------------------
+% 3. Return dPCA results
+
+dPCA_results.W      = W;
+dPCA_results.V      = V;
+dPCA_results.which_marg = which_marg;
+dPCA_reuslts.marg_names = marg_names;
+dPCA_results.expl_var   = expl_var;
