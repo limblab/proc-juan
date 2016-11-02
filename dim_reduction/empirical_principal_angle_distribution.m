@@ -34,6 +34,10 @@ function [dist_princ_angles, angle_non_orth] = empirical_principal_angle_distrib
                                             space_dim, plane_dim, samples, varargin )
 
 
+% check that the parallel pool is running, otherwise start it
+gcp;
+
+                                        
 % input parameters
 if nargin >= 4
     if ~isempty(varargin{1}), P_orth = varargin{1}; else
