@@ -15,6 +15,7 @@
 %   (nbr_reps)      : [100] number of combinations
 %   (pick_chs)      : [true] only use the neural channels in
 %                       datasets{i}.neural_chs
+%   (normal)        : ['sqrt'] normalization of the spike firings
 %
 % Outputs:
 %   CCs             : canonical correlations (with size: iteration x
@@ -37,10 +38,16 @@ else
     nbr_reps        = 100;
 end
     
-if nargin == 5        
+if nargin >= 5        
     pick_chs        = varargin{2};
 else
     pick_chs        = true;
+end
+
+if nargin == 6        
+    normal          = varargin{3};
+else 
+    normal          = 'sqrt';
 end
 
 nbr_datasets        = length(datasets);
@@ -58,10 +65,10 @@ if nbr_datasets > 1
         for t = 1:length(tasks_this)    
             if pick_chs
                 CCs{d}.corr{t} = comp_latent_vars_dropping_ch( datasets{d}.binned_data{t}.smoothedspikerate, ...
-                    mani_dim, perc_drop, nbr_reps, datasets{d}.neural_chs );
+                    mani_dim, perc_drop, nbr_reps, datasets{d}.neural_chs, normal );
             else
                 CCs{d}.corr{t} = comp_latent_vars_dropping_ch( datasets{d}.binned_data{t}.smoothedspikerate, ...
-                    mani_dim, perc_drop, nbr_reps );
+                    mani_dim, perc_drop, nbr_reps, [], normal );
             end
         end
         % store some info
@@ -76,10 +83,10 @@ else
     for t = 1:length(tasks_this)
         if pick_chs
             CCs.corr{t} = comp_latent_vars_dropping_ch( datasets.binned_data{t}.smoothedspikerate, ...
-                mani_dim, perc_drop, nbr_reps, datasets.neural_chs );
+                mani_dim, perc_drop, nbr_reps, datasets.neural_chs, normal );
         else
             CCs.corr{t} = comp_latent_vars_dropping_ch( datasets.binned_data{t}.smoothedspikerate, ...
-                mani_dim, perc_drop, nbr_reps );
+                mani_dim, perc_drop, nbr_reps, [], normal );
         end
     end
     % store some info

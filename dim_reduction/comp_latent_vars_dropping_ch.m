@@ -13,6 +13,7 @@
 %                       matrix
 %   (nbr_reps)      : [100] number of combinations
 %   (neural_chs)    : [all] neural channels to use
+%   (normal)        : ['sqrt'] normalization of the spike firings
 %
 % Outputs:
 %   CCs             : canonical correlations (with size: iteration x
@@ -23,6 +24,9 @@
 function CCs = comp_latent_vars_dropping_ch( bin_FRs, mani_dim, perc_drop, varargin )
 
 
+% check that the parallel pool is running, otherwise start it
+gcp;
+
 % -------------------------------------------------------------------------
 % read inputs
 
@@ -32,11 +36,24 @@ else
     nbr_reps        = 100;
 end
     
-if nargin == 5        
+if nargin >= 5        
     neural_chs      = varargin{2};
+    % if empty, choose all channels
+    if isempty(neural_chs)
+        neural_chs      = 1:size(bin_FRs,2);
+    end
 else
     neural_chs      = 1:size(bin_FRs,2);
 end
+
+if nargin == 6
+    normal          = varargin{3};
+else 
+    normal          = 'sqrt';
+end
+
+
+% -------------------------------------------------------------------------
 
 % get indexes all channels
 all_chs             = 1:size(bin_FRs,2);
@@ -47,6 +64,16 @@ chs_discard         = setdiff(all_chs,neural_chs);
 nbr_neural_chs      = numel(neural_chs);
 nbr_chs_keep        = round(nbr_neural_chs*(1-perc_drop));
 
+% square root transform the firing rates, if specified
+switch normal
+    case 'sqrt'
+        bin_FRs     = sqrt(bin_FRs);
+    otherwise
+end
+
+% % temporary: keep more latent variables when dropping channels
+% mani_dim_drop       = 20;
+mani_dim_drop       = mani_dim;
 
 % -------------------------------------------------------------------------
 % Do
@@ -76,7 +103,7 @@ for p = 1:length(perc_drop)
         % all channels and the leading 'mani_dim' latent variables computed
         % from the subset of channels
         [~,~,CCs(i,:,p),~,~,stats_CC{i,p}] = canoncorr( dim_red_all.scores(:,1:mani_dim),...
-                            dim_red_this.scores(:,1:mani_dim) );
+                            dim_red_this.scores(:,1:mani_dim_drop) );
     end
 end
 
@@ -103,4 +130,7 @@ for p = 1:length(perc_drop)
 end
 set(gca,'TickDir','out'), set(gca,'FontSize',14)
 xlabel('latent variable'),ylabel('canonical correlation')
+xlim([0 mani_dim+1]),ylim([0 1])
 box off
+
+drawnow
