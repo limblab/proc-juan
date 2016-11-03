@@ -1,5 +1,29 @@
-
-
+%
+% Compute canonical correlation between latent variables from all pairs of
+% tasks from the same session. Prior to that, data are cut in windows, and
+% the number of trials per target are equalized
+%
+%   can_corrs = canon_corr_all_manifolds( single_trial_data, dims, labels,
+%                   varargin )
+% 
+%
+% Inputs (opt)          : [default]
+%   single_trial_data   : cell with single_trial_data structs for each task
+%   dims                : array with the latent variables to compare (e.g.,
+%                           1:manifold_dimension)
+%   labels              : task labels
+%   target              : ['all_conc'] target that will be compared. Can be
+%                           a scalar with the target number, or 'all_conc'
+%                           for all concatenated
+%   time_window         : [0 0.5] time window for the analysis, with 0
+%                           being the beginning of the trial in the
+%                           single_trial_data struct
+%
+% Outputs:
+%   can_corrs           : struct with the canonical correlations between
+%                           all pairs of latent variables, and the linear
+%                           transformations 
+%
 
 function can_corrs = canon_corr_all_manifolds( single_trial_data, ...
                             dims, labels, varargin )
