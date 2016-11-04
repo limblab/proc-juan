@@ -255,25 +255,29 @@ if ischar(target)
             % alo plot 2D trajectories for force/pos/vel
             if find(strcmp(var,{'force','pos','vel'}))
                 
-                figure, hold on
-                for t = 1:nbr_targets_to_plot
+                if length(params) > 1
                     
-                    if ismember(targets_to_plot{b}(t),possible_tgts{b})
-                        this_tgt = targets_to_plot{b}(t);
+                    figure, hold on
+                    for t = 1:nbr_targets_to_plot
+
+                        if ismember(targets_to_plot{b}(t),possible_tgts{b})
+                            this_tgt = targets_to_plot{b}(t);
                 
-                        aux_data_x          = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2})...
-                                                (:,params(1),:));
-                        aux_data_y          = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2})...
-                                                (:,params(2),:));
-                        aux_mean_x          = mean(aux_data_x,2);
-                        aux_mean_y          = mean(aux_data_y,2);
-                        plot(aux_mean_x,aux_mean_y, 'color',colors_plot(t,:),'linewidth',3);
-                        if plot_SD
-                            aux_std_x       = std(aux_data_x,0,2);
-                            aux_std_y       = std(aux_data_y,0,2);
-                        
-                            plot(aux_mean_x+aux_std_x,aux_mean_y+aux_std_y, 'color',colors_plot(t,:),'linewidth',3,'linestyle','-.');
-                            plot(aux_mean_x-aux_std_x,aux_mean_y-aux_std_y, 'color',colors_plot(t,:),'linewidth',3,'linestyle','-.');
+                            aux_data_x          = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2})...
+                                                    (:,params(1),:));
+                            aux_data_y          = squeeze(single_trial_data{b}.target{this_tgt}.(var_type{1}).(var_type{2})...
+                                                    (:,params(2),:));
+                            
+                            aux_mean_x          = mean(aux_data_x,2);
+                            aux_mean_y          = mean(aux_data_y,2);
+                            plot(aux_mean_x,aux_mean_y, 'color',colors_plot(t,:),'linewidth',3);
+                            if plot_SD
+                                aux_std_x       = std(aux_data_x,0,2);
+                                aux_std_y       = std(aux_data_y,0,2);
+
+                                plot(aux_mean_x+aux_std_x,aux_mean_y+aux_std_y, 'color',colors_plot(t,:),'linewidth',3,'linestyle','-.');
+                                plot(aux_mean_x-aux_std_x,aux_mean_y-aux_std_y, 'color',colors_plot(t,:),'linewidth',3,'linestyle','-.');
+                            end
                         end
                     end
                 end
