@@ -88,7 +88,7 @@ nbr_comb_tasks          = size(comb_tasks,1);
 if ~exist('smoothed_FR','var')
     smoothed_FR             = cell(4,1);
     for i = 1:nbr_bdfs
-        [smoothed_FR{i},aux_bd] = gaussian_smoothing2( bdf(i) ); 
+        [smoothed_FR{i},aux_bd] = gaussian_smoothing( bdf(i) ); 
         binned_data(i)      = aux_bd; 
         clear aux_bd; 
     end
