@@ -25,10 +25,11 @@ params_defaults     = struct( ...
                         'input',                    'dim_red', ... % 'spikes'
                         'target',                   'all_conc', ...
                         'dim_neural_manifold',      20, ...
-                        'dim_emg_manifold',         3, ...
+                        'dim_emg_manifold',         4, ... % only for PCA !!! --for NMF will use all the existing ones
                         'neural_to_output_delay',   0.05, ... % positive = neural first
                         'output',                   'emg', ... % pos, vel, force, dim_red_emg
                         'trial_averaged',           true, ...
+                        'P_thr',                    0.001, ...                         
                         'time_win',                 [0.2 1.2; 0.2 1.2; 0.2 1.2;
                                                     0 0.74; 0 0.74; 0 0.74; 
                                                     0.1 1; 0.1 1] );
@@ -50,19 +51,21 @@ end
 
 % check consistency of params and proj_params; if they are different update
 % params to the values in proj_params and give a warning
-if ~isempty(params)
-    if params.target ~= proj_params.target
-        params.target               = proj_params.target;
-        warning(['params.target updated to ' proj_params.target]);
-    end
-    if params.dim_neural_manifold ~= proj_params.dim_manifold
-        params.dim_neural_manifold  = proj_params.dim_manifold; 
-        warning(['params.dim_neural_manifold updated to ' num2str(proj_params.dim_manifold)]);
-    end
-    if sum(sum(params.time_win ~= proj_params.time_win))
-        params.time_win             = proj_params.time_win;
-        warning('params.tim_win updated to ');
-        disp(num2str(proj_params.time_win));
+if exist('proj_params','var')
+    if ~isempty(params)
+        if params.target ~= proj_params.target
+            params.target           = proj_params.target;
+            warning(['params.target updated to ' proj_params.target]);
+        end
+        if params.dim_neural_manifold ~= proj_params.dim_manifold
+            params.dim_neural_manifold  = proj_params.dim_manifold; 
+            warning(['params.dim_neural_manifold updated to ' num2str(proj_params.dim_manifold)]);
+        end
+        if sum(sum(params.time_win ~= proj_params.time_win))
+            params.time_win         = proj_params.time_win;
+            warning('params.tim_win updated to ');
+            disp(num2str(proj_params.time_win));
+        end
     end
 end
 
