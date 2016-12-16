@@ -66,6 +66,13 @@ for i = 1:meta_info.nbr_monkeys
                             params.target, params.time_win(dtst,:) );
                         
         
+        % get within task CC by taking 100 random subsets of half of the
+        % trials and computing the CC across them
+        cc_within       = canon_corr_within_all_manifolds( datasets{dtst}.stdata, ...
+                            1:params.dim_manifold, true, 'all_conc', ...
+                            params.time_win(dtst,:), 100 );
+                        
+                        
         % -----------------------------
         % If want to obtain confidence limit with bootstrapping
         if params.do_bootstrap
@@ -83,6 +90,8 @@ for i = 1:meta_info.nbr_monkeys
         
         % the CCA results
         data{dtst}.can_corrs = can_corrs;
+        % the within task CC
+        data{dtst}.within_can_corrs = cc_within;
         % bootstrapping results, if done
         if params.do_bootstrap
             data{dtst}.can_corrs.signif_boots = signif_boots;
@@ -106,7 +115,9 @@ nbr_pairs_tasks      	= length(meta_info.task_pairs.unique_pairs);
 % create struct to store the summary results
 summary_data.canon_corrs = struct('pair',[meta_info.task_pairs.unique_pairs],...
                             'nbr_canon_corrs_above_chance',[],...
-                            'cc',zeros(1,params.dim_manifold));
+                            'cc',zeros(1,params.dim_manifold),...
+                            'norm_cc',zeros(1,params.dim_manifold),...
+                            'ceil_cc',zeros(1,params.dim_manifold));
 
 
                         
@@ -124,17 +135,33 @@ pooled_P_vals           = cell2mat(arrayfun(@(x) x.p, pooled_stats,'UniformOutpu
 % matrix with all canonical correlations
 nbr_projs_above_chance  = zeros(1,nbr_manifold_pairs);
 cc_matrix               = zeros(nbr_manifold_pairs,params.dim_manifold);
+chance_matrix           = zeros(nbr_manifold_pairs,params.dim_manifold);
+norm_cc_matrix          = zeros(nbr_manifold_pairs,params.dim_manifold);
+ceil_cc_matrix          = zeros(nbr_manifold_pairs,params.dim_manifold);
 ctr                     = 1;
     
 for d = 1:length(data)
     for p = 1:size(data{d}.can_corrs.cc,1)
         
-        % get number of projections that are greater than change
-        % ToDo: implement bootstrapping to assess this
-        nbr_projs_above_chance(ctr) = sum( pooled_P_vals(ctr,:) < params.P_thr );
-        
         % fill matrix with all CCs
         cc_matrix(ctr,:) = data{d}.can_corrs.cc(p,:);
+        
+        % fill chance levels
+        chance_matrix(ctr,:) = data{d}.can_corrs.signif_boots(p,:);
+        
+        % ceil CC (mean of the 99th percentiel of the within CC)
+        ceil_cc_matrix(ctr,:) = data{d}.within_can_corrs.pair{p}.pctile99;
+        
+        % norm CC matrix
+        norm_cc_matrix(ctr,:) = cc_matrix(ctr,:)./chance_matrix(ctr,:);
+        
+        % get number of projections that are greater than change
+        if params.do_bootstrap
+            nbr_projs_above_chance(ctr) = sum( cc_matrix(ctr,:) > chance_matrix(ctr,:) );
+        else
+            nbr_projs_above_chance(ctr) = sum( pooled_P_vals(ctr,:) < params.P_thr );
+        end
+        
         ctr             = ctr + 1;
     end
 end
@@ -158,6 +185,20 @@ for i = 1:nbr_manifold_pairs
             else
                 summary_data.canon_corrs(ii).cc = [summary_data.canon_corrs(ii).cc;
                     cc_matrix(i,:)];
+            end
+            % store normalized CCs
+            if numel(unique(summary_data.canon_corrs(ii).norm_cc)) == 1 
+                summary_data.canon_corrs(ii).norm_cc(1,:) = norm_cc_matrix(i,:);
+            else
+                summary_data.canon_corrs(ii).norm_cc = [summary_data.canon_corrs(ii).norm_cc;
+                    norm_cc_matrix(i,:)];
+            end
+            % store ceiling CCs (mean percentile99 across both tasks in the pair)
+            if numel(unique(summary_data.canon_corrs(ii).ceil_cc)) == 1 
+                summary_data.canon_corrs(ii).ceil_cc(1,:) = ceil_cc_matrix(i,:);
+            else
+                summary_data.canon_corrs(ii).ceil_cc = [summary_data.canon_corrs(ii).ceil_cc;
+                    ceil_cc_matrix(i,:)];
             end
             % get nbr projections whose correlations are above chance
             summary_data.canon_corrs(ii).nbr_canon_corrs_above_chance = [...
@@ -206,6 +247,23 @@ xlim([0 params.dim_manifold+1]),ylim([0 1])
 
 
 % ---------------------------------------------
+% Normalized Canonical correlation (divided by the significance level)
+
+figure, hold on
+for i = 1:nbr_pairs_tasks
+    these_norm_ccs          = summary_data.canon_corrs(i).norm_cc';
+    
+    % plot the traces
+	plot(these_norm_ccs,'color',colors(i,:),'linewidth',2)
+end
+plot([1 params.dim_manifold],[1 1],'color',[.6 .6 .6],'linewidth',2,'linestyle','-.')
+set(gca,'Tickdir','out'),set(gca,'FontSize',14)
+xlabel('projection'),ylabel('normalized canonical correlation')
+xlim([0 params.dim_manifold+1]),ylim([0 ceil(max(max(norm_cc_matrix)))])
+
+
+
+% ---------------------------------------------
 % 1 plot with canonical correlations for all the task the monkey performed
 % in that session (i.e.) one plot per task
 
@@ -213,6 +271,10 @@ if params.plot_p_session
     for i = 1:length(meta_info.tasks_per_session)
 
         these_ccs               = data{i}.can_corrs.cc';
+        these_ceilings          = cellfun( @(x) x.pctile99, data{i}.within_can_corrs.pair, ...
+                                    'UniformOutput', false );
+        these_ceilings          = cell2mat( these_ceilings' )';
+        
         % get bootstrapping traces if they were computed, otherwise use
         % matlab's canon_corr significance test
         if isfield(data{1}.can_corrs,'signif_boots') 
@@ -257,9 +319,26 @@ if params.plot_p_session
         xlim([0 params.dim_manifold+1]),ylim([0 1])
         xlabel('projection'),ylabel('canonical correlation')
 
+        % plot ceilings
+        for p = 1:size(these_ceilings,2)
+            plot(these_ceilings(:,p),':','linewidth',2,'color',colors(these_task_pairs(p),:))
+        end
+        
         clear this_legend;
     end
 end
+
+
+% ---------------------------------------------
+% Histogram with nbr of canonical correlations above chance
+
+hist_matrix = cell2mat( arrayfun( @(x) histcounts(x.nbr_canon_corrs_above_chance,1:21), ...
+                proj_results.summary_data.canon_corrs, 'UniformOutput', false )' );
+
+figure, bar(1:20,hist_matrix','stacked')
+set(gca,'TickDir','out','FontSize',14), xlim([0 params.dim_manifold+2])
+xlabel('number signif. canon. corrs. (P<0.01)'),ylabel('counts')
+% legend(meta_info.task_pairs.unique_pairs{1})
 
 
 % 
