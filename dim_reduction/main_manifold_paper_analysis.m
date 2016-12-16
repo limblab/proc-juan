@@ -25,7 +25,7 @@ prep_params.emg_factors         = 3;
 datasets                        = batch_preprocess_dim_red_data( pwd, prep_params );
 
 % compare dim_red_emg data
-if ~strcmp(prep_params.dim_red_emg,'none')
+if ~strcmp(prep_params.dim_red_emg,'none') && ~prep_params.dim_red_emg_across_taks 
     compare_muscle_synergy_spaces_all(datasets,prep_params.emg_factors);
 end
 
@@ -44,7 +44,7 @@ angle_results                   = batch_angle_btw_manifold_dims( datasets );
 % 3. compare the dynamics of the 'neural projections'
 % load the default params...
 proj_params                     = batch_compare_manifold_projs_defaults();
-proj_params.nbr_shuffles_bootstrap = 1000; % instead of the default 1000
+proj_params.nbr_shuffles_bootstrap = 10000; % instead of the default 1000
 % and run the analysis
 proj_results                    = batch_compare_manifold_projs( datasets, proj_params );
 
@@ -52,14 +52,14 @@ proj_results                    = batch_compare_manifold_projs( datasets, proj_p
 % -------------------------------------------------------------------------
 % 4. compute and compare task potent / null spaces
 opn_params                      = batch_compare_potent_null_spaces_defaults;
-opn_params.time_win             = [ 0.75 1.15; 0.8 1.2; 0.7 1.1;
-                                    0.3 0.7; 0.3 0.7; 0.3 0.7; 
-                                    0.55 0.95; 0.55 0.95 ];
-opn_params.dim_neural_manifold  = 24;
+opn_params.time_win             = [ 0.35 1.15; 0.4 1.2; 0.3 1.1;
+                                    0 0.7; 0 0.7; 0 0.7; 
+                                    0.15 0.95; 0.15 0.95 ];
+opn_params.dim_neural_manifold  = 10;
 opn_params.dim_emg_manifold     = 6;
 opn_params.neural_to_output_delay = .05;
-opn_params.output               = 'emg'; % 'dim_red_emg' 'emg'
-opn_params.trial_averaged       = false;
+opn_params.output               = 'dim_red_emg'; % 'dim_red_emg' 'emg'
+opn_params.trial_averaged       = true;
 % run the analysis
 opn_results                     = batch_compare_potent_null_spaces( datasets, opn_params );
 
