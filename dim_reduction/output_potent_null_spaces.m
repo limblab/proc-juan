@@ -67,7 +67,7 @@ switch params.input
         % for the trial-averaged firing rates (PSTH's)
         else
             % create matrix with same format as the single trial data
-            bins_p_trial    = length(single_trial_data.target{tgt}.t);
+            bins_p_trial    = length(single_trial_data.target{1}.t);
             input_data      = zeros(bins_p_trial, ...
                                 size(single_trial_data.target{tgt}.neural_data.mn,2), ...
                                 tgt-1);
@@ -85,7 +85,7 @@ switch params.input
         % for the trial-averaged firing rates (PSTH's)
         else
              % create matrix with same format as the single trial data
-            bins_p_trial    = length(single_trial_data.target{tgt}.t);
+            bins_p_trial    = length(single_trial_data.target{1}.t);
             input_data      = zeros(bins_p_trial, ...
                                 params.dim_neural_manifold, ...
                                 tgt-1);
@@ -108,7 +108,7 @@ switch params.output
         % for the trial-averaged firing rates (PSTH's)
         else
             % create matrix with same format as the single trial data
-            bins_p_trial    = length(single_trial_data.target{tgt}.t);
+            bins_p_trial    = length(single_trial_data.target{1}.t);
             output_data     = zeros(bins_p_trial, ...
                                 size(single_trial_data.target{tgt}.emg_data.mn,2), ...
                                 tgt-1);
@@ -125,7 +125,7 @@ switch params.output
         % for the trial-averaged firing rates (PSTH's)
         else
             % create matrix with same format as the single trial data
-            bins_p_trial    = length(single_trial_data.target{tgt}.t);
+            bins_p_trial    = length(single_trial_data.target{1}.t);
             output_data     = zeros(bins_p_trial, ...
                                 size(single_trial_data.target{tgt}.(params.output).mn,2), ...
                                 tgt-1);
@@ -138,18 +138,37 @@ switch params.output
     case 'dim_red_emg'
         % for all (concatenated trials)
         if ~params.trial_averaged 
-            output_data     = single_trial_data.target{tgt}.pos.data;
+            switch single_trial_data.target{end}.emg_data.dim_red.method
+                % for PCA, take the nbr of projections defined in
+                % params.dim_emg_manifold
+                case 'pca'
+                    output_data = single_trial_data.target{tgt}.emg_data.dim_red.st_scores...
+                                (:,1:params.dim_emg_manifold,:);
+                % For NMF, take all that have been defined
+                case 'nmf'
+                    output_data = single_trial_data.target{tgt}.emg_data.dim_red.st_scores;
+            end
         % for the trial-averaged firing rates (PSTH's)
         else
             % create matrix with same format as the single trial data
-            bins_p_trial    = length(single_trial_data.target{tgt}.t);
-            output_data     = zeros(bins_p_trial, ...
+            bins_p_trial    = length(single_trial_data.target{1}.t);
+            switch single_trial_data.target{end}.emg_data.dim_red.method
+                % for PCA, take the nbr of projections defined in
+                % params.dim_emg_manifold
+                case 'pca'
+                    output_data  = zeros(bins_p_trial, ...
                                 params.dim_emg_manifold, ...
                                 tgt-1);
+                % For NMF, take all that have been defined                            
+                case 'nmf'
+                    output_data  = zeros(bins_p_trial, ...
+                                size(single_trial_data.target{end}.emg_data.dim_red.w,2), ...
+                                tgt-1);
+            end
             % and fill it with each PSTH
             for t = 1:tgt-1
                 output_data(:,:,t) = single_trial_data.target{tgt}.emg_data.dim_red.st_scores_mn( ...
-                                bins_p_trial*(t-1)+1 : bins_p_trial*t, 1:params.dim_emg_manifold );
+                                bins_p_trial*(t-1)+1 : bins_p_trial*t, 1:size(output_data,2) );
             end
         end
 end
@@ -159,6 +178,12 @@ end
 % align them with the desired delay to do linear regression
 [X, y]                      = concatenate_to_regress( input_data, output_data, bins_lag );
 
+
+% check that X has full rank, otherwise give a warning --this would
+% indicate that it would be good to cross-validate
+if rank(X) < size(X,2)
+    warning('matrix X does not have full rank');
+end
 
 
 % -------------------------------------------------------------------------
@@ -173,22 +198,17 @@ end
 % get nbr of outputs
 nbr_outputs                 = size(output_data,2);
 
-% matrix for the MIMO model (as a combination of MISO models). 
-W                           = zeros( nbr_outputs, size(input_data,2) );
 
-% stats is the statistics that regress returns, which are, from col 1 to 4:
-% R2, F statistic, p val F stat, error variance
-stats                       = zeros( nbr_outputs, 4 );
-
-% find the model
-for i = 1:size(y,2)
-    [b, ~, ~, ~, stats_this] = regress(y(:,i),X);
-    % fill MIMO matrix W
-    W(i,:)                  = b';
-    stats(i,:)              = stats_this;
-end
+% Build the cross-validated model W
+% -- W_offset is a matrix with the offsets in the model, and stats is a
+% matrix with nbr_outpus rows, and 
+[W, W_offset, stats]        = build_lm( X, y, true, params.fold_length );
 
 
+% -------------------------
+% compute model predictions
+y_hat                       = W*X' + repmat(W_offset,1,size(y,1));
+y_hat                       = y_hat';
 
 % -------------------------------------------------------------------------
 % Find potent and null spaces by doing SVD of the matrix W
@@ -199,10 +219,13 @@ end
 % SVD
 [U, S, V]                   = svd( W );
 
-% The output potent spaces is defined by the first m columns of V', where m
+% The output potent spaces is defined by the first m columns of V, where m
 % is the number of dimensions of the output
-V_potent                    = V(1:nbr_outputs,:)';
-V_null                      = V(nbr_outputs+1:end,:)';
+% V_potent                    = V(1:nbr_outputs,:)';
+% V_null                      = V(nbr_outputs+1:end,:)';
+% V_potent                    = V(:,1:nbr_outputs);
+V_potent                    = V(:,1:nbr_outputs);
+V_null                      = V(:,nbr_outputs+1:end);
 
 
 % -------------------------------------------------------------------------
@@ -215,3 +238,7 @@ opn_spaces.W                = W;
 opn_spaces.V_potent         = V_potent;
 opn_spaces.V_null           = V_null;
 opn_spaces.stats_W          = stats;
+opn_spaces.lm_fit.X         = X;
+opn_spaces.lm_fit.y         = y;
+opn_spaces.lm_fit.y_hat     = y_hat;
+opn_spaces.lm_fit.W_offset  = W_offset;
