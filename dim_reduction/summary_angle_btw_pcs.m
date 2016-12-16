@@ -1,19 +1,21 @@
 %
-% Compute angles between manifolds from different tasks for the number of
-% hyperplane (manifolds) dimensions, defined either based on the ranking of
-% the associated eigenvalues or as a set of specific eigenvectors for each
-% task and pair
+% Compute angles between hyperplanes (e.g., neural manifolds) from
+% different tasks for a number of hyperplane (manifolds) dimensions,
+% defined either based on: 1) the ranking of the associated eigenvalues or
+% 2) as an ordered set of eigenvectors for each pair of tasks
 %
 %   function [angle_mtrx, angle_lbls] = summary_angle_btw_pcs( dim_red_FR,
 %                               nbr_eigenvectors, labels, varargin )  
 %
 % Inputs (opt)              : [defaults]
-%       dim_red_FR          : array of structs with fields:
+%       dim_red_FR          : cell array with eigenvectors in columns, or
+%                               array of structs with fields: 
 %       	w               : weights PCA decomposition
 %           eigen           : eigenvalues of w
 %           scores          : result of applying w to smoothed_FR
 %           t_axis          : time axis for scores
 %           chs             : neural channels included in the analysis
+%               
 %       eigenvectors        : nbr. of eigenvectors (dims.) that will be
 %                               used in the analysis [scalar], OR N-D array
 %                               with the eigenvectors that define the
@@ -63,6 +65,15 @@ if nargin == 5
     reverse_yn              = varargin{2};
 else
     reverse_yn              = false;
+end
+
+
+% if labels is empty, fill it with 'task 1', 'task 2', ...
+if isempty(labels)
+    labels                  = cell(1,length(dim_red_FR));
+    for i = 1:length(labels)
+        labels{i}           = ['task ' num2str(i)];
+    end
 end
 
 
@@ -183,10 +194,12 @@ end
 % -------------------------------------------------------------------------
 % summary plot
 if show_plots
-    figure,imagesc(rad2deg(angle_mtrx))
-    set(gca,'FontSize',14)
-    set(gca,'Xtick',1:nbr_spaces,'XTickLabel',labels)
-    set(gca,'Ytick',1:nbr_spaces,'YTickLabel',labels)
-    title(['angle between ' num2str(nbr_eigenvectors) '-D neural spaces (deg)'])
-    colorbar('FontSize',14), caxis([0 90])
+    if ~isempty(labels)
+        figure,imagesc(rad2deg(angle_mtrx))
+        set(gca,'FontSize',14)
+        set(gca,'Xtick',1:nbr_spaces,'XTickLabel',labels)
+        set(gca,'Ytick',1:nbr_spaces,'YTickLabel',labels)
+        title(['angle between ' num2str(nbr_eigenvectors) '-D neural spaces (deg)'])
+        colorbar('FontSize',14), caxis([0 90])
+    end
 end
