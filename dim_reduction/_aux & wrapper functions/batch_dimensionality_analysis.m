@@ -127,54 +127,60 @@ end
 % realization of each task
 
 % get data for this percentage
-perc_plot           = .75;
-indx_perc_plot      = find(dim_results{1}.perc_var==perc_plot);
-% results will be stored in a 2D matrix with nbr_tasks rows per monkey, and
-% the monkeys ordered sequentially. The number of columns is 5, which is
-% greater than the max nbr of repetitions of each task
-aux_dim_perc        = zeros(meta_info.nbr_monkeys*meta_info.nbr_tasks,5);
-aux_legend_ctr      = 1;
+percs_plot          = [.6 .7 .75];
 
-for m = 1:meta_info.nbr_monkeys
-    for t = 1:length(meta_info.tasks)
-        if sum(strcmpi(meta_info.tasks{t},meta_info.tasks_per_monkey{m})) == 1
-            indx_task   = find(strcmpi(meta_info.tasks{t},dim_results{m}.tasks));
-            if ~isempty(indx_task)
-                aux_dims = dim_results{m}.dims_var{indx_task}(:,indx_perc_plot)';
-                aux_dim_perc((m-1)*meta_info.nbr_tasks+t,1:length(aux_dims)) = aux_dims;
-    %            aux_dim_perc
+for i = 1:length(percs_plot)
+    
+    perc_plot       = percs_plot(i);
+
+    indx_perc_plot      = find(dim_results{1}.perc_var==perc_plot);
+    % results will be stored in a 2D matrix with nbr_tasks rows per monkey, and
+    % the monkeys ordered sequentially. The number of columns is 5, which is
+    % greater than the max nbr of repetitions of each task
+    aux_dim_perc        = zeros(meta_info.nbr_monkeys*meta_info.nbr_tasks,5);
+    aux_legend_ctr      = 1;
+
+    for m = 1:meta_info.nbr_monkeys
+        for t = 1:length(meta_info.tasks)
+            if sum(strcmpi(meta_info.tasks{t},meta_info.tasks_per_monkey{m})) == 1
+                indx_task   = find(strcmpi(meta_info.tasks{t},dim_results{m}.tasks));
+                if ~isempty(indx_task)
+                    aux_dims = dim_results{m}.dims_var{indx_task}(:,indx_perc_plot)';
+                    aux_dim_perc((m-1)*meta_info.nbr_tasks+t,1:length(aux_dims)) = aux_dims;
+        %            aux_dim_perc
+                end
+
+                % create legend
+                aux_legend{aux_legend_ctr} = meta_info.monkeys{m};
+                aux_legend{aux_legend_ctr} = [aux_legend{aux_legend_ctr}, ' - ', meta_info.tasks{t}];
+                aux_legend_ctr = aux_legend_ctr+1;
             end
-            
-            % create legend
-            aux_legend{aux_legend_ctr} = meta_info.monkeys{m};
-            aux_legend{aux_legend_ctr} = [aux_legend{aux_legend_ctr}, ' - ', meta_info.tasks{t}];
-            aux_legend_ctr = aux_legend_ctr+1;
         end
     end
+
+    % remove rows of zeroes
+    aux_dim_perc(sum(aux_dim_perc,2)==0,:) = [];
+    % and cols of zeroes
+    aux_dim_perc(:,sum(aux_dim_perc,1)==0) = [];
+
+
+    % convert aux_dim_perc into histograms
+    x_dims_hist             = 1:20;
+    counts_dims_hist        = zeros(size(aux_dim_perc,1),length(x_dims_hist)-1);
+    for i = 1:size(aux_dim_perc,1)
+        counts_dims_hist(i,:) = histcounts(aux_dim_perc(i,:),x_dims_hist);
+    end
+
+
+    figure,
+    bar(counts_dims_hist','stacked')
+    set(gca,'TickDir','out'), set(gca,'FontSize',16)
+    ylim([0 max(sum(counts_dims_hist,1)+1)])
+    xlim([0 max(x_dims_hist)])
+    xlabel(['dimension > ' num2str(perc_plot*100) ' % variance explained'])
+    ylabel('counts'), legend(aux_legend(1:end)), legend boxoff
 end
-
-% remove rows of zeroes
-aux_dim_perc(sum(aux_dim_perc,2)==0,:) = [];
-% and cols of zeroes
-aux_dim_perc(:,sum(aux_dim_perc,1)==0) = [];
-
-
-% convert aux_dim_perc into histograms
-x_dims_hist             = 1:20;
-counts_dims_hist        = zeros(size(aux_dim_perc,1),length(x_dims_hist)-1);
-for i = 1:size(aux_dim_perc,1)
-    counts_dims_hist(i,:) = histcounts(aux_dim_perc(i,:),x_dims_hist);
-end
-
-
-figure,
-bar(counts_dims_hist','stacked')
-set(gca,'TickDir','out'), set(gca,'FontSize',16)
-ylim([0 max(sum(counts_dims_hist,1)+1)])
-xlim([0 max(x_dims_hist)])
-xlabel(['dimension > ' num2str(perc_plot*100) ' % variance explained'])
-ylabel('counts'), legend(aux_legend(1:end)), legend boxoff
-
+    
 % ---------------------------
 % SCREE PLOTS --old code, very convoluted; can be easily improved
 
