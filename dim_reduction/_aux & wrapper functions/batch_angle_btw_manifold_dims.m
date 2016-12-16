@@ -354,6 +354,24 @@ legend(legend_plot,'Location','NorthWest'), legend boxoff
 
 
 % -------------------------------------------------------------------------
+% One plot with the normalized principal angles
+
+figure,
+hold on
+for i = 1:length(data)
+    for ii = 1:size(data{i}.princ_angles.angles,1)
+        tmp_task_pairs      = meta_info.task_pairs.task_pair_nbr( meta_info.task_pairs.session == i );
+        plot( data{i}.princ_angles.angles(ii,:)./data{i}.princ_angles.angle_orth, ...
+            'color', colors(tmp_task_pairs(ii),:), 'linewidth', 1.5 )
+    end
+end
+set(gca,'TickDir','out'), set(gca,'FontSize',16)
+ylabel('norm. principal angle'),xlabel('dimension')
+xlim([0 params.dim_manifold+1])
+plot([0 params.dim_manifold+1],[1 1],'k','linewidth',1.5,'linestyle','-.')
+
+
+% -------------------------------------------------------------------------
 % One plot with principal angles per session, if specified
 if params.plot_p_session
     
