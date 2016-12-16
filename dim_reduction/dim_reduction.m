@@ -11,7 +11,7 @@
 %       (discard_neurons)   : array with the nbr of the neural channels
 %                               to be excluded from the analysis
 %       (norm_FR)           : [false] bool to normalize (z-score) the firing rates
-%       (show_plot)         : [true] bool to plot the variance explained by the
+%       (show_plot)         : [false] bool to plot the variance explained by the
 %                               components
 %
 % Outputs:
@@ -41,6 +41,7 @@ end
 if nargin >= 3 
     % discard selected neurons for analysis
     discard_neurons         = varargin{1};
+%    original_neurons        = double(arrayfun(@(x) x.id(1), bdf.units));
     original_neurons        = 1:size(smoothed_FR,2); % for later
     smoothed_FR(:,discard_neurons) = [];
 end
