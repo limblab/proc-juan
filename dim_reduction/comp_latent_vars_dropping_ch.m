@@ -116,7 +116,7 @@ else
     colors              = [0 0 0];
 end
 for i = 1:length(perc_drop)
-    leg{i}              = [num2str(perc_drop(i)) '% ch. drop'];
+    leg{i}              = [num2str(perc_drop(i)*100) '% ch. drop'];
 end
 
 figure, hold on
