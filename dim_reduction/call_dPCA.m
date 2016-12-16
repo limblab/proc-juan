@@ -1,5 +1,5 @@
 %
-%
+% Wrapper to do dPCA.
 %
 
 function dPCA_results = call_dPCA( single_trial_data, varargin )
@@ -91,7 +91,7 @@ firing_rates_avg    = nanmean(firing_rates, 5);
 if D > 1
     combined_params = { {1,[1 3]}, {2,[2,3]}, {3}, {[1 2],[1 2 3]} };
     marg_names      = {'task','target','time','task/target interaction'};
-    marg_colors     = [23 100 171; 187 20 25; 150 150 150; 114 97 171]/256;
+    marg_colors     = [23 100 171; 187 20 25; 150 150 150; 114 97 171]/256; % blue, red, grey, purple
 
     time            = (1:T)*single_trial_data{1}.target{1}.bin_size;
     time_events     = 1;
@@ -114,7 +114,7 @@ end
 expl_var            = dpca_explainedVariance(firing_rates_avg, W, V, ...
                         'combinedParams', combined_params);
                     
-dpca_plot(firing_rates_avg, W, V, @dpca_plot_default, ...
+dpca_plot(firing_rates_avg, W, V, @dpca_plot_default_j, ...
     'explainedVar', expl_var, ...
     'marginalizationNames', marg_names, ...
     'marginalizationColours', marg_colors, ...
@@ -122,7 +122,7 @@ dpca_plot(firing_rates_avg, W, V, @dpca_plot_default, ...
     'time', time,                        ...
     'timeEvents', time_events,               ...
     'timeMarginalization', 3, ...
-    'legendSubplot', 16);                
+    'legendSubplot', num_comps);                
 
 % ------------------------------------------------------------------------
 % 2. Do dPCA in each marginalization separately 
