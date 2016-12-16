@@ -46,7 +46,7 @@ prog_bar                = waitbar(0,'progress');
 
 
 % run for all the files in the directory
-for f = 2:length(aux.file_idx)
+for f = 1:length(aux.file_idx)
 
 filename                = aux.this_dir(aux.file_idx(f)).name;
 load(filename);
@@ -77,7 +77,7 @@ analysis.emg            = struct();
 % Bin and smooth the neural data
 if ~exist('smoothed_FR','var')
     for i = 1:numel(cbdf)
-        [smoothed_FR{i}, binned_data(i)] = gaussian_smoothing2( cbdf(i), ...
+        [smoothed_FR{i}, binned_data(i)] = gaussian_smoothing( cbdf(i), ...
                                     'sqrt', analysis.bin_size, analysis.kernel_SD );
     end
     
