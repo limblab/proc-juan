@@ -12,10 +12,10 @@
 %   dims                : array with the latent variables to compare (e.g.,
 %                           1:manifold_dimension)
 %   labels              : task labels
-%   target              : ['all_conc'] target that will be compared. Can be
+%   (target)            : ['all_conc'] target that will be compared. Can be
 %                           a scalar with the target number, or 'all_conc'
 %                           for all concatenated
-%   time_window         : [0 0.5] time window for the analysis, with 0
+%   (time_window)       : [0 0.5] time window for the analysis, with 0
 %                           being the beginning of the trial in the
 %                           single_trial_data struct
 %
