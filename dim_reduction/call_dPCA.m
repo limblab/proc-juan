@@ -124,6 +124,7 @@ dpca_plot(firing_rates_avg, W, V, @dpca_plot_default_j, ...
     'timeMarginalization', 3, ...
     'legendSubplot', num_comps);                
 
+
 % ------------------------------------------------------------------------
 % 2. Do dPCA in each marginalization separately 
 
@@ -132,10 +133,26 @@ dpca_perMarginalization(firing_rates_avg, @dpca_plot_default, ...
 
 
 % ------------------------------------------------------------------------
+% project data onto dPC axes
+lat_vars = get_lat_vars_dPCA( firing_rates_avg, W, ...
+    'explainedVar', expl_var, ...
+    'marginalizationNames', marg_names, ...
+    'marginalizationColours', marg_colors, ...
+    'whichMarg', which_marg,                 ...
+    'time', time,                        ...
+    'timeEvents', time_events,               ...
+    'timeMarginalization', 3, ...
+    'legendSubplot', num_comps);
+
+
+% ------------------------------------------------------------------------
 % 3. Return dPCA results
 
-dPCA_results.W      = W;
-dPCA_results.V      = V;
+dPCA_results.W          = W;
+dPCA_results.V          = V;
+dPCA_results.lat_vars   = lat_vars;
 dPCA_results.which_marg = which_marg;
-dPCA_reuslts.marg_names = marg_names;
+dPCA_results.marg_names = marg_names;
 dPCA_results.expl_var   = expl_var;
+dPCA_results.num_comps  = num_comps;
+dPCA_results.combined_params = combined_params;
