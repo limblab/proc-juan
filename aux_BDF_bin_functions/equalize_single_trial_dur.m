@@ -232,7 +232,7 @@ for i = 1:nbr_bdfs
                     % concatenated), in which case they'll have the same length
                     if size(data_orig,1) == nbr_bins_dataset(i)
                         data_new    = interp1(t_orig,data_orig,t_new,'linear','extrap');
-                        single_trial_data{i}.target{t}.emg_scores.(emg_names{f}) = ...
+                        single_trial_data{i}.target{t}.emg_data.(emg_names{f}) = ...
                             data_new;
                     end
                 end
