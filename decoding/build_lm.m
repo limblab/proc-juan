@@ -3,7 +3,8 @@
 % predictions. If want to predict several variables, model matrix W is a
 % series of MISO models. The model has the form: y = W·X + W_offset
 %
-%   function [W, stats] build_lm( X, y, xval_yn, fold_length, xval_plots_yn )
+%   function [W, W_offset, stats] = build_lm( X, y, xval_yn, fold_length, ...
+%                                       xval_plots_yn )
 % 
 %
 % Inputs (opt)          : [defaults]
