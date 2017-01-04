@@ -1,0 +1,142 @@
+%
+% Build linear model to predict EMG/force/kinematics using dPCs as inputs
+%
+%
+
+function dPCA_lm = build_lm_dPCA( dPCA_data, st_data, varargin )
+
+
+if nargin >= 3
+    neuron_emg_delay    = varargin{1};
+else
+    neuron_emg_delay    = 0.04;
+end
+if nargin == 4
+    margs               = varargin{2};
+else
+    margs               = 3; 
+end
+
+
+delay_bins      = neuron_emg_delay / st_data{1}.target{1}.bin_size;
+
+
+% get the dPCA latent variables
+lvars           = dPCA_data.lat_vars;
+
+
+% -------------------------------------------------------------------------
+% 1. Some preliminary stuff for the EMG data -- copied from call_dPCA
+
+% make the target averaged responses for each task have equal length.
+% This is not done in single_trial_analysis.m, where single trial
+% duration is only equalized for each task
+st_data             = equalize_single_trial_dur( st_data );
+
+% get rid of the last target, which is all the concatenated targets
+for i = 1:length(st_data)
+    st_data{i}.target(end) = [];
+end
+
+
+% -------------------------------------------------------------------------
+% 2. Preprare EMG data
+
+% create a 4D matrix with the EMG/forces/kinematics organized as in the
+% dPCA matrix: 
+% M is the number of muscles/forces/kinematic signals
+% K is the number of tasks
+% G is the number of targets
+% T is the number of time points
+M               = numel(st_data{1}.target{1}.emg_data.emg_names);
+K               = length(st_data);
+nbr_tgts_p_task = cell2mat( cellfun(@(x) length(x.target), st_data,'UniformOutput',false) );
+G               = min(nbr_tgts_p_task);
+T               = size(st_data{1}.target{1}.emg_data.mn,1);
+
+% a) preallocate and fill the matrix of average EMGs
+emg_mn          = nan(M,K,G,T);
+
+for k = 1:K
+    for g = 1:G
+        emg_mn(:,k,g,:) = st_data{k}.target{g}.emg_data.mn';
+    end    
+end
+
+
+% b) take the neuron to EMG delay into account
+
+if delay_bins >= 0
+    emg_mn      = emg_mn(:,:,:,1+delay_bins:T);
+elseif delay_bins < 0
+    emg_mn      = emg_mn(:,:,:,1:T-delay_bins);
+end
+
+T_new           = size(emg_mn,4);
+
+
+% c) create a matrix that has the EMG for all the targets of each task
+% ordered sequentially
+emg_lm          = zeros(M,K*G*T_new);
+for m = 1:M
+    for k = 1:K
+        for g = 1:G
+            emg_lm( m, (1:T_new) + (g-1)*T_new + (k-1)*G*T_new ) = ...
+                squeeze(emg_mn(m,k,g,:))';
+        end
+    end
+end
+
+
+% -------------------------------------------------------------------------
+% 2. Preprare dPCA (neural) data
+
+lv              = dPCA_data.lat_vars;
+N               = size(lv,1);
+
+% a) take the neuron to EMG delay into account
+
+if delay_bins > 0
+    lv          = lv(:,:,:,1:T-delay_bins);
+else
+    lv          = lv(:,:,:,1+delay_bins:T);
+end
+
+% b) create a matrix that has the latent variables for all the targets of
+% each task ordered sequentially
+lv_lm           = zeros(N,K*G*T_new);
+for m = 1:M
+    for k = 1:K
+        for g = 1:G
+            lv_lm( m, (1:T_new) + (g-1)*T_new + (k-1)*G*T_new ) = ...
+                squeeze(lv(m,k,g,:))';
+        end
+    end
+end
+
+
+% -------------------------------------------------------------------------
+% 3. Build linear model
+
+y               = emg_lm';
+X               = lv_lm';
+
+% choose the latent variables that we want. By default, the
+% marginalizations are 'task', 'target', 'time', 'task/target interact'
+lvs_marg        = [];
+for i = 1:length(margs)
+    lvs_marg    = [lvs_marg , find(dPCA_data.which_marg==margs(i))];
+end
+X               = X(:,lvs_marg);
+
+
+% [W, stats]      = build_lm( X, y, true, 300, true );
+[W, ~, stats]   = build_lm( X, y, false );
+
+
+% -------------------------------------------------------------------------
+% 4. Return vars
+
+dPCA_lm.W       = W;         
+dPCA_lm.stats   = stats;
+dPCA_lm.margs   = margs;
