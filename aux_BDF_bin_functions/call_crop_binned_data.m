@@ -64,7 +64,7 @@ nbr_bdfs                    = length(binned_data_array);
 for i = 1:nbr_bdfs
 
     % get trial table
-    trial_table             = binned_data_array.trialtable;
+    trial_table             = binned_data_array(i).trialtable;
     
     % get the column of the words. Note that the organization of the trial
     % table depends on the task
