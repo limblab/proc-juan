@@ -1,7 +1,7 @@
 %
 % Plot targets of a current behavior
 %
-%   function [nbr_targets, target_coord] = plot_targets( binned_data )
+%   function [nbr_targets, target_coord] = get_targets( binned_data, task )
 %
 % Inputs:
 %   binned_data         : binned_data struct. It has to contain field
@@ -104,6 +104,17 @@ rect_coord(rect_coord(:,4) == 0,:) = [];
 % create vector with target ID for each trial
 
 nbr_trials              = size(binned_data.trialtable,1);
+
+% FIX for some old wrist-flexion task: sometimes, the go time == -1 instead
+% of the real time, in which case we won't count that trial, and we will
+% remove it from the trial table
+if find( strcmpi(task,{'wf','iso','spr','iso8','wm'}) )
+    wrong_time_trials   = find(binned_data.trialtable(:,6)==-1);
+    nbr_trials          = nbr_trials - numel(wrong_time_trials);
+    binned_data.trialtable(wrong_time_trials,:) = [];
+end
+
+
 target_nbr              = zeros(1,nbr_trials);
 
 switch task_name
@@ -151,6 +162,7 @@ end
 % plot
 if plot_yn
 
+    %colors           	= distinguishable_colors(nbr_targets);
     colors           	= parula(nbr_targets);
     max_coord         	= max(max(abs(rect_coord)));
     max_y_coord         = max(rect_coord(:,2));
