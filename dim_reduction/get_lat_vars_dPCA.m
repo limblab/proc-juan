@@ -5,7 +5,7 @@
 %
 
 
-function lat_vars = get_lat_vars_dPCA( FR_avg, W, varargin )
+function [lat_vars, varargout] = get_lat_vars_dPCA( FR_avg, FR, W, varargin )
 
 
 % default input parameters
@@ -38,8 +38,13 @@ end
 num_comps       = min(options.numCompToShow, size(W,2));
 
 
+
+% =========================================================================
+% =========================================================================
+% FOR THE TRIAL-AVERAGED DATA
+
 % -------------------------------------------------------------------------
-% reshape to a neuron by time matrix (with all conditions and targets
+% 1) reshape to a neuron by time matrix (with all conditions and targets
 % concatenated)
 FR_conc         = FR_avg(:,:)';
 FR_cen          = bsxfun(@minus, FR_conc, mean(FR_conc));
@@ -50,7 +55,7 @@ data_dim        = size(FR_avg);
 Z               = FR_cen*W;
 
 % -------------------------------------------------------------------------
-% Reshape back to get the latent variables per marginalization 
+% 2) Reshape back to get the latent variables per marginalization 
 
 % get what latent variables we want to retrieve
 if isempty(options.componentsSignif)
@@ -64,4 +69,29 @@ lat_vars        = reshape(Z(:,comps_to_get)', [length(comps_to_get) data_dim(2:e
 % Check that there's no X_extra
 if ~isempty(options.X_extra)
     error('options.X_extra not implemented yet')
+end
+
+
+
+% =========================================================================
+% =========================================================================
+% FOR SINGLE TRIAL DATA (IF PASSED)
+
+if ~isempty(FR)
+   
+    FR_c_st     = FR(:,:)';
+    FR_cen_st   = bsxfun(@minus, FR_c_st, nanmean(FR_c_st));
+    
+    data_dim_st = size(FR);
+    
+    Z_st        = FR_cen_st*W;
+    Zfull_st    = reshape(Z_st', [size(Z_st,2) data_dim_st(2:end)]);
+end
+
+
+% -------------------------------------------------------------------------
+% Return single trial latent variables if there are two outputs
+
+if nargout == 2
+    varargout{1} = Zfull_st;
 end
