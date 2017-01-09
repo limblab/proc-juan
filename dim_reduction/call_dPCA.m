@@ -1,5 +1,10 @@
 %
-% Wrapper to do dPCA.
+% Wrapper to do dPCA. It is written to do dimensionality reduction
+% comparing different tasks, so the covariates are hardcoded to be 'task',
+% 'target', 'time', and 'task/target interaction'. Also, for this study we
+% compared tasks with 6 or 8 targets so the code is also written to choose
+% the targets in the 8 target task that best match the targets in the
+% 6-target tasks.
 %
 
 function dPCA_results = call_dPCA( single_trial_data, varargin )
@@ -61,12 +66,25 @@ trial_num           = zeros(N,S,D);
 % firing_rates: N x S x D x T x max_trial_num -- populated with our
 % single_trial_data
 firing_rates        = nan(N,S,D,T,max_trial_num);
+% ·········································································
+% In the 1D tasks, targets 1 to 6 go from left to right, but in the 2D
+% tasks targets are ordered as follows: 5, 7, 8, 6, 4, 2, 1, 3 --beginning
+% at 12 o'clock and going clockwise. They will be paired as 1D/2D: 1/1,
+% 2/2, 3/3, 4/6, 5/7, 6, 8 (as defined in target_order)
+% ·········································································
+target_order        = [1 2 3 4 5 6; 1 2 3 6 7 8]; % row 1: 1D task; row 2: 2D task
+
 for n = 1:N
     for s = 1:S
         for d = 1:D
-            trials_this = size(single_trial_data{s}.target{d}.neural_data.smoothed_fr(:,n,:),3);
+            if length(single_trial_data{s}.target) == D
+                tgt = target_order(1,d);
+            elseif length(single_trial_data{s}.target) >= D
+                tgt = target_order(2,d);
+            end
+            trials_this = size(single_trial_data{s}.target{tgt}.neural_data.smoothed_fr(:,n,:),3);
             firing_rates(n,s,d,:,1:trials_this) = ...
-                squeeze(single_trial_data{s}.target{d}.neural_data.smoothed_fr(:,n,:));
+                squeeze(single_trial_data{s}.target{tgt}.neural_data.smoothed_fr(:,n,:));
         end
     end
 end
@@ -128,13 +146,13 @@ dpca_plot(firing_rates_avg, W, V, @dpca_plot_default_j, ...
 % ------------------------------------------------------------------------
 % 2. Do dPCA in each marginalization separately 
 
-dpca_perMarginalization(firing_rates_avg, @dpca_plot_default, ...
-   'combinedParams', combined_params);
+% dpca_perMarginalization(firing_rates_avg, @dpca_plot_default, ...
+%    'combinedParams', combined_params);
 
 
 % ------------------------------------------------------------------------
 % project data onto dPC axes
-lat_vars = get_lat_vars_dPCA( firing_rates_avg, W, ...
+[lat_vars, lat_vars_st] = get_lat_vars_dPCA( firing_rates_avg, firing_rates, W, ...
     'explainedVar', expl_var, ...
     'marginalizationNames', marg_names, ...
     'marginalizationColours', marg_colors, ...
