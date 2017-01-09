@@ -168,7 +168,8 @@ dpca_plot(firing_rates_avg, W, V, @dpca_plot_default_j, ...
 
 dPCA_results.W          = W;
 dPCA_results.V          = V;
-dPCA_results.lat_vars   = lat_vars;
+dPCA_results.lat_vars_mn = lat_vars;
+dPCA_results.lat_vars   = lat_vars_st;
 dPCA_results.which_marg = which_marg;
 dPCA_results.marg_names = marg_names;
 dPCA_results.expl_var   = expl_var;
