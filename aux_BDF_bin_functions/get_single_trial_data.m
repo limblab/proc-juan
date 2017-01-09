@@ -629,8 +629,8 @@ end
 
 if ~isempty(cropped_binned_data.forcedatabin)
     STD{ptr}.force.data     = aux_force;
-    SDT{ptr}.force.mn       = aux_force_m;
-    SDT{ptr}.force.sd       = aux_force_sd;
+    STD{ptr}.force.mn       = aux_force_m;
+    STD{ptr}.force.sd       = aux_force_sd;
 end
 
 if dim_red_data_yn
