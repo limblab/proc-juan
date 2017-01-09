@@ -166,55 +166,55 @@ if xval_plots_yn
     ylabel('adjusted R^2'),xlabel('fold number')
     set(gca,'TickDir','out','FontSize',14)
     
-    % plot the decoders weights for each fold
-    nbr_rows                = floor(sqrt(nbr_outputs));
-    nbr_cols                = ceil(nbr_outputs/nbr_rows);
-    colors2                 = distinguishable_colors(nbr_inputs);
-    figure,
-    for v = 1:nbr_outputs
-        subplot(nbr_rows,nbr_cols,v), hold on
-        for i = 1:nbr_inputs
-            plot(squeeze(W_xval(v,i,:)),'color',colors2(i,:),'marker','.','markersize',16)
-        end
-        set(gca,'TickDir','out','FontSize',14)
-        ylabel(['output #' num2str(v)])
-        
-        if v > (nbr_rows-1)*nbr_cols
-            xlabel('fold')
-        end
-        if v == 1, legend('show'), end
-    end
-
-    % and the differences in decoder weight as fcn of the fold number
-    % - normalized by the abs of the weight
-    figure,
-    for v = 1:nbr_outputs
-        subplot(nbr_rows,nbr_cols,v), hold on
-        for i = 1:nbr_inputs
-            plot((squeeze(W_xval(v,i,:))-repmat(W_xval(v,i,1),nbr_folds,1))/abs(repmat(W_xval(v,i,1),nbr_folds,1)),...
-                'color',colors2(i,:),'marker','.','markersize',16)
-        end
-        set(gca,'TickDir','out','FontSize',14)
-        ylabel(['norm weight change - output #' num2str(v)])        
-        if v > (nbr_rows-1)*nbr_cols
-            xlabel('fold')
-        end
-    end
-    
-    % and the differences in decoder weight as fcn of the fold number
-    % - and the real change
-    figure,
-    for v = 1:nbr_outputs
-        subplot(nbr_rows,nbr_cols,v), hold on
-        for i = 1:nbr_inputs
-            plot((squeeze(W_xval(v,i,:))-repmat(W_xval(v,i,1),nbr_folds,1)),...
-                'color',colors2(i,:),'marker','.','markersize',16)
-        end
-        set(gca,'TickDir','out','FontSize',14)
-        ylabel(['weight change - output #' num2str(v)])        
-        if v > (nbr_rows-1)*nbr_cols
-            xlabel('fold')
-        end
-    end
+%     % plot the decoders weights for each fold
+%     nbr_rows                = floor(sqrt(nbr_outputs));
+%     nbr_cols                = ceil(nbr_outputs/nbr_rows);
+%     colors2                 = distinguishable_colors(nbr_inputs);
+%     figure,
+%     for v = 1:nbr_outputs
+%         subplot(nbr_rows,nbr_cols,v), hold on
+%         for i = 1:nbr_inputs
+%             plot(squeeze(W_xval(v,i,:)),'color',colors2(i,:),'marker','.','markersize',16)
+%         end
+%         set(gca,'TickDir','out','FontSize',14)
+%         ylabel(['output #' num2str(v)])
+%         
+%         if v > (nbr_rows-1)*nbr_cols
+%             xlabel('fold')
+%         end
+%         if v == 1, legend('show'), end
+%     end
+% 
+%     % and the differences in decoder weight as fcn of the fold number
+%     % - normalized by the abs of the weight
+%     figure,
+%     for v = 1:nbr_outputs
+%         subplot(nbr_rows,nbr_cols,v), hold on
+%         for i = 1:nbr_inputs
+%             plot((squeeze(W_xval(v,i,:))-repmat(W_xval(v,i,1),nbr_folds,1))/abs(repmat(W_xval(v,i,1),nbr_folds,1)),...
+%                 'color',colors2(i,:),'marker','.','markersize',16)
+%         end
+%         set(gca,'TickDir','out','FontSize',14)
+%         ylabel(['norm weight change - output #' num2str(v)])        
+%         if v > (nbr_rows-1)*nbr_cols
+%             xlabel('fold')
+%         end
+%     end
+%     
+%     % and the differences in decoder weight as fcn of the fold number
+%     % - and the real change
+%     figure,
+%     for v = 1:nbr_outputs
+%         subplot(nbr_rows,nbr_cols,v), hold on
+%         for i = 1:nbr_inputs
+%             plot((squeeze(W_xval(v,i,:))-repmat(W_xval(v,i,1),nbr_folds,1)),...
+%                 'color',colors2(i,:),'marker','.','markersize',16)
+%         end
+%         set(gca,'TickDir','out','FontSize',14)
+%         ylabel(['weight change - output #' num2str(v)])        
+%         if v > (nbr_rows-1)*nbr_cols
+%             xlabel('fold')
+%         end
+%     end
 end
 
