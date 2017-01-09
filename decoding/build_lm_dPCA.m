@@ -1,7 +1,21 @@
 %
-% Build linear model to predict EMG/force/kinematics using dPCs as inputs
+% Build linear model to predict EMG/force/kinematics using dPCs as inputs.
+% Note: This function uses trial-averaged data !!!
 %
 %
+%   dPCA_lm = build_lm_dPCA( dPCA_data, st_data, varargin )
+%
+%
+% Inputs (opt)          : [default]
+%   dPCA_data           : dPCA_results data struct, generated with
+%                           call_dPCA.m
+%   st_data             : single_trial_data struct
+%   (neuron_emg_delay)  : [0.04] neuron to EMG lag (>0 => neurons lead)
+%   (margs)             : [2] marginalizations (dPCs that depend on certain
+%                           covariates) used as inputs. With the current
+%                           version of call_dPCA they are: 1) 'task'; 2)
+%                           'target'; 3) 'time'; 4) 'task/target interact'
+% 
 
 function dPCA_lm = build_lm_dPCA( dPCA_data, st_data, varargin )
 
@@ -11,10 +25,20 @@ if nargin >= 3
 else
     neuron_emg_delay    = 0.04;
 end
-if nargin == 4
+if nargin >= 4
     margs               = varargin{2};
 else
-    margs               = 3; 
+    margs               = 2; 
+end
+if nargin >= 5
+    xval_yn             = varargin{3};
+else
+    xval_yn             = true;
+end
+if nargin == 6
+    xval_plot_yn        = varargin{4};
+else
+    xval_plot_yn        = false;
 end
 
 
@@ -22,7 +46,7 @@ delay_bins      = neuron_emg_delay / st_data{1}.target{1}.bin_size;
 
 
 % get the dPCA latent variables
-lvars           = dPCA_data.lat_vars;
+lvars           = dPCA_data.lat_vars_mn;
 
 
 % -------------------------------------------------------------------------
@@ -56,10 +80,22 @@ T               = size(st_data{1}.target{1}.emg_data.mn,1);
 
 % a) preallocate and fill the matrix of average EMGs
 emg_mn          = nan(M,K,G,T);
+% ·········································································
+% In the 1D tasks, targets 1 to 6 go from left to right, but in the 2D
+% tasks targets are ordered as follows: 5, 7, 8, 6, 4, 2, 1, 3 --beginning
+% at 12 o'clock and going clockwise. They will be paired as 1D/2D: 1/1,
+% 2/2, 3/3, 4/6, 5/7, 6, 8 (as defined in target_order)
+% ·········································································
+target_order        = [1 2 3 4 5 6; 1 2 3 6 7 8]; % row 1: 1D task; row 2: 2D task
 
 for k = 1:K
     for g = 1:G
-        emg_mn(:,k,g,:) = st_data{k}.target{g}.emg_data.mn';
+        if length(st_data{k}.target) == G
+            tgt = target_order(1,g);
+        elseif length(st_data{k}.target) >= G
+            tgt = target_order(2,g);
+        end
+        emg_mn(:,k,g,:) = st_data{k}.target{tgt}.emg_data.mn';
     end    
 end
 
@@ -105,11 +141,11 @@ end
 % b) create a matrix that has the latent variables for all the targets of
 % each task ordered sequentially
 lv_lm           = zeros(N,K*G*T_new);
-for m = 1:M
+for n = 1:N
     for k = 1:K
         for g = 1:G
-            lv_lm( m, (1:T_new) + (g-1)*T_new + (k-1)*G*T_new ) = ...
-                squeeze(lv(m,k,g,:))';
+            lv_lm( n, (1:T_new) + (g-1)*T_new + (k-1)*G*T_new ) = ...
+                squeeze(lv(n,k,g,:))';
         end
     end
 end
@@ -130,8 +166,11 @@ end
 X               = X(:,lvs_marg);
 
 
-% [W, stats]      = build_lm( X, y, true, 300, true );
-[W, ~, stats]   = build_lm( X, y, false );
+if xval_yn
+    [W, Wos, stats] = build_lm( X, y, true, length(X)/K, xval_plot_yn );
+else
+    [W, Wos, stats] = build_lm( X, y, false );
+end
 
 
 % -------------------------------------------------------------------------
@@ -140,3 +179,5 @@ X               = X(:,lvs_marg);
 dPCA_lm.W       = W;         
 dPCA_lm.stats   = stats;
 dPCA_lm.margs   = margs;
+dPCA_lm.data.emg    = y;
+dPCA_lm.data.pred   = W*X'+repmat(Wos,1,size(X,1));
