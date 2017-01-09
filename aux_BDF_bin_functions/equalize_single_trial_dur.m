@@ -311,11 +311,16 @@ for i = 1:nbr_bdfs
                         end
                     end
                 end
+                
+                single_trial_data{i}.target{t}.t = t_new;
             end
 
             
             % -------------------        
             % Update other stuff and meta info
+            
+            
+            
             if isfield(single_trial_data{i}.target{t},'force')
                 warning('force data not cut');
             end
@@ -441,6 +446,8 @@ for i = 1:nbr_bdfs
                 single_trial_data{i}.target{t}.bin_indx_p_trial = ...
                     single_trial_data{i}.target{t}.bin_indx_p_trial(indx_to_keep(i,:),:);
                 
+                single_trial_data{i}.target{t}.t = ...
+                    single_trial_data{i}.target{t}.t(indx_to_keep(i,:));
                 
                 % give warning that cutting force data is not yet
                 % implemented
