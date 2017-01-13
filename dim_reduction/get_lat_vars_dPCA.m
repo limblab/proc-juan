@@ -1,6 +1,16 @@
 %
 % Retrieve the latent variables computed with dPCA
 %
+%   [lat_vars, varargout] = get_lat_vars_dPCA( FR_avg, FR, W, varargin )
+%
+%
+% Inputs (opt)          : [default]
+%   FR_avg              : 4-D matrix with trial-averaged neural data
+%                           (neurons x task x target x time)
+%   FR                  : 5-D matrix with neural data
+%                           (neurons x task x target x time x trial)
+%   W                   : dPCA weight matrix
+%   (options)           : options -see code for names and default values
 %
 %
 
