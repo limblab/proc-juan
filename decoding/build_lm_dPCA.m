@@ -55,7 +55,7 @@ lvars           = dPCA_data.lat_vars_mn;
 % make the target averaged responses for each task have equal length.
 % This is not done in single_trial_analysis.m, where single trial
 % duration is only equalized for each task
-st_data             = equalize_single_trial_dur( st_data );
+st_data        	= equalize_single_trial_dur( st_data );
 
 % get rid of the last target, which is all the concatenated targets
 for i = 1:length(st_data)
@@ -86,7 +86,7 @@ emg_mn          = nan(M,K,G,T);
 % at 12 o'clock and going clockwise. They will be paired as 1D/2D: 1/1,
 % 2/2, 3/3, 4/6, 5/7, 6, 8 (as defined in target_order)
 % ·········································································
-target_order        = [1 2 3 4 5 6; 1 2 3 6 7 8]; % row 1: 1D task; row 2: 2D task
+target_order    = [1 2 3 4 5 6; 1 2 3 6 7 8]; % row 1: 1D task; row 2: 2D task
 
 for k = 1:K
     for g = 1:G
