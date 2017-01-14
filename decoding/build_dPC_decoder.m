@@ -16,6 +16,10 @@
 %   (lags)          : [10] history lags
 %   (margs)         : dPCA marginalizations (1: task, 2: target, 3: time,
 %                       4: task/target interact.) -- can be multiple
+%   (nbr_dpcs_p_marg) : [] number of dPCs per marginalization to use as
+%                       decoder inputs. If empty it will use all
+%   (dpcs)          : [] what dPCs to use. Incompatible with specifying the
+%                       marginalization(s) to use in 'margs'
 %   (xval_yn)       : [true] do multifold cross-validation?
 %   (fold_size)     : [60] fold size in s
 %   (smooth_spikes) : [true] used smoothed or 'raw' spikes
@@ -24,6 +28,7 @@
 %   (poly_order)    : [2] order of the polynomial in the static
 %                       non-linearity
 %   (output)        : ['emg'] output variable
+%   (return_preds)  : [true] return input and output data and predictions
 %   (plot_yn)       : [false] summary plots
 %
 % Outputs:
@@ -40,17 +45,20 @@
 function dec_out = build_dPC_decoder( ds, dpc, varargin ) 
 
 % Default parameters
-params                  = struct('w_i',         'ot_on', ...
-                                'w_f',          'R', ...
-                                'lags',         10, ...
-                                'margs',        [], ...
-                                'xval_yn',      true, ...
-                                'fold_size',    60, ...     % in s
-                                'smooth_spikes',true, ...
-                                'dec_offset',   true, ...
-                                'poly_order',   2, ...
-                                'output',       'emg', ...
-                                'plot_yn',      false);
+params                  = struct('w_i',             'ot_on', ...
+                                'w_f',              'R', ...
+                                'lags',             10, ...
+                                'margs',            [], ...
+                                'nbr_dpcs_p_marg',  [], ...
+                                'dpcs',             [], ...
+                                'xval_yn',          true, ...
+                                'fold_size',        60, ...     % in s
+                                'smooth_spikes',    true, ...
+                                'dec_offset',       true, ...
+                                'poly_order',       2, ...
+                                'output',           'emg', ...
+                                'return_preds',     true, ...
+                                'plot_yn',          false);
 
                     
 % read input parameters and replace default values where necessary
@@ -62,6 +70,14 @@ for p = reshape(varargin,2,[])
         error([p{1} ' is not a recognized parameter name']);
     end
 end
+
+
+% check that the user hasn't mistakenly passed the dPC numbers and the
+% marginalizations to use, as those are not compatible
+if ~isempty(params.margs) && ~isempty(params.dpcs)
+    error('Cannot choose the marginalization(s) and the dPCs to use as predictors at the same time');
+end
+
 
 % get number of tasks (bdfs)
 nbr_bdfs            = length( ds.binned_data );
@@ -75,6 +91,7 @@ bin_size            = ds.stdata{1}.target{1}.bin_size;
 
 % 1. Take the binned neural data from the chanels we want 
 for b = 1:nbr_bdfs
+    % take smoothed data or square root transformed 'raw' spikes 
     if params.smooth_spikes
         sp{b}       = ds.binned_data{b}.smoothedspikerate(:,ds.neural_chs);
     else
@@ -93,16 +110,37 @@ for b = 1:nbr_bdfs
 end
 
 
-% 3. Choose the marginalizations that we want. By default, the
+% 3.a. Choose the marginalizations that we want. By default, the
 % marginalizations are 1: 'task', 2: 'target', 3: 'time', 4: 'task/target
 % interact'
-lvs_marg            = [];
-for i = 1:length(params.margs)
-    lvs_marg        = [lvs_marg , find(dpc.which_marg==params.margs(i))];
+if ~isempty(params.margs)
+    
+    % find what dPCs correspond to the input marginalizations
+    lvs_marg        = [];
+    for i = 1:length(params.margs)
+        % see if we want to keep them all
+        if isempty(params.nbr_dpcs_p_marg)
+            lvs_marg = [lvs_marg , find(dpc.which_marg==params.margs(i))];
+        % or just the first few
+        else
+            lvs_marg = [lvs_marg , find(dpc.which_marg==params.margs(i),...
+                        params.nbr_dpcs_p_marg)];
+        end
+    end
+    
+    % and keep only those dPCs
+    for b = 1:nbr_bdfs
+        lv{b}    	= lv{b}(:,lvs_marg);
+    end
 end
 
-for b = 1:nbr_bdfs
-    lv{b}           = lv{b}(:,lvs_marg);
+% 3.b. Alternatively, the user may have specified what dPCs to use as
+% predictors
+if ~isempty(params.dpcs)
+    
+    for b = 1:nbr_bdfs
+        lv{b}     	= lv{b}(:,params.dpcs);
+    end
 end
 
 
@@ -219,9 +257,11 @@ if exist('Hnl','var')
 end
 dec_out.all.r       = r;
 dec_out.all.R2      = R2;
-dec_out.all.y_pred  = y_pred;
-dec_out.all.X_ds    = X_all_new;
-dec_out.all.y       = y_all_new;
+if params.return_preds
+    dec_out.all.y_pred = y_pred;
+    dec_out.all.X_ds = X_all_new;
+    dec_out.all.y   = y_all_new;
+end
 
 % cross-validated results
 if params.xval_yn
@@ -244,9 +284,9 @@ if params.plot_yn
     if params.xval_yn
         subplot(122)
         hold on
-        errorbar(mean(mfxval_fits.R2'),std(mfxval_fits.R2'),'marker','none',...
+        errorbar(mean(mfxval_fits.R2,2),std(mfxval_fits.R2,0,2),'marker','none',...
             'color','k','linewidth',2,'linestyle','none')
-        bar(mean(mfxval_fits.R2'))
+        bar(mean(mfxval_fits.R2,2))
         ylim([0 1.1]),xlim([0 size(y_all,2)+1])
         ylabel('xval R2'),xlabel('muscle #')
         set(gca,'TickDir','out','FontSize',14)
