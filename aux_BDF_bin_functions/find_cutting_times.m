@@ -174,6 +174,13 @@ if params.word_f == 'R'
     end     
     
     cut_t(trial_table(:,col_R) ~= double('R'),:) = [];
+    
+    % there's an error in our behavior, which sometimes makes the
+    % trial_start time == -1
+    if ~isempty(find(cut_t(:,1)==-1,1))
+       cut_t(cut_t(:,1)==-1,:) = [];
+    end
+    
     % turn cut times into bin number times
     cut_b               = zeros(size(cut_t));
     cut_b(:,1)          = ceil(cut_t(:,1)/params.bin_size);
