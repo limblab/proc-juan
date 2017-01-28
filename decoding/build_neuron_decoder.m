@@ -34,7 +34,8 @@
 %
 % ToDo:
 %   - need to implement force and kinematic predictions
-%
+%   - need to implement a method for discarding channels with low firing
+%   rate
 %
 
 
