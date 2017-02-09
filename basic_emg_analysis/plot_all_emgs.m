@@ -27,8 +27,8 @@ for e = 1:nbr_emgs
     figure('units','normalized','outerposition',[0 0 1 1])
     for b = 1:nbr_bdfs
         subplot(nbr_bdfs,1,b)
-        plot(bdf_struct(b).emg.data(:,1),bdf_struct(1).emg.data(:,chs(e)+1))
-        legend(bdf_struct(b).emg.emgnames(e));
+        plot(bdf_struct(b).emg.data(:,1),bdf_struct(b).emg.data(:,chs(e)+1))
+        legend(bdf_struct(b).emg.emgnames(chs(e)));
         set(gca,'TickDir','out'),set(gca,'FontSize',14);
         
         if exist('t_int','var'), xlim(t_int); end
