@@ -28,6 +28,8 @@
 %   (poly_order)    : [2] order of the polynomial in the static
 %                       non-linearity
 %   (output)        : ['emg'] output variable
+%   (dec_p_task)    : [false] build a decoder for each task, or one for all
+%                       combined tasks
 %   (return_preds)  : [true] return input and output data and predictions
 %   (plot_yn)       : [false] summary plots
 %
@@ -57,10 +59,11 @@ params                  = struct('w_i',             'ot_on', ...
                                 'dec_offset',       true, ...
                                 'poly_order',       2, ...
                                 'output',           'emg', ...
+                                'dec_p_task',       false, ...
                                 'return_preds',     true, ...
                                 'plot_yn',          false);
 
-                    
+
 % read input parameters and replace default values where necessary
 param_names         = fieldnames(params);
 for p = reshape(varargin,2,[])
@@ -82,7 +85,7 @@ end
 % get number of tasks (bdfs)
 nbr_bdfs            = length( ds.binned_data );
 % get bin size
-bin_size            = ds.stdata{1}.target{1}.bin_size;
+params.bin_size     = ds.stdata{1}.target{1}.bin_size;
 
 
 % -------------------------------------------------------------------------
@@ -150,7 +153,7 @@ for b = 1:nbr_bdfs
 end
 
 
-% 5. Cut the neural data and the variable to be predicted between the
+% 5. Cut the neural data and the variables to be predicted between the
 % desired words 
 for b = 1:nbr_bdfs
     % find cutting times
@@ -158,16 +161,26 @@ for b = 1:nbr_bdfs
                                         'task',     ds.labels{b},...
                                         'word_i',   params.w_i,...
                                         'word_f',   params.w_f,...
-                                        'bin_size', bin_size);
+                                        'bin_size', params.bin_size);
                                     
     % and cut !!!
     lv_ds_cut{b}    = cut_data(lv_ds{b},cut_b{b});
+    
+    % and store cutting times
+    % TODO !!!
 end
 
 
 % 6. Create a matrix with the data from all the trials concatenated
-X_all               = cell2mat(lv_ds_cut');
-
+if ~params.dec_p_task
+    % all tasks concatenated
+    X_all{1}        = cell2mat(lv_ds_cut');
+else
+    % each task separately
+    for b = 1:nbr_bdfs
+        X_all{b}    = lv_ds_cut{b};
+    end
+end
 
 
 % -------------------------------------------------------------------------
@@ -193,8 +206,16 @@ for b = 1:nbr_bdfs
 end
 
 
-% 3. Create a matrix with the data from all traisl concatenated
-y_all               = cell2mat(y_cut');
+% 3. Create a matrix with the data from all trials concatenated
+if ~params.dec_p_task
+    % all tasks concatenated
+    y_all{1}        = cell2mat(y_cut');
+else
+    % each task separately
+    for b = 1:nbr_bdfs
+        y_all{b}    = y_cut{b};
+    end
+end
 
 
 
@@ -202,102 +223,8 @@ y_all               = cell2mat(y_cut');
 % -------------------------------------------------------------------------
 % C. BUILD DECODER
 
-% ------------------------------------
-% 1. Train on all the data
-
-% 1.a. Find the linear model
-if ~params.dec_offset
-    H               = filMIMO3(X_all,y_all,params.lags,1,1);
-else
-    H               = filMIMO4(X_all,y_all,params.lags,1,1);
-end
-
-% 1.b. Predict the data with the linear model
-if ~params.dec_offset
-    [y_pred,X_all_new,y_all_new] = predMIMO3(X_all,H,1,1,y_all);
-else
-    [y_pred,X_all_new,y_all_new] = predMIMO4(X_all,H,1,1,y_all);
-end
-
-% 1.c. Add non-linearity, if specified
-if params.poly_order > 0 
-    for v = 1:size(y_all,2)
-        % compute the non-linearity
-        Hnl(:,v)    = WienerNonlinearity(y_pred(:,v),y_all_new(:,v),...
-                        params.poly_order);
-        % and predict the data with the cascade decoder
-        y_pred(:,v) = polyval(Hnl(:,v),y_pred(:,v));
-    end            
-end
-
-% 1.d. Get quality of fit
-R2                  = CalculateR2(y_pred,y_all_new);
-r                   = calc_r(y_pred,y_all_new);
+dec_out = build_decoder( X_all, y_all, params );
 
 
-% ------------------------------------
-% 2. Do multifold cross-validation
-
-if params.xval_yn
-    mfxval_fits = mfxval_decoder( X_all, y_all, 'lags', params.lags, ...
-                                    'fold_size', params.fold_size/bin_size, ...
-                                    'dec_offset', params.dec_offset, ...
-                                    'poly_order', params.poly_order );
-end
-
-
-% -------------------------------------------------------------------------
-% -------------------------------------------------------------------------
-% D. OUTPUT DATA
-
-% from training on all
-dec_out.all.H       = H;
-if exist('Hnl','var')
-    dec_out.all.Hnl = Hnl;
-end
-dec_out.all.r       = r;
-dec_out.all.R2      = R2;
-if params.return_preds
-    dec_out.all.y_pred = y_pred;
-    dec_out.all.X_ds = X_all_new;
-    dec_out.all.y   = y_all_new;
-end
-
-% cross-validated results
-if params.xval_yn
-    dec_out.mfxval.R2 = mfxval_fits.R2;
-    dec_out.mfxval.r = mfxval_fits.r;
-end
-
-% save parameters
-dec_out.params      = params;
-
-
-% -------------------------------------------------------------------------
-% -------------------------------------------------------------------------
-% E. PLOTS
-
-if params.plot_yn
-   
-    marg_leg        = {'task','target','time','task/tgt int'};
-    figure,
-    if params.xval_yn
-        subplot(122)
-        hold on
-        errorbar(mean(mfxval_fits.R2,2),std(mfxval_fits.R2,0,2),'marker','none',...
-            'color','k','linewidth',2,'linestyle','none')
-        bar(mean(mfxval_fits.R2,2))
-        ylim([0 1.1]),xlim([0 size(y_all,2)+1])
-        ylabel('xval R2'),xlabel('muscle #')
-        set(gca,'TickDir','out','FontSize',14)
-        box off
-        title(marg_leg(params.margs))
-        subplot(121)
-    end
-        bar(R2,'FaceColor',[.6 .6 .6])
-        ylim([0 1.1]),xlim([0 size(y_all,2)+1])
-        ylabel('R2'),xlabel('muscle #')
-        set(gca,'TickDir','out','FontSize',14)
-        title(marg_leg(params.margs));
-        box off
-end
+% add input field to params.
+dec_out.params.input = 'dPCs';
