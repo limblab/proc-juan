@@ -142,6 +142,35 @@ for c = 1:size(comb_sessions,1)
 end
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% do CCA within sessions to have a "baseline condition"
+
+for s = 1:length(sessions)
+   
+    % retrieve session
+    [trialss, tds] = getTDidx( master_td, 'date', sessions{s},...
+                    'target_direction', targets(1:length(targets)) );
+    
+    trialsptarget = (length(trials1)/length(targets));
+    htrials = floor(trialsptarget/2);
+    h1      = 1:htrials;
+    h2      = (trialsptarget-htrials+1):trialsptarget;
+                
+    % get first and second half of the trials
+    trials1h = [];
+    trials2h = [];
+    for t = 1:length(targets)
+        trials1h = [trials1h h1+(t-1)*trialsptarget];
+        trials2h = [trials2h h2+(t-1)*trialsptarget];
+    end
+               
+    % compare dynamics with CCA
+    cca_within(s) = compDynamics( tds, 'M1_pca', trials1h, trials2h, mani_dims );
+    
+    % compare dynamics with good old forrelations
+    corr_within(s) = corrDynamics( tds, 'M1_pca', trials1h, trials2h, mani_dims );
+end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % get time between sessions
@@ -200,5 +229,72 @@ plot(x_plots,y_cc,'k','linewidth',1.5)
 plot(x_plots,y_corr,'color',[.6 .6 .6],'linewidth',1.5)
 set(gca,'TickDir','out','FontSize',14), box off
 xlabel('Days btw sessions'),ylabel('Correlation')
-ylim([0 1])
+ylim([0 1]), xlim([0 max(diff_days)+1])
+legend('aligned','unaligned','Location','SouthEast'),legend boxoff
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Plot pairwise corrs & Canon corrs vs dimensions
+figure, hold on
+errorbar(diff_days,mn_cc,sem_cc,'.k','markersize',32)
+errorbar(diff_days,mn_corr,sem_corr,'o','color',[.6 .6 .6],'markersize',10)
+plot(x_plots,y_cc,'k','linewidth',1.5)
+plot(x_plots,y_corr,'color',[.6 .6 .6],'linewidth',1.5)
+set(gca,'TickDir','out','FontSize',14), box off
+xlabel('Days btw sessions'),ylabel('Correlation')
+ylim([0 1]), xlim([0 max(diff_days)+1])
+legend('aligned','unaligned','Location','SouthEast'),legend boxoff
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% pool all within day CCs
+all_within_ccs = cell2mat({cca_within.cc}');
+all_within_corrs = cell2mat({corr_within.r}');
+
+% summary statistics --taking the same number of dimenions as above
+
+mn_wcc          = zeros(length(sessions),1);
+sem_wcc         = zeros(length(sessions),1);
+mn_wcorr        = zeros(length(sessions),1);
+sem_wcorr       = zeros(length(sessions),1);
+
+
+for i = 1:length(sessions)
+    wcc         = abs(all_within_ccs(i,dims_stats));
+    wcr         = abs(all_within_corrs(i,dims_stats));
+    mn_wcc(i)   = mean(wcc);
+    sem_wcc(i)  = std(wcc)/sqrt(numel(mani_dims));
+    mn_wcorr(i) = mean(wcr);
+    sem_wcorr(i) = std(wcr)/sqrt(numel(mani_dims));
+end
+
+% append number of within sessions
+diff_days_all   = [diff_days zeros(1,length(sessions))];
+
+% append correlations
+mn_cc_all       = [mn_cc; mn_wcc]';
+sem_cc_all      = [sem_cc; sem_wcc]';
+mn_corr_all     = [mn_corr; mn_wcorr]';
+sem_corr_all    = [sem_corr; sem_wcorr]';
+
+
+% linear fits including these baseline days
+fit_cc_all      = polyfit(diff_days_all,mn_cc_all,1);
+fit_corr_all    = polyfit(diff_days_all,mn_corr_all,1);
+x_plots_all     = [min(diff_days_all)-2, max(diff_days_all)+1];
+y_cc_all        = polyval(fit_cc_all,x_plots_all);
+y_corr_all      = polyval(fit_corr_all,x_plots_all);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Plot pairwise corrs & Canon corrs vs dimensions including basline
+figure, hold on
+errorbar(diff_days_all,mn_cc_all,sem_cc_all,'.k','markersize',32)
+errorbar(diff_days_all,mn_corr_all,sem_corr_all,'o','color',[.6 .6 .6],'markersize',10)
+plot(x_plots_all,y_cc_all,'k','linewidth',1.5)
+plot(x_plots_all,y_corr_all,'color',[.6 .6 .6],'linewidth',1.5)
+set(gca,'TickDir','out','FontSize',14), box off
+xlabel('Days btw sessions'),ylabel('Correlation')
+ylim([0 1]), xlim([-1 max(diff_days_all)+1])
 legend('aligned','unaligned','Location','SouthEast'),legend boxoff
