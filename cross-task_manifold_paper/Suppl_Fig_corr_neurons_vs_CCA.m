@@ -1,20 +1,20 @@
 
 
 % load parameters
-params      = batch_compare_manifold_projs_defaults;
+params          = batch_compare_manifold_projs_defaults;
 
 % the paper was done with n = 12 instead of 20
 params.dim_manifold = 12;
-dims        = 1:params.dim_manifold;
+dims            = 1:params.dim_manifold;
 
-% we are looking at neurons here
-variab      = 'neuron'; % 'neuron' 'mode' 'emg'
 % do for all the trials
-target      = 'all_conc';
+target          = 'all_conc';
 % do one plot per session?
-plot_p_session  = true;
+plot_p_session  = false;
 % sort neurons when plotting?
 sort_neurons    = false;
+% take abs value corrs?
+abs_corr        = false;
 
 % -------------------------------------------------------------------------
 % Do for all sessions
@@ -77,7 +77,11 @@ for s = 1:length(datasets)
         n1          = tda{comb_tds(p,1)}.target{end}.neural_data.conc_smoothed_fr;
         n2          = tda{comb_tds(p,2)}.target{end}.neural_data.conc_smoothed_fr;
         
-        cr          = abs(calc_r( n1, n2 ));
+        if abs_corr
+            cr      = abs(calc_r( n1, n2 ));
+        else
+            cr      = calc_r( n1, n2 );
+        end
 
         corr_n(:,p) = cr';
     end
@@ -90,7 +94,7 @@ for s = 1:length(datasets)
     
     
     % ---------------------------------------------------------------------
-    % PLOT
+    % PLOT PER SESSION
     if plot_p_session
         
         % create legend
@@ -163,7 +167,11 @@ end
 
 % Statistics neurons
 all_corrs_n         = [];
-x_ax_hist           = 0:0.025:1;
+if abs_corr
+    x_ax_hist       = 0:0.025:1;
+else
+    x_ax_hist       = -1:0.05:1;
+end
 
 
 for s = 1:length(datasets)
@@ -222,7 +230,12 @@ tb = bar(x_hist_corr_n(1:end-1),y_hist_corr_n,'histc');
 set(tb,'FaceColor','k','EdgeColor','k')
 set(gca,'TickDir','out','FontSize',14), 
 box off,
-xlim([-.05 1.05]), ylim([0 375])
+if abs_corr
+    xlim([-.05 1.05])
+else
+    xlim([-1.05 1.05])
+end
+ylim([0 375])
 xlabel('Correlation'),ylabel('Counts')
 
 y_stats_corr        = 350*ones(1,2);
@@ -240,8 +253,13 @@ tb2.FaceAlpha = 0.5;
 set(tb2,'FaceColor',[.5 .5 .5],'EdgeColor',[.5 .5 .5])
 set(gca,'TickDir','out','FontSize',14), 
 box off,
-legend('Neurons','Neural modes'), legend boxoff
-xlim([-.05 1.05]), ylim([0 400])
+legend('Neurons','Neural modes','Location','NorthWest'), legend boxoff
+if abs_corr
+    xlim([-.05 1.05])
+else
+    xlim([-1.05 1.05])
+end
+ylim([0 400])
 xlabel('Correlation'),ylabel('Counts')
 
 % Add some stats to the plot
@@ -264,8 +282,13 @@ set(tb2,'FaceColor',[.5 .5 .5],'EdgeColor',[.5 .5 .5])
 tb2.FaceAlpha = 0.5; tb2.EdgeAlpha = 0.5;
 set(gca,'TickDir','out','FontSize',14)
 box off,
-legend('Neurons','Neural modes'), legend boxoff
-xlim([-.05 1.05]), ylim([0 0.18])
+legend('Neurons','Neural modes','Location','NorthWest'), legend boxoff
+if abs_corr
+    xlim([-.05 1.05])
+else
+    xlim([-1.05 1.05])
+end
+ylim([0 0.18])
 xlabel('Correlation'),ylabel('Normalized counts')
 
 % Add some stats to the plot
