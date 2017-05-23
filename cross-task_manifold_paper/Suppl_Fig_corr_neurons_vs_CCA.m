@@ -12,8 +12,9 @@ variab      = 'neuron'; % 'neuron' 'mode' 'emg'
 % do for all the trials
 target      = 'all_conc';
 % do one plot per session?
-plot_p_session = true;
-
+plot_p_session  = true;
+% sort neurons when plotting?
+sort_neurons    = false;
 
 % -------------------------------------------------------------------------
 % Do for all sessions
@@ -79,7 +80,6 @@ for s = 1:length(datasets)
         cr          = abs(calc_r( n1, n2 ));
 
         corr_n(:,p) = cr';
-    
     end
     
     
@@ -112,14 +112,22 @@ for s = 1:length(datasets)
         ylabel('Neural mode dynamics')
         
         subplot(122)
-        imagesc(sort(corr_n,1,'descend'))
+        if sort_neurons
+            imagesc(sort(corr_n,1,'descend'))
+        else
+            imagesc(corr_n)
+        end
         caxis([0 1]), colorbar
         set(gca,'TickDir','out','FontSize',14), box off,
         set(gca,'XTick',1:6), set(gca,'XTickLabel',lgnd), set(gca,'XTickLabelRotation',45)
         ylabel('Neural mode dynamics')
         
         % Plots with traces
-        cols_cc     = parula(size(cc_lv,2));
+        if size(cc_lv,2) > 1
+            cols_cc = parula(size(cc_lv,2));
+        else
+            cols_cc = [0 0 0];
+        end
         figure('units','normalized','outerposition',[0.2 0.2 0.6 0.6]);
         subplot(121), hold on
         for t = 1:size(cc_lv,2)
@@ -132,9 +140,13 @@ for s = 1:length(datasets)
         
         subplot(122), hold on
         for t = 1:size(cc_lv,2)
-            plot(sort(corr_n(:,t),1,'descend'),'color',cols_cc(t,:),'linewidth',1.5)
+            if sort_neurons
+                plot(sort(corr_n(:,t),1,'descend'),'color',cols_cc(t,:),'linewidth',1.5)
+            else
+                plot(corr_n(:,t),'color',cols_cc(t,:),'linewidth',1.5)
+            end
         end
-        ylim([0 1]), xlim([0 dims(end)])
+        ylim([0 1]), xlim([0 size(corr_n,1)])
         set(gca,'TickDir','out','FontSize',14), box off,
         legend(lgnd), legend boxoff
         ylabel('Correlation neural units'), xlabel('Neural unit')
@@ -168,16 +180,22 @@ sem_corr_n          = sd_corr_n/sqrt(numel(all_corrs_n));
 % Statistics canonical correlations
 cc_lv_mtrx          = cell2mat( cellfun( @(x) x.cc_lv, res, 'UniformOutput', false ) );
 
-% keep only the CCs that are significant ...
+% keep only the CCs that are significant (if the number of significant CCs
+% are available)
 if exist('proj_results','var')
     ccs_to_keep     = cell2mat( ...
                         arrayfun( @(x) x.nbr_canon_corrs_above_chance, ...
                         proj_results.summary_data.canon_corrs, ...
                         'UniformOutput', false ) );
                     
+    all_cc_lv       = [];
+    for c = 1:size(cc_lv_mtrx,2)
+        all_cc_lv   = [all_cc_lv, cc_lv_mtrx(1:ccs_to_keep(c),c)'];
+    end
+% or keep them all
+else    
+    all_cc_lv       = reshape(cc_lv_mtrx,[],1)'; 
 end
-
-all_cc_lv           = reshape(cc_lv_mtrx,[],1)';
 
 mn_cc_lv            = mean(all_cc_lv);
 sd_cc_lv            = std(all_cc_lv);
