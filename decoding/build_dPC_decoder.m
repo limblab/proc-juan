@@ -218,6 +218,9 @@ else
 end
 
 
+% 4. Add field with cutting bins to be able to look at single trials
+trial_bins          = cell2mat(cellfun(@(x) x(:,2)-x(:,1)+1,cut_b,'UniformOutput',false)');
+trial_bg            = [1; cumsum(trial_bins(1:end-1))+1];
 
 % -------------------------------------------------------------------------
 % -------------------------------------------------------------------------
@@ -228,3 +231,6 @@ dec_out = build_decoder( X_all, y_all, params );
 
 % add input field to params.
 dec_out.params.input = 'dPCs';
+if params.return_preds
+    dec_out.trial_beg = trial_bg;
+end
