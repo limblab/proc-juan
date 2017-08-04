@@ -62,7 +62,7 @@ end
 % 1.c. Add non-linearity, if specified
 if params.poly_order > 0 
     for b = 1:nbr_decs
-        for v = 1:size(y,2)
+        for v = 1:size(y{b},2)
             % compute the non-linearity
             Hnl{b}(:,v) = WienerNonlinearity(y_pred{b}(:,v),y_all_new{b}(:,v),...
                 params.poly_order);
