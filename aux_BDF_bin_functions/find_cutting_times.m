@@ -11,6 +11,9 @@
 %   ('word_i')      : ['ot_on'] data window start word ('start','ot_on','go') 
 %   ('word_f')      : ['R'] data window end word ('ot_on','go','end','R')
 %   ('bin_size')    : [0.02] bin size (ms)
+%   ('tgts_excl')   : coords of targets to exclude (cell array with coords
+%                       of each target specified as in the trial table).
+%                       Only for wrist tasks
 %
 %
 
@@ -22,7 +25,8 @@ function [cut_b, cut_t] = find_cutting_times( trial_table, varargin )
 params                  = struct('task',        'wf',...
                                 'word_i',       'ot_on',...
                                 'word_f',       'R',...
-                                'bin_size',     0.02);
+                                'bin_size',     0.02,...
+                                'tgts_excl',    []);
                     
 
 % read input parameters and replace default values where necessary
@@ -178,11 +182,44 @@ if params.word_f == 'R'
     % there's an error in our behavior, which sometimes makes the
     % trial_start time == -1
     if ~isempty(find(cut_t(:,1)==-1,1))
-       cut_t(cut_t(:,1)==-1,:) = [];
+        beh_err_trials  = find( cut_t(:,1)==-1 ); % later used to remove tgts
+        cut_t(cut_t(:,1)==-1,:) = [];
     end
     
     % turn cut times into bin number times
     cut_b               = zeros(size(cut_t));
     cut_b(:,1)          = ceil(cut_t(:,1)/params.bin_size);
     cut_b(:,2)          = floor(cut_t(:,2)/params.bin_size);
+end
+
+
+% 3. If specified, exclude targets -- only for wrist tasks
+if ~isempty(params.tgts_excl) && find(strcmp(params.task,{'wf','iso8','iso','wm','spr'}))
+   
+    % get target coords
+    tgt_coord           = trial_table(:,2:5);
+    
+    % delte non-succesful trials
+    tgt_coord(trial_table(:,col_R) ~= double('R'),:) = [];
+    
+    % there's an error in our behavior, which sometimes makes the
+    % trial_start time == -1
+    if exist('beh_err_trials','var')
+       tgt_coord(beh_err_trials,:) = []; %#ok<FNDSB>
+    end
+    
+    % see if the targets to exclude were present, and store trials
+    trials_excl         = [];
+    for e = 1:length(params.tgts_excl)
+        trials_excl     = [trials_excl; ...
+                            find( ismember(tgt_coord,params.tgts_excl{e},'rows') )];
+    end
+    
+    if ~isempty(trials_excl)
+        disp('Excluding trials based on target location'); 
+    end
+    
+    % delete these trials
+    cut_b(trials_excl,:) = [];
+    cut_t(trials_excl,:)  = [];
 end
