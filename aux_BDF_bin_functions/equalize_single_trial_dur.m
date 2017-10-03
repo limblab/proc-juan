@@ -182,7 +182,7 @@ end
 
 if sum(str_fields_emg) > 0
     % delete the field that is a struct
-    neural_names(str_fields_emg) = [];
+    emg_names(str_fields_emg) = [];
     emg_dim_red_names   = fieldnames(single_trial_data{1}.target{1}.emg_data.dim_red);
 end
 
@@ -446,8 +446,8 @@ for i = 1:nbr_bdfs
                 single_trial_data{i}.target{t}.bin_indx_p_trial = ...
                     single_trial_data{i}.target{t}.bin_indx_p_trial(indx_to_keep(i,:),:);
                 
-                single_trial_data{i}.target{t}.t = ...
-                    single_trial_data{i}.target{t}.t(indx_to_keep(i,:));
+%                 single_trial_data{i}.target{t}.t = ...
+%                     single_trial_data{i}.target{t}.t(indx_to_keep(i,:));
                 
                 % give warning that cutting force data is not yet
                 % implemented
