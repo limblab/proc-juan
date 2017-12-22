@@ -128,7 +128,7 @@ if plot_yn
         set(gca,'TickDir','out'),set(gca,'FontSize',14);
         xlabel('dimension'),ylabel(['min angle P < ' num2str(P_orth) ' btw ' ...
             num2str(plane_dim(p)) ' hyperplanes'])
-        xlim([0 plane_dim(p) + 1]),ylim([0 90])
+        xlim([0 plane_dim(p)]),ylim([0 90])
         aux_legend = cell(1,length(space_dim));
         for s = 1:length(space_dim)
             aux_legend{s} = ['n = ' num2str(space_dim(s))];
