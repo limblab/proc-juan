@@ -85,3 +85,49 @@ end
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Summary analyses
+
+% Position of the windows length to plot
+nbr_bins_plot = [1:4];
+
+colors = parula(length(nbr_bins_plot)+1);
+lgnd = '';
+for b = 1:length(nbr_bins_plot)
+    lgnd{b} = [num2str(nbr_bins(b)) ' bins'];
+end
+
+
+% -------------------------------------------------------------------------
+% Plot PAs with shortest and longest window
+figure, hold on
+for d = 1:length(all_PAs)
+    for c = 1:length(all_PAs{d}.task_pair) 
+        for b = 1:length(nbr_bins_plot)
+            plot(rad2deg(all_PAs{d}.task_pair{c}.data(:,nbr_bins_plot(b))),'color',colors(b,:)) 
+        end
+    end
+end
+set(gca,'TickDir','out','FontSize',14), box off
+legend(lgnd,'Location','NorthWest'),legend boxoff
+ylim([0 90])
+xlabel('Neural modes'),ylabel('Principal angle (deg)')
+
+
+% -------------------------------------------------------------------------
+% Plot ratio between PAs of each window and the shortest window
+
+norm_lgnd = lgnd(2:end);
+
+figure, hold on
+for d = 1:length(all_PAs)
+    for c = 1:length(all_PAs{d}.task_pair) 
+        for b = 2:length(nbr_bins_plot)
+            plot(all_PAs{d}.task_pair{c}.data(:,nbr_bins_plot(b))./...
+                all_PAs{d}.task_pair{c}.data(:,nbr_bins_plot(1)),'color',colors(b,:)) 
+        end
+    end
+end
+plot([0 mani_dims],[1 1],'-.k')
+set(gca,'TickDir','out','FontSize',14), box off
+legend(norm_lgnd,'Location','NorthWest'),legend boxoff
+ylim([0 2])
+xlabel('Neural modes'),ylabel('Normalized principal angle')
