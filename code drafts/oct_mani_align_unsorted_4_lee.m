@@ -28,6 +28,8 @@ mani_dims       = 1:10;
 n_bins          = 5;
 % N bins for decoder history
 hist_bins       = 3;
+% N folds for decoder cross-validation
+n_folds         = 6; % this gives blocks of 20 trials for chewie
 
 % Minimum FR per channel
 min_fr          = 0.1;
@@ -308,15 +310,39 @@ for c = 1:size(comb_sessions,1)
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Build the model on dataset 1
+
     [td1, mod_info] = getModel(td1,mod_params);
+
+%     % Test model fit without cross-validation
+%     % compute the R2 of the within day predictions for the first date
+%     Y1 = get_vars(td1,{dec_var,1:size(td1(1).(dec_var),2)});
+%     Y1hat = get_vars(td1,{'linmodel_default',1:size(td1(1).(dec_var),2)});
+% 
+%     R2 = compute_r2(Y1,Y1hat,'corr');
+%     withinR2(c,:) = R2;
+
+    % Do multi-fold cross-validation
+    % -- randomize trial order, because now they are sorted by target, and
+    % this may cause the models to perform worse because their limited
+    % ability for extrapolating across targets
+    td1 = td1(randperm(length(td1)));
+    trials_p_fold = floor(length(td1)/n_folds);
     
-    % compute the R2 of the within day predictions for the first date
-    Y1 = get_vars(td1,{dec_var,1:size(td1(1).(dec_var),2)});
-    Y1hat = get_vars(td1,{'linmodel_default',1:size(td1(1).(dec_var),2)});
-
-    R2 = compute_r2(Y1,Y1hat,'corr');
-    withinR2(c,:) = R2;
-
+    for f = 1:n_folds
+        trials_test = (f-1)*trials_p_fold+1 : f*trials_p_fold;
+        trials_train = setdiff(1:length(td1),trials_test);
+        td_test = td1(trials_test);
+        td_train = td1(trials_train);
+        
+        [~, mod_info_xval] = getModel(td_train,mod_params);
+        % [R2train(f,:), ~] = testModel(td_train,mod_info_xval);
+        
+        % compute the cross-validated R2
+        [R2xval(f,:), ~] = testModel(td_test,mod_info_xval);
+    end
+    % Save the mean
+    withinR2(c,:) = mean(R2xval,1);
+    
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Now test the model on the data from day 2
