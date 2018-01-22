@@ -83,8 +83,12 @@ for i = 1:meta_info.nbr_monkeys
         % get random principal angles for this space dimensionality
         angle_orth      = empir_angle_dist_all.angle_non_orth(:,...
                             empir_angle_dist_all.plane_dim == params.dim_manifold,...
-                            empir_angle_dist_all.space_dim ...
-                            == length(datasets{dtst}.neural_chs));
+                            empir_angle_dist_all.space_dim == length(datasets{dtst}.neural_chs));
+                        
+        % if empir_angle_dist_all contains empirical distributions for
+        % manifolds with different dimensionality, make sure you're only
+        % keeping as many principal angles as dimensions
+        angle_orth      = angle_orth(1:params.dim_manifold);
 
         % compute principal angles between all pairs of tasks in this
         % session
@@ -307,7 +311,7 @@ angle_results.summary_data = summary_data;
 % PLOTS
 
 
-% Canonical angles for all the tasks, marking the last dimension below
+% Principal angles for all the tasks, marking the last dimension below
 % chance
 colors                      = parula(nbr_pairs_tasks);
 
