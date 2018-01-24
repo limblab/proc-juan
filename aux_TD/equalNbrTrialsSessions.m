@@ -12,7 +12,8 @@ targets     = unique(cell2mat({trial_data.target_direction}));
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                
-% Find minimum number of trials and targets across all conditions
+% Find minimum number of trials and targets across all session x target
+% combinations
 
 
 % get the number of trials per target and session
@@ -27,7 +28,7 @@ end
 
 % find the minimum number of trials across all sessions and targets
 min_nbr_trials = min(min(trials_p_target));
-disp(['keeping the first ' num2str(min_nbr_trials) ' trials per target and session']);
+disp(['Keeping the first ' num2str(min_nbr_trials) ' trials per target and session']);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                
 % Create the new trial_data struct
