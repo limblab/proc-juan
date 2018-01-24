@@ -1,6 +1,9 @@
 %
 % Do CCA to compare time-varying signals across sessions, targets, etc
 %
+% This is a quick hack with many things to do: 
+%   1. Use standard TD functions whenever possible
+%   2. maybe more things?
 
 function cca_info = compDynamics( trial_data, signals, idx1, idx2, varargin )
 
