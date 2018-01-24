@@ -1,4 +1,0 @@
-
-%
-% Canonical correlation EMGs
-%
