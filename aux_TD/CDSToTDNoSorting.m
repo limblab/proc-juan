@@ -7,10 +7,13 @@
 %   - See why we can't do removeBadNeurons
 
 
+clear all;
+
+
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Definitions    
 
-monkey = 'mihili'; % 'mihili'; 'chewie' 
+monkey = 'chewie'; % 'mihili'; 'chewie' 
 
 
 % sessions we want to load
@@ -69,7 +72,7 @@ event_list = { ...
 td_params = struct( ...
     'event_list',{event_list}, ...
     'trial_results',{trial_results}, ... % which to include
-    'exclude_units',[255], ... % sort codes to exclude
+    'exclude_units',[], ... % sort codes to exclude -0: what remains after threshold crossings; 255: cross-channel noise
     'all_points',true ... % if you want continuous data
 );
 meta.arrays = {'M1','PMd'};
