@@ -21,7 +21,7 @@ else
     target          = 'all_conc'; % by default do all concatenated trials
 end
 
-if nargin == 5
+if nargin >= 5
     time_window     = varargin{3};
     if size(time_window) ~= [1, 2], error('time_window has wrong dimensions'); end
 else
