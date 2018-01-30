@@ -48,7 +48,7 @@ else
     disp('chopping single trials to the duration of the shortest ones')
 end
 if strcmp(mode,'time_win')
-    if nargin ~= 3, 
+    if nargin ~= 3
         error('Need to pass the time window for cutting, when mode == time'); 
     else
         time_window = varargin{2};
