@@ -11,6 +11,7 @@ function noise_floor = noise_floor_pca( single_trial_data, varargin )
 
 % nbr iterations for Machens' method to estimate noise variance in the data
 nbr_iter            = 1000;
+alpha               = 0.95;
 
 % -------------------------------------------------------------------------
 % do PCA on the task-related part of the trial only --this corresponds to
@@ -102,41 +103,57 @@ end
 noise_eigen_99      = prctile(eigenv_noise,99,2);
 
 
+
+% The cutoff is when the cumulative variance explained by the real
+% eigenvalues is greater than what can be proven to be not noise 
+scree_trial_avg = cumsum(dim_red_trial_rel_avg.eigen)/sum(dim_red_trial_rel_avg.eigen);
+% dims = find(scree_trial_avg./(alpha*(1-cumsum(noise_eigen_99))) > 1,1,'first');
+dims = find( scree_trial_avg ./ (alpha*(1-cumsum(noise_eigen_99))) > 1,1,'first');
+
+
+% -------------------------------------------------------------------------
+% Return variables
+
+noise_floor.dims = dims;
+noise_floor.scree_trial_avg = scree_trial_avg;
+noise_floor.noise_eigen_99 = noise_eigen_99;
+
+
+
 % -------------------------------------------------------------------------
 % plot both scree plots to compare
 
-
-% plot noise distribution
-figure,imagesc(1:nbr_chs,hist_x(1:end-1),hist_scree_noise),colormap('hot')
-set(gca,'TickDir','out'),set(gca,'FontSize',16);
-xlabel('number comps.'), ylabel('expl. noise var.')
-
-
-
-% plot scree plots neural data (different preprocessings) and noise
-figure
-hold on
-plot(cumsum(dim_red_trial_rel.eigen)/sum(dim_red_trial_rel.eigen),'linewidth',3,'marker','d','color','k')
-plot(cumsum(dim_red_trial_rel_avg.eigen)/sum(dim_red_trial_rel_avg.eigen),'linewidth',3,'marker','d','color','c')
-plot(mean_noise_var,'linewidth',3,'marker','d','color','r')
-plot(noise_var_99,'linewidth',3,'marker','d','color',[1 .6 0])
-legend('all individual trials','trial-averaged','mean noise var.','99-perc. noise var.',...
-    'Location','SouthEast'); legend boxoff;
-xlim([0 length(dim_red_trial_rel_avg.eigen)+1]),ylim([0 1])
-xlabel('number comps.'), ylabel('expl. var.')
-set(gca,'TickDir','out'),set(gca,'FontSize',16);
-
-
-% plot eigenvalue distribution
-figure
-hold on
-plot(dim_red_trial_rel.eigen,'linewidth',3,'marker','d','color','k')
-plot(dim_red_trial_rel_avg.eigen,'linewidth',3,'marker','d','color','c')
-plot(mean_noise_eign,'linewidth',3,'marker','d','color','r')
-plot(noise_eigen_99,'linewidth',3,'marker','d','color',[1 .6 0])
-legend('all individual trials','trial-averaged','mean noise var.','99-perc. noise var.',...
-    'Location','NorthEast'); legend boxoff;
-xlim([0 length(dim_red_trial_rel_avg.eigen)+1])
-xlabel('number comps.'), ylabel('variance')
-set(gca,'TickDir','out'),set(gca,'FontSize',16);
-
+% % plot noise distribution
+% figure,imagesc(1:nbr_chs,hist_x(1:end-1),hist_scree_noise),colormap('hot')
+% set(gca,'TickDir','out'),set(gca,'FontSize',16);
+% xlabel('Number components'), ylabel('Explained noise var.')
+% 
+% 
+% 
+% % plot scree plots neural data (different preprocessings) and noise
+% figure
+% hold on
+% plot(cumsum(dim_red_trial_rel.eigen)/sum(dim_red_trial_rel.eigen),'linewidth',3,'marker','d','color','k')
+% plot(cumsum(dim_red_trial_rel_avg.eigen)/sum(dim_red_trial_rel_avg.eigen),'linewidth',3,'marker','d','color','c')
+% plot(mean_noise_var,'linewidth',3,'marker','d','color','r')
+% plot(noise_var_99,'linewidth',3,'marker','d','color',[1 .6 0])
+% legend('all individual trials','trial-averaged','mean noise var.','99-perc. noise var.',...
+%     'Location','SouthEast'); legend boxoff;
+% xlim([0 length(dim_red_trial_rel_avg.eigen)+1]),ylim([0 1])
+% xlabel('Number components'), ylabel('Explained var.')
+% set(gca,'TickDir','out'),set(gca,'FontSize',16);
+% 
+% 
+% % plot eigenvalue distribution
+% figure
+% hold on
+% plot(dim_red_trial_rel.eigen,'linewidth',3,'marker','d','color','k')
+% plot(dim_red_trial_rel_avg.eigen,'linewidth',3,'marker','d','color','c')
+% plot(mean_noise_eign,'linewidth',3,'marker','d','color','r')
+% plot(noise_eigen_99,'linewidth',3,'marker','d','color',[1 .6 0])
+% legend('all individual trials','trial-averaged','mean noise var.','99-perc. noise var.',...
+%     'Location','NorthEast'); legend boxoff;
+% xlim([0 length(dim_red_trial_rel_avg.eigen)+1])
+% xlabel('Number components'), ylabel('variance')
+% set(gca,'TickDir','out'),set(gca,'FontSize',16);
+% 
