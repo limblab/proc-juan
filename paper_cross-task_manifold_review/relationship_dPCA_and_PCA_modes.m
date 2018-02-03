@@ -134,7 +134,8 @@ for ds = 1:length(dPCA_datasets) % with respect to dPCA_datasets (!!!)
     
     
     % ---------------------------------------------------------------------
-    % 2. Do CCA between the PCA and dPCA latent variables
+    % 2. Do CCA between the PCA and dPCA latent variables --this is for the
+    % PCA manifold that spans all tasks
     
     % prepare the dPCA latent variables
     lv_dpca = permute(dPCA_results{ds}.lat_vars_mn,[1 4 3 2]);
@@ -144,10 +145,50 @@ for ds = 1:length(dPCA_datasets) % with respect to dPCA_datasets (!!!)
     
     
     % ---------------------------------------------------------------------
-    % 3. Save the results of this comparison
+    % 3. Do CCA between the dPCA latent variables and the PCA latent
+    % variables for the manifold for each specific task
+    
+    % pre-allocate vars
+    tasks_this = length(datasets{dPCA_datasets(ds)}.labels);
+    CC_single_task = zeros(manifold_dim,tasks_this);
+    PA_trial_avg_and_single_task = zeros(manifold_dim,tasks_this);
+    
+    for t = 1:tasks_this
+        
+        % Prepare the spikes
+        fra = permute(firing_rates_avg,[1 4 3 2]);
+        fra = squeeze(fra(:,:,:,t));
+        fra = reshape(fra,size(fra,1),size(fra,2)*size(fra,3));
+        
+        % And do PCA
+        [w_pca_t, lv_pca_t, eig_t] = pca(fra');
+        
+        % Compare to the non-trial-averaged manifold
+        % -- this is more a sanity check than anything
+        PA_tavg_st = principal_angles( datasets{dPCA_datasets(ds)}.dim_red_FR{t}.w(:,1:manifold_dim), ...
+                        w_pca_t(:,1:manifold_dim));
+        
+        % Prepare the dPCA latent variables
+        lv_dpca = permute(dPCA_results{ds}.lat_vars_mn,[1 4 3 2]);
+        lv_dpca = squeeze(lv_dpca(:,:,:,t));
+        lv_dpca = reshape(lv_dpca,size(lv_dpca,1),size(lv_dpca,2)*size(lv_dpca,3));
+
+        % Compare the dPCA and PCA (for this task-specific manifold) latent
+        % variables
+        [~,~,CC_st,~,~] = canoncorr(lv_pca_t(:,1:manifold_dim),lv_dpca');
+        
+        % Save the results
+        CC_single_task(:,t) = CC_st';
+        PA_trial_avg_and_single_task(:,t) = PA_tavg_st;
+    end
+    
+    % ---------------------------------------------------------------------
+    % Save the results of this comparison
 
     dPCA_PCA_comp(ds).PA = PA_pca_dpca;
     dPCA_PCA_comp(ds).CC = CC'; 
+    dPCA_PCA_comp(ds).CC_single_task = CC_single_task;
+    dPCA_PCA_comp(ds).PA_trial_avg_and_single_task = PA_trial_avg_and_single_task;
 end
 
 
@@ -168,7 +209,7 @@ xlabel('Neural mode')
 title('Comparison between PCA and dPCA manifolds for all wrist tasks')
 
 
-% 2. CCs
+% 2. CCs of multi-task PCA manifold and dPCA manifold
 figure,hold on
 plot([dPCA_PCA_comp.CC],'color',[.6 .6 .6])
 plot(mean([dPCA_PCA_comp.CC],2),'color','k','linewidth',1.5)
@@ -179,3 +220,25 @@ xlim([0 manifold_dim]),ylim([0 1])
 ylabel('CC neural mode dynamics')
 xlabel('Neural mode')
 title('Comparison between PCA and dPCA manifolds for all wrist tasks')
+
+
+% % 3. Sanity check: PA single-trial and trial-average PCA manifolds
+% figure
+% plot(rad2deg([dPCA_PCA_comp.PA_trial_avg_and_single_task]),'color',[.6 .6 .6])
+% set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off,
+% xlim([0 manifold_dim]),ylim([0 90])
+% ylabel('Principal angles (deg)')
+% xlabel('Neural mode')
+% title('Comparison between single-trial and trial-averaged PCA manifolds')
+
+% 4. CCs of single-task PCA manifold and dPCA manifold
+figure,hold on
+plot([dPCA_PCA_comp.CC_single_task],'color',[.6 .6 .6])
+plot(mean([dPCA_PCA_comp.CC_single_task],2),'color','k','linewidth',1.5)
+plot(mean([dPCA_PCA_comp.CC_single_task],2)+std([dPCA_PCA_comp.CC_single_task],0,2),'-.k','linewidth',1.5)
+plot(mean([dPCA_PCA_comp.CC_single_task],2)-std([dPCA_PCA_comp.CC_single_task],0,2),'-.k','linewidth',1.5)
+set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off,
+xlim([0 manifold_dim]),ylim([0 1])
+ylabel('CC neural mode dynamics')
+xlabel('Neural mode')
+title('Comparison between task-specific PCA and dPCA manifolds')
