@@ -59,7 +59,7 @@ T                   = size(single_trial_data{1}.target{1}.neural_data.fr,1);
 % max number of repetitions
 max_trial_num       = 0;
 for i = 1:S
-    if max(cellfun(@(x) size(x.neural_data.fr,3), single_trial_data{1}.target )) > max_trial_num;
+    if max(cellfun(@(x) size(x.neural_data.fr,3), single_trial_data{1}.target )) > max_trial_num
         max_trial_num = max(cellfun(@(x) size(x.neural_data.fr,3), single_trial_data{1}.target ));
     end
 end
