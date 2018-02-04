@@ -126,6 +126,9 @@ for ds = 1:length(dPCA_datasets) % with respect to dPCA_datasets (!!!)
 
     % get the basis of the dPCA manifold
     W = dPCA_results{ds}.W;
+    
+    % Orthonormalize the basis
+    Worth = orth(W);
 
     per_task_var = zeros(S,manifold_dim);
     per_task_var_per_marg = zeros(S,length(dPCA_results{ds}.marg_names));
@@ -140,10 +143,14 @@ for ds = 1:length(dPCA_datasets) % with respect to dPCA_datasets (!!!)
         fr_this = permute(fr_this,[1 3 2]);
         conc_fr = reshape(fr_this, [size(fr_this,1), size(fr_this,2)*size(fr_this,3)]);
 
-        % Project the data onto the manifold dimenions
-        dPCA_modes_this = W'*conc_fr;
+        % Project the data onto the orthonormalized manifold dimenions
+        dPCA_modes_this = Worth'*conc_fr;
 
+        
+        % -----------------------------------------------------------------
+        % HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE
 
+        
         % Compute how much of the total variance the dPCA modes explain for
         % each task -- DOES THIS MAKE SENSE? 
         per_task_var(t,:) = var(dPCA_modes_this,0,2)/sum(var(conc_fr,0,2));
