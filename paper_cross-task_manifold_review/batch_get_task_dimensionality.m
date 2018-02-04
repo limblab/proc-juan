@@ -6,10 +6,12 @@
 %
 
 
-ds_to_use = [1:3 7:9];
+
+ds_to_use = [1:3 7:9]; % These are the wrist data sets
 
 
-% compute the dimensionality
+% -------------------------------------------------------------------------
+% Compute dimensionality
 
 ctr = 1;
 
@@ -27,6 +29,31 @@ for ds = 1:length(ds_to_use)
         
         ctr = ctr + 1;
     end
+end
+
+
+% -------------------------------------------------------------------------
+% UNELEGANT WAY TO DO IT FOR THE GRIP DATASETS AS WELL
+% Grip datasets
+
+% ds_grip = [4:6 10:11];
+% t_grip = [1 2 1 1 2];
+
+ds_grip = [4 6 10];
+t_grip = [1 1 1];
+
+
+for ds = 1:length(ds_grip)
+   
+    nfa = noise_floor_pca(datasets{ds_grip(ds)}.stdata{t_grip});
+        
+    % store dimensionality
+    dimensionality(ctr) = nfa.dims;
+    % and task and monkey
+    task(ctr).label = datasets{ds_grip(ds)}.labels{t_grip};
+    monkey(ctr).name = datasets{ds_grip(ds)}.monkey;
+    
+    ctr = ctr + 1;
 end
 
 
@@ -61,10 +88,10 @@ yl = ylim;
 text(1, yl(2)-.5, ['n = ' num2str(length(dimensionality))],'FontSize',14)
 
 
-% Dimensionality for all tasks combined
-figure
-bar(x_axis(1:end-1),sum(h_dim,1),'FaceColor',[.5 .5 .5])
-set(gca,'TickDir','out'),set(gca,'FontSize',14); box off
-ylabel('Counts'),xlabel('Estimated manifold dimensionality')
-yl = ylim;
-text(1, yl(2)-.5, ['n = ' num2str(length(dimensionality))],'FontSize',14)
+% % Dimensionality for all tasks combined
+% figure
+% bar(x_axis(1:end-1),sum(h_dim,1),'FaceColor',[.5 .5 .5])
+% set(gca,'TickDir','out'),set(gca,'FontSize',14); box off
+% ylabel('Counts'),xlabel('Estimated manifold dimensionality')
+% yl = ylim;
+% text(1, yl(2)-.5, ['n = ' num2str(length(dimensionality))],'FontSize',14)
