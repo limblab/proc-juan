@@ -11,9 +11,9 @@
 %
 % Outputs (opt):
 %   angles      : principal angles
+%   (U)         : matrix U when doing [U C V'] = svd(Qa'*Qb)
 %   (C)         : singular values of Qa'*Qb
-%   (U)         : matrix S when doing [U C V] = svd(Qa'*Qb)
-%   (V)         : matrix S when doing [U C V] = svd(Qa'*Qb)
+%   (V)         : matrix V when doing [U C V'] = svd(Qa'*Qb)
 %
 %
 % Syntax:
