@@ -7,12 +7,14 @@
 %
 
 
+clc;
+
 mani_dim = 12;
 ds_to_use = [1:3 7:9];
 
 
 add_noise = true; % add white noise with neuron-dependent variable 'gain'
-do_smoothing = true; % make the signals really smooth with a beautiful kernel
+do_smoothing = false; % make the signals really smooth with a beautiful kernel
 
 % to amplify the noise...
 noise_amplif = .1;
@@ -28,7 +30,8 @@ comp_plots = false;
 % Define vars to store main results
 all_model_CCs = [];
 all_real_CCs = [];
-all_screes = [];
+all_model_screes = [];
+all_real_screes = [];
 
 
 % -------------------------------------------------------------------------
@@ -163,10 +166,9 @@ for d = 1:length(ds_to_use)
         % -----------------------------------------------------------------
         % Store results
         
-        all_model_CCs = [all_model_CCs; CCs];
+        all_model_CCs = [all_model_CCs; CCs]; %#ok<*AGROW>
         all_real_CCs = [all_real_CCs; CCs_real];
-        all_screes = [all_screes; scree1; scree2];
-        
+        all_model_screes = [all_model_screes; scree1; scree2];
             
         % -----------------------------------------------------------------
         % Plots
@@ -188,7 +190,19 @@ for d = 1:length(ds_to_use)
             set(gca,'TickDir','out','FontSize',14), box off, xlim([0 mani_dim]),ylim([0 1])
             ylabel('Canonical correlation dynamics'), xlabel('Neural mode')
             legend('Model','Real','Location','NorthEast'), legend boxoff
-        end
+        end        
+    end
+    
+    % ---------------------------------------------------------------------
+    % Compute the scree plots for the real data, for comparison
+        
+    for t= 1:length(datasets{t_ds}.labels)
+        
+        % compute real scree
+        real_scree = cumsum(datasets{t_ds}.dim_red_FR{t}.eigen/sum(datasets{t_ds}.dim_red_FR{t}.eigen))';
+        real_scree = real_scree(1:max(mani_dim,20));
+        
+        all_real_screes = [all_real_screes; real_scree];
     end
 end
 
@@ -199,10 +213,13 @@ end
 % All scree plots --note that there are two times more than CCs because we
 % keep each simulated task's scree plot and we simulate the two to compare
 figure,hold on
-plot(100*all_screes','color','b');
-%plot(100*mean(all_screes,1),'k','linewidth',1.5)
+plot(100*all_model_screes(1,:)','color','k');
+plot(100*all_real_screes(1,:)','color',[.6 .6 .6]);
+plot(100*all_model_screes(2:end,:)','color','k');
+plot(100*all_real_screes(2:end,:)','color',[.6 .6 .6]);
 set(gca,'TickDir','out','FontSize',14), box off,xlim([0 20]),ylim([0 100])
 ylabel('Neural variance explained model (%)'),xlabel('Neural modes')
+legend('Model','Real','Location','SouthEast'), legend boxoff
             
 figure,hold on
 plot(all_model_CCs(1,:)','linewidth',1.5,'color','k')
@@ -212,3 +229,9 @@ plot(all_real_CCs(2:end,:)','linewidth',1.5,'color',[.6 .6 .6])
 set(gca,'TickDir','out','FontSize',14), box off, xlim([0 mani_dim]),ylim([0 1])
 ylabel('Canonical correlation dynamics'), xlabel('Neural mode')
 legend('Model','Real','Location','NorthEast'), legend boxoff
+
+
+% Statistical test to compare both distribution of CCs
+
+[~, p] = ttest2(reshape(all_real_CCs,1,[]),reshape(all_model_CCs,1,[]));
+disp(['Paired t-test between CC distributions for model and real data: ' num2str(p)]);
