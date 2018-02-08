@@ -18,8 +18,6 @@ jango_datasets = 4:6;
 jaco_tasks = 1:9;
 jango_tasks = 10:20;
 
-% Do per-session plots
-plots_p_session = true;
 
 
 % Do dPCA if the data aren't available in the WS
@@ -126,6 +124,7 @@ for ds = 1:length(dPCA_datasets) % with respect to dPCA_datasets (!!!)
 
     % get the basis of the dPCA manifold
     W = dPCA_results{ds}.W;
+    V = dPCA_results{ds}.V;
     
     % Orthonormalize the basis
     Worth = orth(W);
@@ -143,61 +142,33 @@ for ds = 1:length(dPCA_datasets) % with respect to dPCA_datasets (!!!)
         fr_this = permute(fr_this,[1 3 2]);
         conc_fr = reshape(fr_this, [size(fr_this,1), size(fr_this,2)*size(fr_this,3)]);
 
-        % Project the data onto the orthonormalized manifold dimenions
-        dPCA_modes_this = Worth'*conc_fr;
+%         % Project the data onto the orthonormalized manifold dimenions
+%         dPCA_modes_this = Worth'*conc_fr;
 
         
         % -----------------------------------------------------------------
-        % HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE
+        % Call Machens' dPCA explained variance function
 
+        explVar = dpca_explainedVariance(conc_fr, W, V );
         
         % Compute how much of the total variance the dPCA modes explain for
         % each task -- DOES THIS MAKE SENSE? 
-        per_task_var(t,:) = var(dPCA_modes_this,0,2)/sum(var(conc_fr,0,2));
+        per_task_var(t,:) = explVar.cumulativeDPCA;
 
         
         
-        % Add up the per task covariance per covariate (time, target, ...)
-        for c = 1:length(dPCA_results{ds}.marg_names)
-            per_task_var_per_marg(t,c) = sum( per_task_var(t,dPCA_results{ds}.which_marg==c) );
-        end
+%         % Add up the per task covariance per covariate (time, target, ...)
+%         for c = 1:length(dPCA_results{ds}.marg_names)
+%             per_task_var_per_marg(t,c) = sum( per_task_var(t,dPCA_results{ds}.which_marg==c) );
+%         end
     end
 
+    % ---------------------------------------------------------------------
+    % Store the results
+    
     dPCA_results{ds}.per_task_var = per_task_var;
-    dPCA_results{ds}.per_task_var_per_marg = per_task_var_per_marg;
+%     dPCA_results{ds}.per_task_var_per_marg = per_task_var_per_marg;
     
-    
-    if plots_p_session
-    
-    %     % Plot cumulative variance explained
-    %     figure,plot(cumsum(per_task_var')*100,'linewidth',2),ylim([0 100])
-    %     set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off
-    %     xlabel('dPCA neural modes'), ylabel('Cumulative neural variance explained (%)')
-    %     legend(datasets{dPCA_datasets(ds)}.labels,'Location','SouthEast'), legend boxoff
-
-
-    %     % Variance explained per dPCA mode for each task separately
-    %     figure,bar(per_task_var'*100,'grouped')
-    %     set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off
-    %     xlabel('dPCA neural modes'), ylabel('Neural variance explained (%)')
-    %     legend(datasets{dPCA_datasets(ds)}.labels,'Location','NorthEast'), legend boxoff
-
-
-        % Variance explained per dPCA mode for each task separately -- x-axis
-        % has the covariate name as label 
-        cov_names = {dPCA_results{ds}.marg_names{dPCA_results{ds}.which_marg}};
-        for d = 1:length(cov_names), if length(cov_names{d})>11,cov_names{d} = cov_names{d}(1:11); end; end
-
-        figure,bar(per_task_var'*100,'grouped')
-        set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off
-        xlabel('dPCA neural modes'), ylabel('Neural variance explained (%)')
-        set(gca,'XTickLabel',cov_names,'XTickLabelRotation',45)
-        legend(datasets{dPCA_datasets(ds)}.labels,'Location','NorthEast'), legend boxoff
-    end
-    
-    figure,bar(sum(per_task_var_per_marg,2)),
-    set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off, 
-    title([datasets{dPCA_datasets(ds)}.monkey ' - ' datasets{dPCA_datasets(ds)}.date])
 end
 
 
@@ -212,13 +183,13 @@ end
 % and sessions for each monkey separtely
 
 % get a matrix that has all the values
-sptvm = cell2mat(cellfun(@(x) sum(x.per_task_var,2), dPCA_results, 'UniformOutput', false )');
+sptvm = cell2mat(cellfun(@(x) x.per_task_var(:,end), dPCA_results, 'UniformOutput', false )');
 
 figure, hold on
-errorbar([1 2],100*[mean(sptvm(jaco_tasks)) mean(sptvm(jango_tasks))],100*[std(sptvm(jaco_tasks)) std(sptvm(jango_tasks))],...
+errorbar([1 2],[mean(sptvm(jaco_tasks)) mean(sptvm(jango_tasks))],[std(sptvm(jaco_tasks)) std(sptvm(jango_tasks))],...
     'linestyle','none','linewidth',2,'color','k')
-bar([1 2],100*[mean(sptvm(jaco_tasks)) mean(sptvm(jango_tasks))],'Facecolor',[.6 .6 .6],'linewidth',2)
-xlim([0 3]), ylim([0 120])
+bar([1 2],[mean(sptvm(jaco_tasks)) mean(sptvm(jango_tasks))],'Facecolor',[.6 .6 .6],'linewidth',2)
+xlim([0 3]), ylim([0 100])
 ylabel('Per-task neural variance expl. (%)')
 set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off,
 set(gca,'XTick',[1 2],'XTickLabel',{'C','J'})
