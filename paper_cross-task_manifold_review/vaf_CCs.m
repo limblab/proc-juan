@@ -248,7 +248,7 @@ plot(mean(all_vaf_CC,1)*100,'k','linewidth',2)
 plot(mean(all_vaf_CC,1)*100+std(all_vaf_CC,0,1)*100,'-.k','linewidth',2)
 plot(mean(all_vaf_CC,1)*100-std(all_vaf_CC,0,1)*100,'-.k','linewidth',2)
 set(gca,'TickDir','out','FontSize',14), box off
-ylabel('Variance accounted for')
+ylabel('Mean squared weights (VAF?)')
 xlabel('Neural mode')
 
 
@@ -273,7 +273,7 @@ xlabel('Neural mode')
 % WRIST TASKS AND REACH-TO-GRASP TASKS SEPARATELY
 
 
-% VAF of the CCs
+% % VAF of the CCs
 % figure, hold on
 % for c = 1:size(all_vaf_CC1,1)
 %     plot(all_vaf_CC1_wrist(c,:),'color',[.7 .7 .7])
