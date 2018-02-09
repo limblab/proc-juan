@@ -5,17 +5,17 @@
 
 % Some definitions
 
-mani_dim = 4; % based on the analysis of VAF
+mani_dim = 3; % based on the analysis of VAF
 
 % wrist_sessions = [7 8 9 1:3]; % DARNED IT THE DATA FOR JACO ARE CRAP!!!
-wrist_sessions = [7:9]% 1:3];
+wrist_sessions = [7:9 1:3];
 reach_sessions = [4:6 10:11];
 
 sessions = [wrist_sessions, reach_sessions];
 
 do_boots = true;
 % bootstrapping params
-boots_samples = 500000;
+boots_samples = 100000;
 sign_boots = 0.001;
 
 % -------------------------------------------------------------------------
@@ -26,7 +26,7 @@ sign_boots = 0.001;
 for d = 1:length(sessions)
     
     n_tasks = length(datasets{sessions(d)}.labels);
-
+    
     % Do PCA on the trial-related part of the data
     for t = 1:n_tasks
 
@@ -100,6 +100,7 @@ for d = 1:length(sessions)
    
     t_th = angle_non_orth(:,space_dim==length(datasets{sessions(d)}.chosen_emgs))';
 
+    % do not consider 
     
     % find largest non-orthogonal mode and store it
     for c = 1:size(PA{d},1)
