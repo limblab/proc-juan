@@ -5,7 +5,7 @@
 
 % Some definitions
 
-mani_dim = 3; % based on the analysis of VAF
+mani_dim = 4; % based on the analysis of VAF
 
 % wrist_sessions = [7 8 9 1:3]; % DARNED IT THE DATA FOR JACO ARE CRAP!!!
 wrist_sessions = [7:9 1:3];
@@ -106,6 +106,11 @@ for d = 1:length(sessions)
     for c = 1:size(PA{d},1)
         
         non_orth_mode = find(rad2deg(PA{d}(c,:)) > t_th, 1) -1;
+        % if it's empty it means all EMG manifold dimensions are
+        % well-aligned
+        if isempty(non_orth_mode)
+            non_orth_mode = mani_dim;
+        end
         
         largest_align_dim = [largest_align_dim, non_orth_mode];
     end
