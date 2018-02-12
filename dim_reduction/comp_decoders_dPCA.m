@@ -460,7 +460,7 @@ for d = 1:length(D)
     ylim([0 1]);xlim([0 nbr_subplots+1])
     ylabel('R^2 EMG Predictions')
     set(gca,'TickDir','out','FontSize',12)
-    set(gca,'XTick',1:5,'XTickLabel',{'task','target','dynamics','task x target','all dPCs'},...
+    set(gca,'XTick',1:5,'XTickLabel',{'task','target','dynamics','task/target','all dPCs'},...
         'XTickLabelRotation',45)
 end
 
@@ -502,7 +502,7 @@ for k = 1:numel(ds_p_monk)
     ylim([0 1]);xlim([0 s+1])
     ylabel('R^2 EMG Predictions')
     set(gca,'TickDir','out','FontSize',12)
-    set(gca,'XTick',1:5,'XTickLabel',{'task','target','dynamics','task x target','all dPCs'},'XTickLabelRotation',45)
+    set(gca,'XTick',1:5,'XTickLabel',{'task','target','dynamics','task/target','all dPCs'},'XTickLabelRotation',45)
     title(monk{k})
 end
  
@@ -540,7 +540,7 @@ end
 ylim([0 1]); xlim([0 nbr_subplots+1]); box off
 ylabel('R^2 EMG Predictions')
 set(gca,'TickDir','out','FontSize',12)
-set(gca,'XTick',1:nbr_subplots,'XTickLabel',{'task','target','dynamics','task x target','all dPCs'},'XTickLabelRotation',45)
+set(gca,'XTick',1:nbr_subplots,'XTickLabel',{'task','target','dynamics','task/target','all dPCs'},'XTickLabelRotation',45)
 
 
 
@@ -637,7 +637,7 @@ for d = 1:length(D)
     ylim([0 1]);xlim([0 num_subplots+1])
     ylabel('Norm. R^2 EMG Predictions')
     set(gca,'TickDir','out','FontSize',12)
-    set(gca,'XTick',1:num_subplots,'XTickLabel',{'task','target','dynamics','task x target'},...
+    set(gca,'XTick',1:num_subplots,'XTickLabel',{'task','target','dynamics','task/target'},...
         'XTickLabelRotation',45)
 end
 
@@ -667,7 +667,7 @@ for k = 1:numel(ds_p_monk)
     ylim([0 1]);xlim([0 num_subplots+1])
     ylabel('Norm. R^2 EMG Predictions')
     set(gca,'TickDir','out','FontSize',12)
-    set(gca,'XTick',1:num_subplots,'XTickLabel',{'task','target','dynamics','task x target'},'XTickLabelRotation',45)
+    set(gca,'XTick',1:num_subplots,'XTickLabel',{'task','target','dynamics','task/target'},'XTickLabelRotation',45)
     title(monk{k})
 end
  
@@ -694,7 +694,40 @@ end
 ylim([0 1]); xlim([0 num_subplots+1]); box off
 ylabel('Norm. R^2 EMG Predictions')
 set(gca,'TickDir','out','FontSize',12)
-set(gca,'XTick',1:num_subplots,'XTickLabel',{'task','target','dynamics','task x target'},'XTickLabelRotation',45)
+set(gca,'XTick',1:num_subplots,'XTickLabel',{'task','target','dynamics','task/target'},'XTickLabelRotation',45)
+
+
+
+%% -----------------------------------------------------------------------
+% ---------------------------------------------------------------
+% SAME AS PREVIOUS PLOT BUT ALSO INCLUDING PREDICTIONS FROM ALL 12 DPCS,
+% AND NOT NORMALIZED BUT "RAW" R^2
+
+
+figure, hold on
+for s = 1:num_subplots
+	% for the dPC marginalizations
+    if s <= 4
+        
+        if use_sem_yn, eb = sem_R2_marg_all(s); else eb = sd_R2_marg_all(s); end
+        % and plot
+        errorbar(s,mn_R2_marg_all(s), eb,...
+                'marker','none','color',marg_cols(s,:),...
+                'linewidth',1,'linestyle','none')
+        bar(s,mn_R2_marg_all(s),'FaceColor',marg_cols(s,:))
+    end
+end
+% Add results all the dPCs
+if use_sem_yn, eb = sem_R2_marg_all_all_dPCs; else eb = sd_R2_marg_all_all_dPCs; end
+errorbar(num_subplots+1,mn_R2_marg_all_all_dPCs,eb,...
+    'marker','none','color',col_all_dpcs,...
+	'linewidth',1,'linestyle','none')
+bar(num_subplots+1,mn_R2_marg_all_all_dPCs,'FaceColor',col_all_dpcs);
+ylim([0 1]); xlim([0 num_subplots+2]); box off
+ylabel('Norm. R^2 EMG Predictions')
+set(gca,'TickDir','out','FontSize',12)
+set(gca,'XTick',1:num_subplots+1,'XTickLabel',{'task','target','dynamics','task/target','all dPCs'},'XTickLabelRotation',45)
+
 
 
 
@@ -807,7 +840,7 @@ end
 %     end
 % end
 ylim([0 1]);xlim([0 .5])
-ylabel('R^2 EMG')
+ylabel('Norm. R^2 EMG')
 xlabel('Neural varance expl. (%)')
 set(gca,'TickDir','out','FontSize',12)
    
