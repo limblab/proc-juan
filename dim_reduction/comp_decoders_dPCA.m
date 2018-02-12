@@ -727,7 +727,7 @@ errorbar(num_subplots+1,mn_R2_marg_all_all_dPCs,eb,...
 	'linewidth',1,'linestyle','none')
 bar(num_subplots+1,mn_R2_marg_all_all_dPCs,'FaceColor',col_all_dpcs);
 ylim([0 1]); xlim([0 num_subplots+2]); box off
-ylabel('Norm. R^2 EMG Predictions')
+ylabel('R^2 EMG Predictions')
 set(gca,'TickDir','out','FontSize',12)
 set(gca,'XTick',1:num_subplots+1,'XTickLabel',{'task','target','dynamics','task/target','all dPCs'},'XTickLabelRotation',45)
 
