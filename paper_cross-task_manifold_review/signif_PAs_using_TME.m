@@ -102,12 +102,12 @@ for d = 1:length(ds_to_use)
         fr2 = zeros(n_bins,n_units,n_targets);
 
         for g = 1:length(stdata{t1}.target)-1
-            fr1(:,:,g) = stdata{t1}.target{g}.neural_data.dim_red.st_scores_mn;
+%             fr1(:,:,g) = stdata{t1}.target{g}.neural_data.dim_red.st_scores_mn;
+            fr1(:,:,g) = stdata{t1}.target{g}.neural_data.smoothed_fr_mn;
         end
-        % ... because the number of targets of the two tasks can be
-        % different ...
         for g = 1:length(stdata{t2}.target)-1
-            fr2(:,:,g) = stdata{t2}.target{g}.neural_data.dim_red.st_scores_mn;
+%             fr2(:,:,g) = stdata{t2}.target{g}.neural_data.dim_red.st_scores_mn;
+            fr2(:,:,g) = stdata{t2}.target{g}.neural_data.smoothed_fr_mn;
         end
 
 
@@ -227,6 +227,9 @@ lfit = polyfit(rad2deg(TME_th),our_shuffle_th,1);
 xfit4plot = [rad2deg(min(min(min(TME_th),min(our_shuffle_th))))-5 90];
 yfit4plot = polyval(lfit,xfit4plot);
 
+% compute correlation
+[r, Pr] = corr(reshape(rad2deg(TME_th),[],1),reshape(our_shuffle_th,[],1));
+
 hf = figure; hold on
 plot([0 90],[0 90],'color',[.6 .6 .6])
 plot(xfit4plot,yfit4plot,'k','linewidth',1.5)
@@ -234,6 +237,7 @@ plot(rad2deg(TME_th),our_shuffle_th,'.k','markersize',12)
 legend('perfectly equal','method match','Location','SouthEast'),legend boxoff
 set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off, set(hf, 'color', [1 1 1]);
 text(10,75,[num2str(lfit(2),3) '+' num2str(lfit(1),3) '·x'],'FontSize',14)
+text(10,65,['r=' num2str(r,3) '; P=' num2str(Pr,3)],'FontSize',14)
 xlabel('TME threshold'); ylabel('Our random sampling threshold')
 xlim([0 90]),ylim([0 90])
 
