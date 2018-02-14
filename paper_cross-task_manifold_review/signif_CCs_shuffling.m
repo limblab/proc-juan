@@ -4,6 +4,8 @@
 % 
 
 
+gcp;
+
 % Load data if it isn't in the workspace
 if ~exist('datasets','var')
     load('/Users/juangallego/Documents/NeuroPlast/Data/_Dimensionality reduction/all_manifold_datasets.mat');
@@ -11,11 +13,11 @@ end
 
 
 % Number of shuffles
-n_shuffles = 100;
-P_th = 0.001;
+n_shuffles = 2000;
+P_th = 0.01;
 
 % Plot for each comparison? 
-plot_per_comp_flg = false;
+plot_per_comp_flg = true;
 
 % Load params for CCA --- these are the same ones used in the original
 % submission of the paper
@@ -35,10 +37,10 @@ reach_ds = [4:6 10:11];
 
 
 % define matrices to store the results
-all_actual_CCs = [];
-signif_th = [];
-wrist_flg = [];
-session_nbr = [];
+signif_CC.all_actual_CCs = [];
+signif_CC.signif_th = [];
+signif_CC.wrist_flg = [];
+signif_CC.session_nbr = [];
 ctr = 1;
 
 
@@ -154,14 +156,14 @@ for ds = 1:length(datasets)
         % -----------------------------------------------------------------
         % Store results
         
-        all_actual_CCs = [all_actual_CCs; r];
+        signif_CC.all_actual_CCs = [signif_CC.all_actual_CCs; r];
         % Significance threshold
         t_signif_th = prctile(all_rshuff,(1-P_th)*100);
-        signif_th = [signif_th; t_signif_th]; %#ok<*AGROW>
-        all_shuff_CCs{ctr} = all_rshuff; %#ok<*SAGROW>
+        signif_CC.signif_th = [signif_CC.signif_th; t_signif_th]; %#ok<*AGROW>
+        signif_CC.all_shuff_CCs{ctr} = all_rshuff; %#ok<*SAGROW>
         if ismember(ds,wrist_ds), wyn = 1; else wyn = 0; end
-        wrist_flg = [wrist_flg; wyn];
-        session_nbr = [session_nbr; ds];
+        signif_CC.wrist_flg = [signif_CC.wrist_flg; wyn];
+        signif_CC.session_nbr = [signif_CC.session_nbr; ds];
         
         ctr = ctr + 1;
         
@@ -176,8 +178,8 @@ for ds = 1:length(datasets)
             ylim([0 1]),xlim([0 proj_params.dim_manifold]);
             set(gca,'TickDir','out','FontSize',14), box off
             xlabel('Neural mode'),ylabel('Canonical correlation')
-            legend('actual','surrogate','threshold')
-            pause; close
+            legend('actual','threshold','surrogates')
+            % pause; close
         end
     end
 end
@@ -190,7 +192,7 @@ end
 % Find number of modes for each task whose CC is above this significance
 % threshold
 
-cc_diff = all_actual_CCs-signif_th;
+cc_diff = signif_CC.all_actual_CCs-signif_CC.signif_th;
 
 for c = 1:size(cc_diff,1)
     
