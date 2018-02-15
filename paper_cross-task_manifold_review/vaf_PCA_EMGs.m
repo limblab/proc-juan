@@ -4,11 +4,12 @@
 %
 
 
-wrist_sessions = [7 8 9 1:3];
+sessions_to_use = [7 8 9 1:3]; % wrist: [7 8 9 1:3] % reach: [4:6 10:11]
 
-for s = 1:length(wrist_sessions)
+
+for s = 1:length(sessions_to_use)
     
-    d_pca_emg = wrist_sessions(s);
+    d_pca_emg = sessions_to_use(s);
 
     n_tasks = length(datasets{d_pca_emg}.labels);
     vaf_emg = zeros(n_tasks,length(datasets{d_pca_emg}.chosen_emgs)); % preallocate PCA VAF matrix
@@ -45,8 +46,8 @@ end
 % -------------------------------------------------------------------------
 % Plot VAF for all tasks from one session
 ex_session = 2;
-n_tasks = length(datasets{wrist_sessions(ex_session)}.labels);
-n_emgs = length(datasets{wrist_sessions(ex_session)}.chosen_emgs);
+n_tasks = length(datasets{sessions_to_use(ex_session)}.labels);
+n_emgs = length(datasets{sessions_to_use(ex_session)}.chosen_emgs);
 cols = [.4 .6 .5; .7 .1 .1; .5 .65 .9; 1 .6 .3];
 
 figure,
@@ -57,7 +58,7 @@ for t = 1:n_tasks
     xlabel('EMG modes'), xlim([0 n_emgs+1])
     set(gca,'TickDir','out','FontSize',14), box off
     if t == 1, ylabel('EMG variance expl. (%)'); end
-    title(datasets{wrist_sessions(ex_session)}.labels{t},'Fontsize',14)
+    title(datasets{sessions_to_use(ex_session)}.labels{t},'Fontsize',14)
 end
 
 
@@ -70,7 +71,7 @@ x_hist = 1:10;
 
 n_dims_perc_var = [];
 
-for s = 1:length(wrist_sessions)
+for s = 1:length(sessions_to_use)
     for t = 1:size(pca_emg{s},1)
        n_dims_perc_var = [n_dims_perc_var, find(cumsum(pca_emg{s}(t,:))>perc_var/100,1)]; 
     end
@@ -90,7 +91,7 @@ plot([mean(n_dims_perc_var)-std(n_dims_perc_var), mean(n_dims_perc_var)+std(n_di
 
 % % Plot VAF for all the tasks on top of each other
 % figure, hold on
-% for s = 1:length(wrist_sessions)
+% for s = 1:length(sessions_to_use)
 %    
 %     for t = 1:size(pca_emg{s},1) % color code by monkey
 %         if s<=3
