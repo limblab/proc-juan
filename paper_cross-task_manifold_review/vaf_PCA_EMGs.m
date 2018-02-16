@@ -4,7 +4,7 @@
 %
 
 
-sessions_to_use = [7 8 9 1:3]; % wrist: [7 8 9 1:3] % reach: [4:6 10:11]
+sessions_to_use = [4:6 10:11]; % wrist: [7 8 9 1:3] % reach: [4:6 10:11]
 
 
 for s = 1:length(sessions_to_use)
@@ -83,7 +83,7 @@ figure,bar(x_hist(1:end-1),hist_n_dims/sum(hist_n_dims)*100,'FaceColor',[.6 .6 .
 set(gca,'TickDir','out','FontSize',14), box off
 xlabel(['Nbr. EMG modes explain >' num2str(perc_var) ' % variance'])
 ylabel('Percentage (%)')
-text(x_hist(end)-2,yhistplot+10,['n=' num2str(sum(n_dims_perc_var))],'FontSize',16)
+text(x_hist(end)-2,yhistplot+10,['n=' num2str(numel(n_dims_perc_var))],'FontSize',16)
 ylim([0 yhistplot+20])
 hold on, plot(mean(n_dims_perc_var),yhistplot+10,'.','markersize',24,'color',[.6 .6 .6])
 plot([mean(n_dims_perc_var)-std(n_dims_perc_var), mean(n_dims_perc_var)+std(n_dims_perc_var)],...
