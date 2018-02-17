@@ -100,52 +100,92 @@ for ds = 1:length(datasets)
         [A,B,r,U,V] = canoncorr(ssc1,ssc2);
 
 
+        
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         % VARIANCE ACCOUNTED FOR BY THE CCS
-
-        % I'm still trying to figure this one out, but I got something from
-        % the Statistica website: From:
-        % http://www.statsoft.com/Textbook/Canonical-Analysis, which seems
-        % to match another two sebsites:
-        % http://core.ecu.edu/psyc/wuenschk/MV/Canonical/Canonical.docx and
-        % http://sunsite.univie.ac.at/textbooks/statistics/stcanan.html 
+        % 
+        % This method deals with the CCA axes not being orthogonal, and is
+        % largely based on Machens' method to compute the VAF of each dPC,
+        % adapted by Sara
         
-        % It seems that the average of the square loadings gives you an
-        % estimate of VAF, although I'm not sure I got their funky
-        % nomenclature right
-
-        vaf1 = mean(A.^2,1);
-        vaf2 = mean(B.^2,1);
-     
-        % VAF PCs -- how much variance each CCA input signal accounts for
-        % in the manifold
-        vaf_PCs1 = var(ssc1)/sum(var(ssc1));
-        vaf_PCs2 = var(ssc1)/sum(var(ssc2));
-
-% ------- NOT SURE IF THIS IS RIGHT ------- ------- ------- ------- -------
-        % Combine the statistica method, but weighing it by the VAF of the
-        % input signals
-        vaf_CCs1 = mean( repmat(vaf_PCs1,proj_params.dim_manifold,1) .* A.^2, 1 );
-        vaf_CCs2 = mean( repmat(vaf_PCs2,proj_params.dim_manifold,1) .* B.^2, 1 );
-% ------- NOT SURE IF THIS IS RIGHT ------- ------- ------- ------- ------- 
-
-
-% ------- NOT SURE IF THIS IS RIGHT ------- ------- ------- ------- ------- 
-%         % compute percentage of variance explained
-%         vaf1 = vaf1/sum(vaf1);
-%         vaf2 = vaf2/sum(vaf2);
-% ------- NOT SURE IF THIS IS RIGHT ------- ------- ------- ------- ------- 
-
-
-% ------- NOT SURE IF THIS IS RIGHT ------- ------- ------- ------- ------- 
-        % but this is relative to the scores, but not all the scores reflect the
-        % same VAF in the neural data... multiply them both?
-%         vaf_CCs1 = (vaf1.*vaf_manifold1')/sum(vaf1.*vaf_manifold1');
-%         vaf_CCs2 = (vaf2.*vaf_manifold2')/sum(vaf2.*vaf_manifold2');
-% ------- NOT SURE IF THIS IS RIGHT ------- ------- ------- ------- ------- 
+        % PCA weights
+        w_pca1 = stdata{comb_tasks(c,1)}.target{end}.neural_data.dim_red.w(:,1:proj_params.dim_manifold);
+        w_pca2 = stdata{comb_tasks(c,2)}.target{end}.neural_data.dim_red.w(:,1:proj_params.dim_manifold);
         
         
+        % get matrices Wi that go from neural space to the CCA axes
+        % (passing by the PCA axes that define the manifold)
+        W1 = w_pca1*A;
+        W2 = w_pca2*B;
+        
+        
+        % now compute the matrices V that define the expansion from the PCA
+        % axes back onto neural space
+        V1 = W1*(A'*A);
+        V2 = W2*(B'*B);
+        
+        
+        % get firing rates into dPCA format % firing_rates_average: Neurons
+        % x Targets x Time
+        
+        n_units = length(stdata{comb_tasks(c,1)}.target{1}.neural_data.neural_chs);
+        n_targets = length(stdata{comb_tasks(c,1)}.target)-1;
+        n_bins = length(stdata{comb_tasks(c,1)}.target{1}.t);
+        
+        fr_avg1 = zeros(n_units,n_targets,n_bins);
+        fr_avg2 = zeros(n_units,n_targets,n_bins);
+        
+        for t = 1:length(stdata{comb_tasks(c,1)}.target)-1
+
+            fr_t1 = stdata{comb_tasks(c,1)}.target{t}.neural_data.smoothed_fr_mn;
+            fr_t2 = stdata{comb_tasks(c,2)}.target{t}.neural_data.smoothed_fr_mn;
+            
+            fr_t1 = permute(fr_t1,[2 1]);
+            fr_t2 = permute(fr_t2,[2 1]);
+            
+            fr_avg1(:,t,:) = fr_t1;
+            fr_avg2(:,t,:) = fr_t2;
+        end
+        
+        % -----------------------------------------------------------------
+        % Call Machens' dPCA explained variance function
+
+        vaf_CC1 = dpca_explainedVariance(fr_avg1, W1, V1 );
+        vaf_CC2 = dpca_explainedVariance(fr_avg2, W2, V2 );
+        
+        vaf_CC1.cumulativeDPCA
+        
+%         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+%         % VARIANCE ACCOUNTED FOR BY THE CCS -- OLD METHOD THAT IS
+%         PROBABLY NOT COMPLETELY RIGHT
+% 
+%         % I'm still trying to figure this one out, but I got something from
+%         % the Statistica website: From:
+%         % http://www.statsoft.com/Textbook/Canonical-Analysis, which seems
+%         % to match another two sebsites:
+%         % http://core.ecu.edu/psyc/wuenschk/MV/Canonical/Canonical.docx and
+%         % http://sunsite.univie.ac.at/textbooks/statistics/stcanan.html 
+%         
+%         % It seems that the average of the square loadings gives you an
+%         % estimate of VAF, although I'm not sure I got their funky
+%         % nomenclature right
+% 
+%         vaf1 = mean(A.^2,1);
+%         vaf2 = mean(B.^2,1);
+%      
+%         % VAF PCs -- how much variance each CCA input signal accounts for
+%         % in the manifold
+%         vaf_PCs1 = var(ssc1)/sum(var(ssc1));
+%         vaf_PCs2 = var(ssc1)/sum(var(ssc2));
+% 
+% % ------- NOT SURE IF THIS IS RIGHT ------- ------- ------- ------- -------
+%         % Combine the statistica method, but weighing it by the VAF of the
+%         % input signals
+%         vaf_CCs1 = mean( repmat(vaf_PCs1,proj_params.dim_manifold,1) .* A.^2, 1 );
+%         vaf_CCs2 = mean( repmat(vaf_PCs2,proj_params.dim_manifold,1) .* B.^2, 1 );
+% % ------- NOT SURE IF THIS IS RIGHT ------- ------- ------- ------- ------- 
         
         
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
