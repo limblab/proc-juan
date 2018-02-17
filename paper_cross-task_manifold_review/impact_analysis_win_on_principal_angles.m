@@ -12,8 +12,8 @@
 
 % Parameters
 mani_dims = 12;
-nbr_bins = [20 25 30 35]; % take the first N bins
-ds = [1:3 7:9]; % What datasets; WRIST: ds = [1:3 7:9]; REACH-TO-GRASP: [4:6 10:11]
+nbr_bins = [20 40 50]; % take the first N bins
+ds = [4:6 10:11]; % What datasets; WRIST: ds = [1:3 7:9]; REACH-TO-GRASP: [4:6 10:11]
 
 % load for the cross-task manifold paper
 if ~exist('datasets','var')
@@ -87,7 +87,7 @@ end
 % Summary analyses
 
 % Position of the windows length to plot
-nbr_bins_plot = [1:4];
+nbr_bins_plot = [1:3];
 
 colors = parula(length(nbr_bins_plot)+1);
 lgnd = '';
