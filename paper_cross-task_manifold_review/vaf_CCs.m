@@ -195,11 +195,9 @@ all_vaf_CC = [all_vaf_CC1; all_vaf_CC2];
 % define vars
 all_vaf_CC1_wrist = [];
 all_vaf_CC2_wrist = [];
-all_vaf_CC_wrist = [];
 
 all_vaf_CC1_reach = [];
 all_vaf_CC2_reach = [];
-all_vaf_CC_reach = [];
 
 
 for d = 1:length(wrist_ds)
@@ -245,12 +243,33 @@ errorbar(1:proj_params.dim_manifold,mean(all_vaf_CC_wrist,1),std(all_vaf_CC_wris
 errorbar(1:proj_params.dim_manifold,mean(all_vaf_CC_reach,1),std(all_vaf_CC_reach,0,1),...
     'linestyle','none','linewidth',2,'color','r','marker','.','markersize',32)
 set(gca,'TickDir','out','FontSize',14), box off
-ylabel('Normalized variance accounted for (%)')
-xlabel('Neural mode')
+ylabel('Neural variance explained (%)'), ylim([0 100])
+xlabel('Neural mode after CCA')
 legend('wrist','reach-to-grasp','Location','SouthEast'), legend boxoff
     
 
 
 % -------------------------------------------------------------------------
-% WRIST TASKS AND REACH-TO-GRASP TASKS SEPARATELY
+% ALL TASKS TOGETHER
 
+% all traces and errorbars with mean +/- SD
+figure, hold on 
+plot(all_vaf_CC','color',[.7 .7 .7])
+errorbar(1:proj_params.dim_manifold,mean(all_vaf_CC,1),std(all_vaf_CC_wrist,0,1),...
+    'linestyle','none','linewidth',2,'color','k','marker','.','markersize',32)
+set(gca,'TickDir','out','FontSize',14), box off
+ylim([0 100])
+ylabel('Neural variance explained (%)')
+xlabel('Neural mode after CCA')
+
+% Mean and color surface with SD over the mean
+x_ax = 1:size(all_vaf_CC,2);
+m_sd_vaf = [std(all_vaf_CC_wrist,0,1)+mean(all_vaf_CC,1); -std(all_vaf_CC_wrist,0,1)+mean(all_vaf_CC,1)];
+
+figure, hold on
+patch([x_ax, fliplr(x_ax)],[m_sd_vaf(1,:),fliplr(m_sd_vaf(2,:))],[.6 .6 .6],'FaceAlpha',0.3,'EdgeAlpha',0.3,'EdgeColor',[.6 .6 .6])
+plot(mean(all_vaf_CC,1),'k','linewidth',1.5)
+set(gca,'TickDir','out','FontSize',14), box off
+ylabel('Neural variance explained (%)')
+xlabel('Neural mode after CCA')
+ylim([0 100])
