@@ -8,7 +8,7 @@ rng('shuffle', 'twister') % randomize the seed
 
 % TME parameters
 surrogate_type = 'surrogate-TC';
-n_surrogates = 100;
+n_surrogates = 2000;
 
 % Datasets to use?
 ds_to_use = 1:11;
@@ -214,11 +214,8 @@ end
 
 
 % -------------------------------------------------------------------------
-%% SUMMARY PLOTS
+%% COMPARISON OF OUR SHUFFLING CONTROL AND THE TME CONTROL
 
-
-% plot specific sessions --won't do anything if empty
-sessions2plot = [8, 11];
 
 
 % Compare TME and our shuffled threshold Scatter plot 
@@ -242,6 +239,15 @@ xlabel('TME threshold'); ylabel('Our random sampling threshold')
 xlim([0 90]),ylim([0 90])
 
 
+
+
+% -------------------------------------------------------------------------
+%% 	PAPER PLOTS (FIGURE 3)
+
+
+% plot specific sessions --won't do anything if empty
+sessions2plot = [8, 11];
+
 % Plot specific sessions --actual PAs, our shuffled PA and the surrogate PAs 
 
 if ~isempty(sessions2plot)
@@ -263,5 +269,10 @@ if ~isempty(sessions2plot)
         set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off, set(hf, 'color', [1 1 1]);
         xlim([0 proj_params.dim_manifold]), ylim([0 90])
         xlabel('Neural mode'),ylabel('Principal angle (deg)')
+        hf.Renderer = 'Painters';
     end
 end
+
+
+
+
