@@ -65,6 +65,9 @@ for ds = 1:length(ds_to_use)
     vaf_CCA{ds}.vaf_CC1 = zeros(size(comb_tasks,1),proj_params.dim_manifold); %#ok<*SAGROW>
     vaf_CCA{ds}.vaf_CC2 = zeros(size(comb_tasks,1),proj_params.dim_manifold);
     
+    vaf_CCA{ds}.cum_vaf_CC1 = zeros(size(comb_tasks,1),proj_params.dim_manifold); %#ok<*SAGROW>
+    vaf_CCA{ds}.cum_vaf_CC2 = zeros(size(comb_tasks,1),proj_params.dim_manifold);
+    
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Do for each task comparison
@@ -155,18 +158,23 @@ for ds = 1:length(ds_to_use)
         % -----------------------------------------------------------------
         % Call Machens' dPCA explained variance function
 
-        vaf_CC1 = dpca_explainedVariance(fr_avg1, W1, V1 );
-        vaf_CC2 = dpca_explainedVariance(fr_avg2, W2, V2 );
+        expl_var_CC1 = dpca_explainedVariance(fr_avg1, W1, V1 );
+        expl_var_CC2 = dpca_explainedVariance(fr_avg2, W2, V2 );
         
-        vaf1 = vaf_CC1.cumulativeDPCA;
-        vaf2 = vaf_CC2.cumulativeDPCA;
+        cum_vaf1 = expl_var_CC1.cumulativeDPCA;
+        cum_vaf2 = expl_var_CC2.cumulativeDPCA;
         
+        vaf1 = [cum_vaf1(1) diff(cum_vaf1)];
+        vaf2 = [cum_vaf2(1) diff(cum_vaf2)];
         
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Store the results
         
         vaf_CCA{ds}.vaf_CC1(c,:) = vaf1;
-        vaf_CCA{ds}.vaf_CC2(c,:) = vaf2;    
+        vaf_CCA{ds}.vaf_CC2(c,:) = vaf2;
+        
+        vaf_CCA{ds}.cum_vaf_CC1(c,:) = cum_vaf1;
+        vaf_CCA{ds}.cum_vaf_CC2(c,:) = cum_vaf2;
     end    
 end
 
@@ -185,8 +193,13 @@ end
 all_vaf_CC1 = cell2mat( cellfun(@(x) x.vaf_CC1, vaf_CCA, 'UniformOutput',false)' );
 all_vaf_CC2 = cell2mat( cellfun(@(x) x.vaf_CC2, vaf_CCA, 'UniformOutput',false)' );
 
+all_cum_vaf_CC1 = cell2mat( cellfun(@(x) x.cum_vaf_CC1, vaf_CCA, 'UniformOutput',false)' );
+all_cum_vaf_CC2 = cell2mat( cellfun(@(x) x.cum_vaf_CC2, vaf_CCA, 'UniformOutput',false)' );
+
+
 % pool all comparisons together
 all_vaf_CC = [all_vaf_CC1; all_vaf_CC2];
+all_cum_vaf_CC = [all_cum_vaf_CC1; all_cum_vaf_CC2];
 
 
 % -------------------------------------------------------------------------
@@ -199,11 +212,20 @@ all_vaf_CC2_wrist = [];
 all_vaf_CC1_reach = [];
 all_vaf_CC2_reach = [];
 
+all_cum_vaf_CC1_wrist = [];
+all_cum_vaf_CC2_wrist = [];
+
+all_cum_vaf_CC1_reach = [];
+all_cum_vaf_CC2_reach = [];
+
 
 for d = 1:length(wrist_ds)
     
     all_vaf_CC1_wrist = [all_vaf_CC1_wrist; vaf_CCA{wrist_ds(d)}.vaf_CC1]; %#ok<*AGROW>
     all_vaf_CC2_wrist = [all_vaf_CC2_wrist; vaf_CCA{wrist_ds(d)}.vaf_CC2];
+
+    all_cum_vaf_CC1_wrist = [all_cum_vaf_CC1_wrist; vaf_CCA{wrist_ds(d)}.cum_vaf_CC1]; %#ok<*AGROW>
+    all_cum_vaf_CC2_wrist = [all_cum_vaf_CC2_wrist; vaf_CCA{wrist_ds(d)}.cum_vaf_CC2];
 end
 
 
@@ -211,6 +233,9 @@ for d = 1:length(reach_ds)
     
     all_vaf_CC1_reach = [all_vaf_CC1_reach; vaf_CCA{reach_ds(d)}.vaf_CC1];
     all_vaf_CC2_reach = [all_vaf_CC2_reach; vaf_CCA{reach_ds(d)}.vaf_CC2];
+    
+    all_cum_vaf_CC1_reach = [all_cum_vaf_CC1_reach; vaf_CCA{reach_ds(d)}.cum_vaf_CC1];
+    all_cum_vaf_CC2_reach = [all_cum_vaf_CC2_reach; vaf_CCA{reach_ds(d)}.cum_vaf_CC2];
 end
 
 
@@ -218,14 +243,24 @@ end
 all_vaf_CC_wrist = [all_vaf_CC1_wrist; all_vaf_CC2_wrist];
 all_vaf_CC_reach = [all_vaf_CC1_reach; all_vaf_CC2_reach];
 
+all_cum_vaf_CC_wrist = [all_cum_vaf_CC1_wrist; all_cum_vaf_CC2_wrist];
+all_cum_vaf_CC_reach = [all_cum_vaf_CC1_reach; all_cum_vaf_CC2_reach];
+
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PLOT
+% PLOT VARIANCE EXPLAINED
 
 
 % -------------------------------------------------------------------------
 % WRIST TASKS AND REACH-TO-GRASP TASKS SEPARATELY
+
+
+% some stats
+mn_wrist = mean(all_vaf_CC_wrist,1);
+sd_wrist = std(all_vaf_CC_wrist,0,1);
+mn_reach = mean(all_vaf_CC_reach,1);
+sd_reach = std(all_vaf_CC_reach,0,1);
 
 
 % VAF in neural space
@@ -238,13 +273,98 @@ end
 for c = 2:size(all_vaf_CC_reach,1)
     plot(all_vaf_CC_reach(c,:),'color',[1 .7 .3])
 end
-errorbar(1:proj_params.dim_manifold,mean(all_vaf_CC_wrist,1),std(all_vaf_CC_wrist,0,1),...
-    'linestyle','none','linewidth',2,'color','k','marker','.','markersize',32)
-errorbar(1:proj_params.dim_manifold,mean(all_vaf_CC_reach,1),std(all_vaf_CC_reach,0,1),...
-    'linestyle','none','linewidth',2,'color','r','marker','.','markersize',32)
+% errorbar(1:proj_params.dim_manifold,mn_wrist,sd_wrist,...
+%     'linestyle','none','linewidth',2,'color','k','marker','.','markersize',32)
+% errorbar(1:proj_params.dim_manifold,mn_reach,sd_reach,...
+%     'linestyle','none','linewidth',2,'color','r','marker','.','markersize',32)
+plot(mn_reach,'color','r','linewidth',2)
+plot(mn_reach+sd_reach,'-.r','linewidth',2)
+plot(mn_reach-sd_reach,'-.r','linewidth',2)
+plot(mn_wrist,'color','k','linewidth',2)
+plot(mn_wrist+sd_wrist,'-.k','linewidth',2)
+plot(mn_wrist-sd_wrist,'-.k','linewidth',2)
 set(gca,'TickDir','out','FontSize',14), box off
-ylabel('Neural variance explained (%)'), ylim([0 100])
-xlabel('Neural mode after CCA')
+ylabel('Neural variance expl. (%)')
+xlabel('CCA-projected neural modes')
+legend('wrist','reach-to-grasp','Location','NorthEast'), legend boxoff
+    
+
+
+% -------------------------------------------------------------------------
+% ALL TASKS TOGETHER
+
+
+mn_all = mean(all_vaf_CC,1);
+sd_all = std(all_vaf_CC,0,1);
+
+
+% V1 - all traces and errorbars with mean +/- SD
+
+figure, hold on 
+plot(all_vaf_CC','color',[.7 .7 .7])
+% errorbar(1:proj_params.dim_manifold,mn_all,sd_all,...
+%     'linestyle','none','linewidth',2,'color','k','marker','.','markersize',32)
+plot(mn_all,'color','k','linewidth',2)
+plot(mn_all+sd_all,'-.k','linewidth',2)
+plot(mn_all-sd_all,'-.k','linewidth',2)
+set(gca,'TickDir','out','FontSize',14), box off
+ylabel('Neural variance expl. (%)'), 
+xlabel('CCA-projected neural modes')
+
+
+% V2 - Mean and color surface with SD over the mean
+
+x_ax = 1:size(all_vaf_CC,2);
+m_sd_vaf = [sd_all+mn_all; -sd_all+mn_all];
+
+figure, hold on
+patch([x_ax, fliplr(x_ax)],[m_sd_vaf(1,:),fliplr(m_sd_vaf(2,:))],[.6 .6 .6],'FaceAlpha',0.3,'EdgeAlpha',0.3,'EdgeColor',[.6 .6 .6])
+plot(mn_all,'k','linewidth',1.5)
+set(gca,'TickDir','out','FontSize',14), box off
+ylabel('Neural variance expl. (%)'), 
+xlabel('CCA-projected neural modes')
+
+
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PLOT CUMULATIVE VARIANCE EXPLAINED
+
+
+% -------------------------------------------------------------------------
+% WRIST TASKS AND REACH-TO-GRASP TASKS SEPARATELY
+
+
+% some stats
+mn_cum_wrist = mean(all_cum_vaf_CC_wrist,1);
+sd_cum_wrist = std(all_cum_vaf_CC_wrist,0,1);
+mn_cum_reach = mean(all_cum_vaf_CC_reach,1);
+sd_cum_reach = std(all_cum_vaf_CC_reach,0,1);
+
+
+% VAF in neural space
+figure, hold on
+plot(all_cum_vaf_CC1_wrist(1,:),'color',[.7 .7 .7])
+plot(all_cum_vaf_CC1_reach(1,:),'color',[1 .7 .3])
+for c = 2:size(all_cum_vaf_CC1_wrist,1)
+    plot(all_cum_vaf_CC2_wrist(c,:),'color',[.7 .7 .7])
+end
+for c = 2:size(all_cum_vaf_CC_reach,1)
+    plot(all_cum_vaf_CC_reach(c,:),'color',[1 .7 .3])
+end
+% errorbar(1:proj_params.dim_manifold,mn_cum_wrist,sd_cum_wrist,...
+%     'linestyle','none','linewidth',2,'color','k','marker','.','markersize',32)
+% errorbar(1:proj_params.dim_manifold,mn_cum_reach,sd_cum_reach,...
+%     'linestyle','none','linewidth',2,'color','r','marker','.','markersize',32)
+plot(mn_cum_reach,'color','r','linewidth',2)
+plot(mn_cum_reach+sd_cum_reach,'-.r','linewidth',2)
+plot(mn_cum_reach-sd_cum_reach,'-.r','linewidth',2)
+plot(mn_cum_wrist,'color','k','linewidth',2)
+plot(mn_cum_wrist+sd_cum_wrist,'-.k','linewidth',2)
+plot(mn_cum_wrist-sd_cum_wrist,'-.k','linewidth',2)
+set(gca,'TickDir','out','FontSize',14), box off
+ylabel('Cumulative neural variance expl. (%)'), ylim([0 100])
+xlabel('CCA-projected neural modes')
 legend('wrist','reach-to-grasp','Location','SouthEast'), legend boxoff
     
 
@@ -252,24 +372,20 @@ legend('wrist','reach-to-grasp','Location','SouthEast'), legend boxoff
 % -------------------------------------------------------------------------
 % ALL TASKS TOGETHER
 
-% all traces and errorbars with mean +/- SD
+
+mn_cum_all = mean(all_cum_vaf_CC,1);
+sd_cum_all = std(all_cum_vaf_CC,0,1);
+
+
+% V1 - all traces and errorbars with mean +/- SD
+
 figure, hold on 
-plot(all_vaf_CC','color',[.7 .7 .7])
-errorbar(1:proj_params.dim_manifold,mean(all_vaf_CC,1),std(all_vaf_CC_wrist,0,1),...
-    'linestyle','none','linewidth',2,'color','k','marker','.','markersize',32)
+plot(all_cum_vaf_CC','color',[.7 .7 .7])
+% errorbar(1:proj_params.dim_manifold,mn_cum_all,sd_cum_all,...
+%     'linestyle','none','linewidth',2,'color','k','marker','.','markersize',32)
+plot(mn_cum_all,'color','k','linewidth',2)
+plot(mn_cum_all+sd_cum_all,'-.k','linewidth',2)
+plot(mn_cum_all-sd_cum_all,'-.k','linewidth',2)
 set(gca,'TickDir','out','FontSize',14), box off
-ylim([0 100])
-ylabel('Neural variance explained (%)')
-xlabel('Neural mode after CCA')
-
-% Mean and color surface with SD over the mean
-x_ax = 1:size(all_vaf_CC,2);
-m_sd_vaf = [std(all_vaf_CC_wrist,0,1)+mean(all_vaf_CC,1); -std(all_vaf_CC_wrist,0,1)+mean(all_vaf_CC,1)];
-
-figure, hold on
-patch([x_ax, fliplr(x_ax)],[m_sd_vaf(1,:),fliplr(m_sd_vaf(2,:))],[.6 .6 .6],'FaceAlpha',0.3,'EdgeAlpha',0.3,'EdgeColor',[.6 .6 .6])
-plot(mean(all_vaf_CC,1),'k','linewidth',1.5)
-set(gca,'TickDir','out','FontSize',14), box off
-ylabel('Neural variance explained (%)')
-xlabel('Neural mode after CCA')
-ylim([0 100])
+ylabel('Cumulative neural variance expl. (%)'), ylim([0 100])
+xlabel('CCA-projected neural modes')
