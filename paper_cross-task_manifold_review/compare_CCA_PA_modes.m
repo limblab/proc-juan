@@ -15,12 +15,20 @@ proj_params = batch_compare_manifold_projs_defaults();
 
 % overwrite manifold dimension, if necessary
 proj_params.dim_manifold = 12;
+dims = proj_params.dim_manifold;
+
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Compare by computing angles between directions
 
 
 % pre-allocate for saving results
-all_dots = [];
+all_dots = []; % dot product between corresponding pairs of CCA and PA modes
+all_largest_dots = []; % largest do product between each CCA mode and any PA mode
+all_modes_largest_dots = []; % PA mode that yields the previous largest dot product
 
-% Compare by computing angles between directions
+
 for ds = 1:length(datasets)
     
     
@@ -66,8 +74,8 @@ for ds = 1:length(datasets)
         ssc2 = reshape(psc2,[],size(psc2,3));
 
         % keep only the relevant manifold dimensions
-        ssc1 = ssc1(:,1:proj_params.dim_manifold);
-        ssc2 = ssc2(:,1:proj_params.dim_manifold);
+        ssc1 = ssc1(:,1:dims);
+        ssc2 = ssc2(:,1:dims);
         
         % Compute the CC matrices A, B
         [A,B,r] = canoncorr(ssc1,ssc2);
@@ -76,8 +84,8 @@ for ds = 1:length(datasets)
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % COMPUTE PRINCIPAL ANGLES
         
-        W1 = datasets{ds}.dim_red_FR{comb_tasks(c,1)}.w(:,1:proj_params.dim_manifold);
-        W2 = datasets{ds}.dim_red_FR{comb_tasks(c,2)}.w(:,1:proj_params.dim_manifold);
+        W1 = datasets{ds}.dim_red_FR{comb_tasks(c,1)}.w(:,1:dims);
+        W2 = datasets{ds}.dim_red_FR{comb_tasks(c,2)}.w(:,1:dims);
         
         % Compute the PA matrices U,V
         [~, U, ~, V]  = principal_angles(W1,W2);
@@ -85,19 +93,51 @@ for ds = 1:length(datasets)
         
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % COMPARE CCA MODES AND PA MODES
-        % which is the same as comparing U and A, V and B
+        % which is the same as comparing the rows of U and A, V and B
         
         mode1_comp = dot(A/norm(A),U);
         mode2_comp = dot(B/norm(B),V');
         
+        
+        % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % A SMARTER COMPARISON: FIND THE PA MODES THAT HAVE THE MAXIMUM DOT
+        % PRODUCT WITH EACH CCA MODE
+        
+        largest_o1 = zeros(1,dims); % PA mode with largest dot prod with each CCA mode
+        largest_dot1 = zeros(1,dims); % largest dot prod of each CCA mode with any PA mode
+        largest_o2 = zeros(1,dims); 
+        largest_dot2 = zeros(1,dims); 
+        
+        for mt = 1:dims
+            dot_o1 = zeros(1,dims);
+            dot_o2 = zeros(1,dims);
+            for mo = 1:dims
+               dot_o1(mo) = dot(A(:,mt)/norm(A(:,mt)),U(:,mo)); 
+               dot_o2(mo) = dot(B(:,mt)/norm(B(:,mt)),V(mo,:)); % because the basis is V' not V
+            end
+            [largest_dot1(mt), largest_o1(mt)] = max(abs(dot_o1));
+            [largest_dot2(mt), largest_o2(mt)] = max(abs(dot_o2));
+        end
+        
+        
+        % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % STORE VALUES
+        
         all_dots = [all_dots; mode1_comp; mode2_comp]; %#ok<*AGROW>
+        all_largest_dots = [all_largest_dots; largest_dot1; largest_dot2];
+        all_modes_largest_dots = [all_modes_largest_dots; largest_o1; largest_o1];
     end
 end
 
 
 
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PLOT dot products
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PLOTS
+
+
+% -------------------------------
+% PLOT pairwise dot products
 
 % figure
 % plot(all_dots','color',[.6 .6 .6])
@@ -106,20 +146,20 @@ end
 % Compute histograms dot product per dimension
 
 x_hist = 0:0.05:1.05;
-hist_dot = zeros(proj_params.dim_manifold,length(x_hist)-1);
-for d = 1:proj_params.dim_manifold
+hist_dot = zeros(dims,length(x_hist)-1);
+for d = 1:dims
     hist_dot(d,:) = histcounts(abs(all_dots(:,d)),x_hist); 
 end
 
 
 % One histogram per dimension --hardcoded for 12
-cols_hist = parula(proj_params.dim_manifold+1);
+cols_hist = parula(dims+1);
 
 n_rows = 3;
 n_cols = 4;
 
 figure('units','normalized','outerposition',[0 0 1 1])
-for s = 1:proj_params.dim_manifold
+for s = 1:dims
     subplot(n_rows,n_cols,s)
     bar(x_hist(1:end-1),hist_dot(s,:),'FaceColor',cols_hist(s,:))
     set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
@@ -143,3 +183,33 @@ y_stats = (yl(2)-max(hist_dot_all))/2+max(hist_dot_all);
 plot(mn_all,y_stats,'.','markersize',32,'color',[.6 .6 .6])
 plot([mn_all-sd_all, mn_all+sd_all],[y_stats, y_stats],'color',[.6 .6 .6],'linewidth',1.5)
 ylabel('Counts'),xlabel('Cos. angle CCA-PA modes')
+
+
+
+% -------------------------------
+% PLOT dot largest dot product between each CCA mode and any PA mode
+
+
+% Compute histograms dot product per dimension
+
+hist_dot_largest = zeros(dims,length(x_hist)-1);
+for d = 1:dims
+    hist_dot_largest(d,:) = histcounts(abs(all_largest_dots(:,d)),x_hist); 
+end
+
+
+% histogram pooling all dimensions
+mn_all_largest = mean(reshape(abs(all_largest_dots),[],1));
+sd_all_largest = std(reshape(abs(all_largest_dots),[],1));
+
+hist_dot_all_largest = sum(hist_dot_largest,1);
+
+figure, hold on
+bar(x_hist(1:end-1),hist_dot_all_largest,'FaceColor', [.6 .6 .6], 'EdgeColor', [.6 .6 .6])
+set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
+yl = ylim;
+y_stats_largest = (yl(2)-max(hist_dot_all_largest))/2+max(hist_dot_all_largest);
+plot(mn_all_largest,y_stats_largest,'.','markersize',32,'color',[.6 .6 .6])
+plot([mn_all_largest-sd_all_largest, mn_all_largest+sd_all_largest],[y_stats_largest, y_stats_largest],'color',[.6 .6 .6],'linewidth',1.5)
+ylabel('Counts'),xlabel('Cos. angle closest CCA-PA modes')
+

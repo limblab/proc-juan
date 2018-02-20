@@ -104,9 +104,12 @@ sd_all_vars = std(all_vars,0,1);
 
 figure, hold on
 plot(100*all_vars','color',[.6 .6 .6])
-errorbar(100*mn_all_vars,100*sd_all_vars,'.k','linestyle','none','linewidth',1.5,'markersize',30)
+plot(100*mn_all_vars,'k','linewidth',2)
+plot(100*(mn_all_vars+sd_all_vars),'-.k','linewidth',2)
+plot(100*(mn_all_vars-sd_all_vars),'-.k','linewidth',2)
+% errorbar(100*mn_all_vars,100*sd_all_vars,'.k','linestyle','none','linewidth',1.5,'markersize',30)
 set(gca,'TickDir','out','FontSize',14), box off
-xlabel('Neural mode (after computing principal angles)')
+xlabel('Principal-angle projected neural mode')
 ylabel('Neural variance explained (%)')
 
 
