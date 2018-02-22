@@ -78,10 +78,17 @@ for i = 1:meta_info.nbr_monkeys
         if params.do_bootstrap
             signif_boots = zeros(length(can_corrs.lin_transform),params.dim_manifold);
             for p = 1:length(can_corrs.lin_transform)
+                % Bootstrapping shuffling in time
                 signif_boots(p,:) = bootstrap_canon_corr( can_corrs.lin_transform(p).U, ...
                             can_corrs.lin_transform(p).V, params.nbr_shuffles_bootstrap,...
                             params.prctile_bootstrap );
             end
+%             % Bootstrapping shuffling weights of neural units onto
+%             % modes
+%             signif_boots2 = bootstrap_weights_canon_corr( datasets{dtst}.stdata, ...
+%                                 1:params.dim_manifold, 'all_conc', params.time_win(dtst,:),...
+%                                 params.nbr_shuffles_bootstrap, params.prctile_bootstrap);
+
         end
                         
                         
@@ -95,6 +102,8 @@ for i = 1:meta_info.nbr_monkeys
         % bootstrapping results, if done
         if params.do_bootstrap
             data{dtst}.can_corrs.signif_boots = signif_boots;
+%             % TO DELETE
+%             data{dtst}.can_corrs.signif_boots_weights = signif_boots2;
             data{dtst}.can_corrs.params_boots.prctile_signif = params.prctile_bootstrap;
             data{dtst}.can_corrs.params_boots.nbr_shuffles = params.nbr_shuffles_bootstrap;
         end
@@ -149,8 +158,10 @@ for d = 1:length(data)
         % fill chance levels
         chance_matrix(ctr,:) = data{d}.can_corrs.signif_boots(p,:);
         
-        % ceil CC (mean of the 99th percentiel of the within CC)
-        ceil_cc_matrix(ctr,:) = data{d}.within_can_corrs.pair{p}.pctile99;
+        % ceil CC (max of the 99th percentiel of the within CC)
+        % -- it used to be the mean but it was changed following a
+        % reviewer's comment
+        ceil_cc_matrix(ctr,:) = data{d}.within_can_corrs.pair{p}.pctile99_max;
         
         % norm CC matrix
         norm_cc_matrix(ctr,:) = cc_matrix(ctr,:)./chance_matrix(ctr,:);
@@ -271,7 +282,7 @@ if params.plot_p_session
     for i = 1:length(meta_info.tasks_per_session)
 
         these_ccs               = data{i}.can_corrs.cc';
-        these_ceilings          = cellfun( @(x) x.pctile99, data{i}.within_can_corrs.pair, ...
+        these_ceilings          = cellfun( @(x) x.pctile99_max, data{i}.within_can_corrs.pair, ...
                                     'UniformOutput', false );
         these_ceilings          = cell2mat( these_ceilings' )';
         
