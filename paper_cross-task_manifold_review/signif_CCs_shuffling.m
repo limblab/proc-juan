@@ -12,6 +12,12 @@ if ~exist('datasets','var')
 end
 
 
+% Choose type of control: 
+%  - 'shuffle_weights';
+%  - 'shuffle_across_dimensions_and_targets'
+%  - 'shuffle_over_time' (not fully implemented)  
+control = 'shuffle_across_dimensions_and_targets'; 
+
 % Number of shuffles
 n_shuffles = 2000;
 P_th = 0.01;
@@ -38,9 +44,13 @@ reach_ds = [4:6 10:11];
 
 % define matrices to store the results
 signif_CC.all_actual_CCs = [];
-signif_CC.signif_th = [];
 signif_CC.wrist_flg = [];
 signif_CC.session_nbr = [];
+signif_CC.signif_th = [];
+if strcmp(control,'shuffle_across_dimensions_and_targets')
+    signif_CC.signif_th1 = [];
+    signif_CC.signif_th2 = [];
+end
 ctr = 1;
 
 
@@ -76,11 +86,14 @@ for ds = 1:length(datasets)
     % Pre-allocate matrix for saving the results
 
 
-    % TODO
     
     % Do for each task comparison
     for c = 1:size(comb_tasks,1)
     
+        
+        disp(['Generating random distributions for dataset ' num2str(ds) ...
+            ' task comparison ' num2str(c) '/' num2str(size(comb_tasks,1))]);
+        
         
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % PREPROCESS AND COMPUTE CCs OF THE ACTUAL DATA
@@ -125,31 +138,103 @@ for ds = 1:length(datasets)
         % manifolds
         all_rshuff = zeros(n_shuffles,proj_params.dim_manifold);
         
-        for s = 1:n_shuffles
         
-            % do PCA
-            w1 = pca(sfr1);
-            w2 = pca(sfr2);
+        % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % CONTROL 1 - SHUFFLE WEIGHTS IN PCA MATRIX
+        
+        switch control
             
-            % keep the leading n components
-            w1 = w1(:,1:proj_params.dim_manifold);
-            w2 = w2(:,1:proj_params.dim_manifold);
-            
-            % shuffle the weights in the PCA matrices
-            idx_shuffle = datasample(1:numel(w1),numel(w1),'Replace',false);
-            idx_shuffle = reshape(idx_shuffle,size(w1,1),size(w1,2));
-            
-            % shuffle the eigenvectors
-            w1_shuff = w1(idx_shuffle);
-            w2_shuff = w2(idx_shuffle);
-            
-            % project the neural data onto the manifold
-            sc1 = sfr1*w1_shuff;
-            sc2 = sfr2*w2_shuff;
-            
-            
-            % Compute the CC
-            [~,~,all_rshuff(s,:)] = canoncorr(sc1,sc2);
+            case 'shuffle_weights'
+                
+                for s = 1:n_shuffles
+
+                    % do PCA
+                    w1 = pca(sfr1);
+                    w2 = pca(sfr2);
+
+                    % keep the leading n components
+                    w1 = w1(:,1:proj_params.dim_manifold);
+                    w2 = w2(:,1:proj_params.dim_manifold);
+
+                    % shuffle the weights in the PCA matrices
+                    idx_shuffle = datasample(1:numel(w1),numel(w1),'Replace',false);
+                    idx_shuffle = reshape(idx_shuffle,size(w1,1),size(w1,2));
+
+                    % shuffle the eigenvectors
+                    w1_shuff = w1(idx_shuffle);
+                    w2_shuff = w2(idx_shuffle);
+
+                    % project the neural data onto the manifold
+                    sc1 = sfr1*w1_shuff;
+                    sc2 = sfr2*w2_shuff;
+
+
+                    % Compute the CC
+                    [~,~,all_rshuff(s,:)] = canoncorr(sc1,sc2);
+                end
+        
+        
+        % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % CONTROL 2 - SHUFFLE OVER TIME, AND THEN SMOOTH TO HAVE SIMILAR
+        % DYNAMICS
+        
+            case 'shuffle_across_dimensions_and_targets'
+                
+                for s = 1:n_shuffles
+                                      
+                    % shuffle the scores across dimensions and trials
+                    % psc1 has size time x trials x neurons matrix
+                    psc1_manifold = psc1(:,:,1:proj_params.dim_manifold);
+                    
+                    rpsc1_manifold = reshape(psc1_manifold,size(psc1_manifold,1),[]);                    
+                    shuffled_rpsc1_manifold = rpsc1_manifold(:,randperm(size(psc1_manifold,2)*size(psc1_manifold,3)));
+                    rnd_ssc1 = reshape(shuffled_rpsc1_manifold,size(psc1_manifold,1),size(psc1_manifold,2),size(psc1_manifold,3));
+                    rnd_ssc1 = reshape(rnd_ssc1,size(psc1_manifold,1)*size(psc1_manifold,2),[]);
+                      
+                    % do the same for the other task
+                    psc2_manifold = psc2(:,:,1:proj_params.dim_manifold);
+                    
+                    rpsc2_manifold = reshape(psc2_manifold,size(psc2_manifold,1),[]);                    
+                    shuffled_rpsc2_manifold = rpsc2_manifold(:,randperm(size(psc2_manifold,2)*size(psc2_manifold,3)));
+                    rnd_ssc2 = reshape(shuffled_rpsc2_manifold,size(psc2_manifold,1),size(psc2_manifold,2),size(psc2_manifold,3));
+                    rnd_ssc2 = reshape(rnd_ssc2,size(psc2_manifold,1)*size(psc2_manifold,2),[]);
+                    
+                    % Plot FFTs to check they have similar smoothness
+                    bin_size = 1/stdata{comb_tasks(c,1)}.target{1}.bin_size;
+                    l_ssc1 = length(ssc1);
+                    nfft = 2^nextpow2(l_ssc1);
+                    Yrnd_ssc1 = fft(rnd_ssc1,nfft)/l_ssc1;
+                    Y_ssc1 = fft(ssc1,nfft)/l_ssc1;
+                    f = bin_size/2*linspace(0,1,nfft/2);
+                    
+                    figure, hold on
+                    plot(f,2*abs(Y_ssc1(1:nfft/2)),'k'),plot(f,2*abs(Yrnd_ssc1(1:nfft/2)),'c')
+                    legend('real data','shuffled'), legend boxoff
+                    xlabel('Frequency (Hz)'),ylabel('Amplitude')
+                    set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
+                    
+                     % Compute the CC
+%                     [~,~,all_rshuff1(s,:)] = canoncorr(ssc1,rnd_ssc1);
+%                     [~,~,all_rshuff2(s,:)] = canoncorr(ssc2,rnd_ssc2);
+
+                    [~,~,all_rshuff(s,:)] = canoncorr(rnd_ssc1,rnd_ssc2);
+                end
+                
+                
+            case 'shuffle_over_time'
+                
+                error('Did not finish implementing this because the FFTs look very different');
+                
+                % This didn't work very well
+                % shuffle the scores for one task over time
+                % -- this ain't a great idea, we don't keep the
+                % smoothness at all, even after shuffling!!!
+                rnd_ssc1 = ssc1(randperm(size(ssc1,1)),:);
+                
+                % smooth these shuffled activity patterns to have
+                % smoothed random trajectories
+                smooth_rnd_ssc1 = smooth_data( rnd_ssc1, datasets{ds}.stdata{1}.target{1}.bin_size, 0.05);
+
         end
         
         
@@ -157,13 +242,27 @@ for ds = 1:length(datasets)
         % Store results
         
         signif_CC.all_actual_CCs = [signif_CC.all_actual_CCs; r];
-        % Significance threshold
-        t_signif_th = prctile(all_rshuff,(1-P_th)*100);
-        signif_CC.signif_th = [signif_CC.signif_th; t_signif_th]; %#ok<*AGROW>
-        signif_CC.all_shuff_CCs{ctr} = all_rshuff; %#ok<*SAGROW>
         if ismember(ds,wrist_ds), wyn = 1; else wyn = 0; end
         signif_CC.wrist_flg = [signif_CC.wrist_flg; wyn];
         signif_CC.session_nbr = [signif_CC.session_nbr; ds];
+        
+%         % For the 'shuffle_across_dimensions_and_targets' control we do it
+%         % for each task we are comparing
+%         if strcmp(control,'shuffle_across_dimensions_and_targets')
+%             t_signif_th1 = prctile(all_rshuff1,(1-P_th)*100);
+%             t_signif_th2 = prctile(all_rshuff2,(1-P_th)*100);
+%             signif_CC.signif_th1 = [signif_CC.signif_th1; t_signif_th1]; %#ok<*AGROW>
+%             signif_CC.signif_th2 = [signif_CC.signif_th2; t_signif_th2]; %#ok<*AGROW>
+%             % take the significance threshold as the max
+%             t_signif_th = max(t_signif_th1,t_signif_th2);
+%             
+%             signif_CC.all_shuff_CCs1{ctr} = all_rshuff1; %#ok<*SAGROW>
+%             signif_CC.all_shuff_CCs2{ctr} = all_rshuff2; %#ok<*SAGROW>
+%         else
+%             t_signif_th = prctile(all_rshuff1,(1-P_th)*100);
+%         end
+        t_signif_th = prctile(all_rshuff,(1-P_th)*100);
+        signif_CC.signif_th = [signif_CC.signif_th; t_signif_th]; %#ok<*AGROW>
         
         ctr = ctr + 1;
         
@@ -173,12 +272,18 @@ for ds = 1:length(datasets)
         if plot_per_comp_flg
             figure,hold on %#ok<UNRCH>
             plot(r,'k','linewidth',1.5)
-            plot(t_signif_th,'color',[.5 0 .5],'linewidth',1.5)
             plot(all_rshuff','color',[216 190 216]/255)
+%             if exist('all_rshuff2','var')
+%                 plot(all_rshuff','color',[255 215 0]/255)
+%             end
+            plot(t_signif_th,'color',[.5 0 .5],'linewidth',1.5)
+%             if exist('all_rshuff2','var')
+%                 plot(t_signif_th2','color',[255 140 0]/255,'linewidth',1.5)
+%             end
             ylim([0 1]),xlim([0 proj_params.dim_manifold]);
             set(gca,'TickDir','out','FontSize',14), box off
             xlabel('Neural mode'),ylabel('Canonical correlation')
-            legend('actual','threshold','surrogates')
+            legend('actual','surrogates')
             % pause; close
         end
     end
@@ -210,3 +315,37 @@ figure,
 bar(x_hist(1:end-1),y_hist,'FaceColor',[.6 .6 .6])
 set(gca,'TickDir','out','FontSize',14), box off
 xlabel('Highest mode w. similar dynamics'),ylabel('Counts')
+
+
+
+% -------------------------------------------------------------------------
+% Number of modes above chance level depending on the task comparison
+metadata = batch_get_monkey_task_data(datasets);
+
+highest_similar_mode_per_type = zeros(length(unique(metadata.task_pairs.task_pair_nbr)),...
+                                proj_params.dim_manifold);
+                            
+for task_pair = 1:length(metadata.task_pairs.unique_pairs)
+    
+    trials_this_pair = find(metadata.task_pairs.task_pair_nbr == task_pair);
+    
+    for c = 1:length(trials_this_pair)
+       
+        highest_this = find(cc_diff(trials_this_pair(c),:)<0,1) -1;
+        
+        highest_similar_mode_per_type(task_pair,highest_this) = 1 + ...
+                                highest_similar_mode_per_type(task_pair,highest_this);
+    end
+end
+
+
+for p = 1:length(metadata.task_pairs.unique_pairs)
+    this_legend{p}         = [metadata.task_pairs.unique_pairs{p}{1} ' vs ' ...
+        metadata.task_pairs.unique_pairs{p}{2}];
+end
+
+figure,
+bar(1:proj_params.dim_manifold,highest_similar_mode_per_type','stacked')
+set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
+xlabel('Highest mode w. similar dynamics'),ylabel('Counts')
+legend(this_legend,'Location','NorthWest'), legend boxoff
