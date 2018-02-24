@@ -69,7 +69,7 @@ for d = 1:length(ds_to_use)
 
         % get neural modes
         modesa = fra*Apa;
-        modesb = fra*Bpa;
+        modesb = frb*Bpa;
 
         % compute their normalized variance
         vara = var(modesa,1)/sum(var(modesa,1));
