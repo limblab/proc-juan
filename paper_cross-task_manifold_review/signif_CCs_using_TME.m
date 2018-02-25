@@ -3,6 +3,9 @@
 % 
 
 
+clearvars -except datasets , close all;
+
+
 % Load data if it isn't in the workspace
 if ~exist('datasets','var')
     load('/Users/juangallego/Documents/NeuroPlast/Data/_Dimensionality reduction/all_manifold_datasets.mat');
@@ -10,7 +13,7 @@ end
 
 
 % Number of shuffles
-n_surrogates = 100;
+n_surrogates = 1000;
 P_th = 0.001;
 
 % use (concatenated) single trials for CCA
@@ -49,7 +52,7 @@ ctr = 1;
 
 % DO
 
-for ds = 1:length(datasets)
+for ds = 4:length(datasets)
 
     
     % Get task comparisons for this session
@@ -74,6 +77,7 @@ for ds = 1:length(datasets)
     % 3) equalize number of trials across tasks
     stdata = equalize_nbr_trials_across_tasks( stdata, 'all_conc' );
 
+
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Pre-allocate matrix for saving the results
@@ -92,7 +96,9 @@ for ds = 1:length(datasets)
         % PREPROCESS AND COMPUTE CCs OF THE ACTUAL DATA
 
 
-        % get data for CCA
+        % HERE HERE HERE HERE HERE HERE
+        % get data for CCA ---NEED TO FIX THIS TO COMPARE DIFF NUMBER OF
+        % TARGETS
         if single_trial_CCA_flg
             % single-trial scores -matrices are time x neurons x trials
             sc1 = stdata{t1}.target{end}.neural_data.dim_red.st_scores;
@@ -100,7 +106,36 @@ for ds = 1:length(datasets)
         else
             % trial-averaged scores -matrices are time x neurons x trials
             sc1 = stdata{t1}.target{end}.neural_data.dim_red.st_scores_mn;
-            sc2 = stdata{t2}.target{end}.neural_data.dim_red.st_scores_mn;            
+            sc2 = stdata{t2}.target{end}.neural_data.dim_red.st_scores_mn;
+            
+            % when comparing the reach-to-grasp tasks these numbers won't
+            % be the same. Or when comparing Iso 2D to any other movement
+            % task
+            if size(sc1,1) ~= size(sc2,1)
+                % for the reach-to-grasp tasks
+                if min([length(stdata{t1}.target),length(stdata{t2}.target)]) == 2
+                    % just keep the first target
+                    sc1 = stdata{t1}.target{1}.neural_data.dim_red.st_scores_mn;
+                    sc2 = stdata{t2}.target{1}.neural_data.dim_red.st_scores_mn;
+                % when comparing iso 2d to any other task
+                else
+                    [~,idx_iso2d] = max([length(stdata{t1}.target),length(stdata{t2}.target)]);
+                    tgts_iso2d = [1:3 6:8];
+                    if idx_iso2d == 2
+                        sc2 = [];
+                        % keep targets [1:3 6:8]
+                        for tg = 1:length(tgts_iso2d)
+                            sc2 = [sc2; stdata{t2}.target{tgts_iso2d(tg)}.neural_data.dim_red.st_scores_mn];
+                        end
+                    else
+                        sc1 = [];
+                        % keep targets [1:3 6:8]
+                        for tg = 1:length(tgts_iso2d)
+                            sc1 = [sc1; stdata{t2}.target{tgts_iso2d(tg)}.neural_data.dim_red.st_scores_mn];
+                        end
+                    end
+                end
+            end
         end
 
         % turn this into (time x trials) x neurons matrix
@@ -233,11 +268,12 @@ for ds = 1:length(datasets)
             plot(r,'k','linewidth',1.5)
             plot(t_signif_th,'color',[.5 0 .5],'linewidth',1.5)
             plot(all_rshuff','color',[216 190 216]/255)
+            plot(r,'k','linewidth',1.5)
             ylim([0 1]),xlim([0 proj_params.dim_manifold]);
             set(gca,'TickDir','out','FontSize',14), box off
             xlabel('Neural mode'),ylabel('Canonical correlation')
-            legend('actual','surrogate','threshold')
-            pause; close
+            legend('actual','surrogate','threshold','Location','SouthWest')
+%            pause; close
         end
         
         clear target*
