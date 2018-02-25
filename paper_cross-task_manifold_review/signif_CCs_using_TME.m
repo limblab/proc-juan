@@ -14,13 +14,13 @@ end
 
 % Number of shuffles
 n_surrogates = 1000;
-P_th = 0.001;
+P_th = 0.01;
 
 % use (concatenated) single trials for CCA
 single_trial_CCA_flg = false;
 
 % Surrogate type TME
-surrogate_type = 'surrogate-T'; % 'surrogate-T', 'surrogate-TC' implemented
+surrogate_type = 'surrogate-N'; % 'surrogate-N' 'surrogate-T', 'surrogate-TC' implemented
 
 % Plot for each comparison? 
 plot_per_comp_flg = true;
@@ -37,6 +37,8 @@ proj_params.dim_manifold = 12;
 wrist_ds = [1:3 7:9];
 reach_ds = [4:6 10:11];
 
+% Targets of the iso2D tast to compare (exclude top and bottom ones)
+tgts_iso2d = [1:3 6:8];
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -52,7 +54,7 @@ ctr = 1;
 
 % DO
 
-for ds = 4:length(datasets)
+for ds = 1:length(datasets)
 
     
     % Get task comparisons for this session
@@ -95,10 +97,8 @@ for ds = 4:length(datasets)
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % PREPROCESS AND COMPUTE CCs OF THE ACTUAL DATA
 
-
-        % HERE HERE HERE HERE HERE HERE
-        % get data for CCA ---NEED TO FIX THIS TO COMPARE DIFF NUMBER OF
-        % TARGETS
+        % get data for CCA ---Slightly convoluted because it compares
+        % implements fixes for when the number of targets is not the same
         if single_trial_CCA_flg
             % single-trial scores -matrices are time x neurons x trials
             sc1 = stdata{t1}.target{end}.neural_data.dim_red.st_scores;
@@ -120,7 +120,6 @@ for ds = 4:length(datasets)
                 % when comparing iso 2d to any other task
                 else
                     [~,idx_iso2d] = max([length(stdata{t1}.target),length(stdata{t2}.target)]);
-                    tgts_iso2d = [1:3 6:8];
                     if idx_iso2d == 2
                         sc2 = [];
                         % keep targets [1:3 6:8]
@@ -165,16 +164,39 @@ for ds = 4:length(datasets)
         n_units = length(stdata{t1}.target{1}.neural_data.neural_chs);
         
 
-        % get single-trial FRs -matrices are time x neurons x trials
-        sfr1 = zeros(n_bins,n_units,n_targets);
-        sfr2 = zeros(n_bins,n_units,n_targets);
-
-        for g = 1:length(stdata{t1}.target)-1
-            sfr1(:,:,g) = stdata{t1}.target{g}.neural_data.smoothed_fr_mn;
+        % get trial-averaged FRs -matrices are time x neurons x trials
+        
+        % this is a bit weird because it accounts for the cases where we
+        % don't compare tasks with the same number of targets
+        if length(stdata{t1}.target) ~= length(stdata{t2}.target)
+            % when comparing ball to grip
+            if length(stdata{t1}.target) == 2 || length(stdata{t2}.target) == 2
+                sfr1(:,:,1) = stdata{t1}.target{1}.neural_data.smoothed_fr_mn;
+                sfr2(:,:,1) = stdata{t2}.target{1}.neural_data.smoothed_fr_mn;
+            % when comparing iso 2D to any of the wrist tasks
+            elseif length(stdata{t1}.target) == 9 || length(stdata{t2}.target) == 9
+                if length(stdata{t1}.target) == 9
+                    for g = 1:length(tgts_iso2d)
+                        sfr1(:,:,g) = stdata{t1}.target{tgts_iso2d(g)}.neural_data.smoothed_fr_mn;
+                        sfr2(:,:,g) = stdata{t2}.target{g}.neural_data.smoothed_fr_mn;
+                    end
+                elseif length(stdata{t2}.target) == 9
+                    for g = 1:length(tgts_iso2d)
+                        sfr1(:,:,g) = stdata{t1}.target{g}.neural_data.smoothed_fr_mn;
+                        sfr2(:,:,g) = stdata{t2}.target{tgts_iso2d(g)}.neural_data.smoothed_fr_mn;
+                    end
+                end
+            end
+        % when both tasks we compare have the same number of targets
+        else
+            for g = 1:length(stdata{t1}.target)-1
+                sfr1(:,:,g) = stdata{t1}.target{g}.neural_data.smoothed_fr_mn;
+                sfr2(:,:,g) = stdata{t2}.target{g}.neural_data.smoothed_fr_mn;
+            end
         end
-        for g = 1:length(stdata{t2}.target)-1
-            sfr2(:,:,g) = stdata{t2}.target{g}.neural_data.smoothed_fr_mn;
-        end
+%         for g = 1:length(stdata{t2}.target)-1
+%             sfr2(:,:,g) = stdata{t2}.target{g}.neural_data.smoothed_fr_mn;
+%         end
         
         % Quantify primary features of the original data
         [targetSigmaT1, targetSigmaN1, targetSigmaC1, M1] = extractFeatures_J(sfr1);
@@ -203,6 +225,16 @@ for ds = 4:length(datasets)
             params2.margCov{2} = [];
             params2.margCov{3} = [];
             params2.meanTensor = M2.T;
+        elseif strcmp(surrogate_type, 'surrogate-N')
+            params1.margCov{1} = targetSigmaT1;
+            params1.margCov{2} = [];
+            params1.margCov{3} = [];
+            params1.meanTensor = M1.N;
+            
+            params2.margCov{1} = targetSigmaT2;
+            params2.margCov{2} = [];
+            params2.margCov{3} = [];
+            params2.meanTensor = M2.N;
         else
             error('Need to code these TME parameters')
         end
@@ -276,7 +308,7 @@ for ds = 4:length(datasets)
 %            pause; close
         end
         
-        clear target*
+        clear target* sfr*
     end
 end
 
