@@ -11,26 +11,44 @@ if ~exist('datasets','var')
     load('/Users/juangallego/Documents/NeuroPlast/Data/_Dimensionality reduction/all_manifold_datasets.mat');
 end
 
-
-% Choose type of control: 
-%  - 'shuffle_weights';
-%  - 'shuffle_across_dimensions_and_targets'
-%  - 'shuffle_over_time' (not fully implemented)  
-control = 'shuffle_across_dimensions_and_targets'; 
-
-% Number of shuffles
-n_shuffles = 2000;
-P_th = 0.01;
-
-% Plot for each comparison? 
-plot_per_comp_flg = true;
-
 % Load params for CCA --- these are the same ones used in the original
 % submission of the paper
 proj_params = batch_compare_manifold_projs_defaults();
 
+% Plot for each comparison? 
+plot_per_comp_flg = true;
+
+% -------------------------------------------------------------------------
+% Parameters for the control analysis
+
+% Choose type of control: 
+%  - 'shuffle_weights';
+%  - 'shuffle_across_dimensions_and_targets'
+%  - 'shuffle_across_neurons_and_targets' -> same as the previous one,
+%  but shuffles the neural activity rather than the mode dynamics
+%  - 'shuffleSVD_U'
+%  - 'shuffle_over_time' (not fully implemented)  
+control = 'shuffle_across_neurons_and_targets'; 
+
+% Number of shuffles
+n_shuffles = 1000;
+P_th = 0.01;
+
+
+% -------------------------------------------------------------------------
+% Parameters for analysis
+
+% % Make all the analysis windows 700 ms
+% win_length = 0.7;
+% for i = 1:size(proj_params.time_win,1)
+%     proj_params.time_win(i,2) = proj_params.time_win(i,1)+win_length;
+% end
+
 % overwrite manifold dimension, if necessary
 proj_params.dim_manifold = 12;
+
+
+% -------------------------------------------------------------------------
 
 % define which datasets are wrist and which ones are reach-to-grasp,
 % separately
@@ -199,28 +217,72 @@ for ds = 1:length(datasets)
                     rnd_ssc2 = reshape(shuffled_rpsc2_manifold,size(psc2_manifold,1),size(psc2_manifold,2),size(psc2_manifold,3));
                     rnd_ssc2 = reshape(rnd_ssc2,size(psc2_manifold,1)*size(psc2_manifold,2),[]);
                     
-                    % Plot FFTs to check they have similar smoothness
-                    bin_size = 1/stdata{comb_tasks(c,1)}.target{1}.bin_size;
-                    l_ssc1 = length(ssc1);
-                    nfft = 2^nextpow2(l_ssc1);
-                    Yrnd_ssc1 = fft(rnd_ssc1,nfft)/l_ssc1;
-                    Y_ssc1 = fft(ssc1,nfft)/l_ssc1;
-                    f = bin_size/2*linspace(0,1,nfft/2);
                     
-                    figure, hold on
-                    plot(f,2*abs(Y_ssc1(1:nfft/2)),'k'),plot(f,2*abs(Yrnd_ssc1(1:nfft/2)),'c')
-                    legend('real data','shuffled'), legend boxoff
-                    xlabel('Frequency (Hz)'),ylabel('Amplitude')
-                    set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
-                    
-                     % Compute the CC
-%                     [~,~,all_rshuff1(s,:)] = canoncorr(ssc1,rnd_ssc1);
-%                     [~,~,all_rshuff2(s,:)] = canoncorr(ssc2,rnd_ssc2);
+                    [~,~,all_rshuff(s,:)] = canoncorr(rnd_ssc1,rnd_ssc2);
+                end
+               
+                
+            case 'shuffle_across_neurons_and_targets'
+
+                for s = 1:n_shuffles
+
+                    % shuffle the scores across dimensions and trials
+                    % psc1 has size time x trials x neurons matrix
+                    rpfr1 = reshape(pfr1,size(pfr1,1),[]);
+                    shuffled_rpfr1 = rpfr1(:,randperm(size(rpfr1,2)*size(rpfr1,3)));
+                    rnd_rpfr1 = reshape(shuffled_rpfr1,size(shuffled_rpfr1 ,1),size(shuffled_rpfr1 ,2),size(shuffled_rpfr1 ,3));
+                    rnd_rpfr1 = reshape(rnd_rpfr1,size(pfr1,1)*size(pfr1,2),[]);
+
+                    % do the same for the other task
+                    rpfr2 = reshape(pfr2,size(pfr2,1),[]);
+                    shuffled_rpfr2 = rpfr2(:,randperm(size(rpfr2,2)*size(rpfr2,3)));
+                    rnd_rpfr2 = reshape(shuffled_rpfr2,size(shuffled_rpfr2 ,1),size(shuffled_rpfr2 ,2),size(shuffled_rpfr2 ,3));
+                    rnd_rpfr2 = reshape(rnd_rpfr2,size(pfr2,1)*size(pfr2,2),[]);
+
+                    % Do PCA on the neural activity keeping the leading mode
+                    % dynamics
+                    [~,rnd_ssc1] = pca(rnd_rpfr1);
+                    [~,rnd_ssc2] = pca(rnd_rpfr2);
+
+                    rnd_ssc1 = rnd_ssc1(:,1:proj_params.dim_manifold);
+                    rnd_ssc2 = rnd_ssc2(:,1:proj_params.dim_manifold);
 
                     [~,~,all_rshuff(s,:)] = canoncorr(rnd_ssc1,rnd_ssc2);
                 end
                 
+            case 'shuffleSVD_U'
                 
+                for s = 1:n_shuffles
+
+%                     [U1, S1, V1] = svd(sfr1);
+%                     [U2, S2, V2] = svd(sfr2);
+% 
+%                     V1sh = V1(randperm(numel(V1)));
+%                     V1sh = reshape(V1,size(S1,2),[]);
+%                     rnd_ssc1 = U1*S1*V1sh';
+% 
+%                     V2sh = V2(randperm(numel(V2)));
+%                     V2sh = reshape(V2,size(S2,2),[]);
+%                     rnd_ssc2 = U2*S2*V2sh';
+%                     
+%                     % Plot FFTs to check they have similar smoothness
+%                     bin_size = 1/stdata{comb_tasks(c,1)}.target{1}.bin_size;
+%                     l_ssc1 = length(ssc1);
+%                     nfft = 2^nextpow2(l_ssc1);
+%                     Yrnd_ssc1 = fft(rnd_ssc1,nfft)/l_ssc1;
+%                     Y_ssc1 = fft(ssc1,nfft)/l_ssc1;
+%                     f = bin_size/2*linspace(0,1,nfft/2);
+%                     
+%                     figure, hold on
+%                     plot(f,2*abs(Y_ssc1(1:nfft/2)),'k'),plot(f,2*abs(Yrnd_ssc1(1:nfft/2)),'-.c')
+%                     legend('real data','shuffled'), legend boxoff
+%                     xlabel('Frequency (Hz)'),ylabel('Amplitude')
+%                     set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
+%                     
+%                     % 
+%                     all_rshuff(s,:) = calc_r(rnd_ssc1,rnd_ssc2);
+
+                end                
             case 'shuffle_over_time'
                 
                 error('Did not finish implementing this because the FFTs look very different');
