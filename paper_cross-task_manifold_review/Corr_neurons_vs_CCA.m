@@ -18,6 +18,8 @@ target          = 'all_conc'; % Not used yet. 'all_conc' by default
 plot_p_session  = false;
 % sort neurons when plotting?
 sort_neurons    = false;
+% denoise neurons? --denoise by projecting onto PCA axes and back
+denoise_neurons = false;
 % take abs value corrs?
 abs_corr        = true;
 
@@ -78,9 +80,35 @@ for s = 1:length(datasets)
 
         % -----------------------------------------------------------------
         % Pairwise correlations between neurons
+     
+        if denoise_neurons % get rid of a neurons' component onto higher PCA axis
+            n1      = tda{comb_tds(p,1)}.target{end}.neural_data.conc_smoothed_fr;
+            n2      = tda{comb_tds(p,2)}.target{end}.neural_data.conc_smoothed_fr;
+            
+            % estimate noise as activity along the PCA dimensions outside
+            % the manifold
+            w1_denoise = [zeros(dims(end),numel(datasets{s}.neural_chs)); ...
+                            tda{comb_tds(p,1)}.target{end}.neural_data.dim_red.w(:,dims(end)+1:end)'];
+            all_lv1 = tda{comb_tds(p,1)}.target{end}.neural_data.dim_red.scores;
+            noise1  = all_lv1 * w1_denoise;
+            % demean and subtract noise
+            n1_nomean = n1 - ones(size(n1,1),size(n1,2)).*mean(n1,1);
+            n1      = n1_nomean - noise1;
+            
+            % same for second task
+            w2_denoise = [zeros(dims(end),numel(datasets{s}.neural_chs)); ...
+                            tda{comb_tds(p,2)}.target{end}.neural_data.dim_red.w(:,dims(end)+1:end)'];
+            all_lv2 = tda{comb_tds(p,2)}.target{end}.neural_data.dim_red.scores;
+            noise2  = all_lv2 * w2_denoise;
+            
+            n2_nomean = n2 - ones(size(n2,1),size(n2,2)).*mean(n2,1);
+            n2      = n2_nomean - noise2;
+            
+        else % just take smoothed FRs
+            n1      = tda{comb_tds(p,1)}.target{end}.neural_data.conc_smoothed_fr;
+            n2      = tda{comb_tds(p,2)}.target{end}.neural_data.conc_smoothed_fr;
+        end
         
-        n1          = tda{comb_tds(p,1)}.target{end}.neural_data.conc_smoothed_fr;
-        n2          = tda{comb_tds(p,2)}.target{end}.neural_data.conc_smoothed_fr;
         
         if abs_corr
             cr      = abs(calc_r( n1, n2 ));
@@ -350,4 +378,4 @@ end
 
 
 % Clear vars
-% clearvars -except *_results *_params datasets manifold_dim
+clearvars -except *_results *_params datasets manifold_dim
