@@ -285,7 +285,7 @@ for ds = 1:length(datasets)
         % -----------------------------------------------------------------
         % Store results
         
-        signif_PA.all_actual_PAs = [signif_PA.all_actual_PAs; actualPAs];
+        signif_PA.all_actual_PAs = [signif_PA.all_actual_PAs; actualPAs'];
         if ismember(ds,wrist_ds), wyn = 1; else wyn = 0; end
         signif_PA.wrist_flg = [signif_PA.wrist_flg; wyn];
         signif_PA.session_nbr = [signif_PA.session_nbr; ds];
@@ -293,7 +293,7 @@ for ds = 1:length(datasets)
         
         % Our shuffled control
         our_shuffled_PA = angle_non_orth(:,1,space_dim==n_units)';
-        signif_PA.our_shuffled_PA = our_shuffled_PA;
+        signif_PA.our_shuffled_PA = [signif_PA.our_shuffled_PA; our_shuffled_PA];
         
         t_signif_th = prctile(all_PA_shuff,P_th*100);
         signif_PA.signif_th = [signif_PA.signif_th; t_signif_th]; %#ok<*AGROW>
@@ -325,23 +325,24 @@ end
 % -------------------------------------------------------------------------
 %% COMPARISON OF OUR SHUFFLING CONTROL AND THIS CONTROL
 
-
-
-lfit = polyfit(rad2deg(signif_PA.signif_th),our_shuffle_th,1);
-xfit4plot = [rad2deg(min(min(min(signif_PA.signif_th),min(our_shuffle_th))))-5 90];
+size(signif_PA.signif_th)
+size(signif_PA.our_shuffled_PA)
+lfit = polyfit(rad2deg(signif_PA.signif_th),signif_PA.our_shuffled_PA,1);
+xfit4plot = [rad2deg(min(min(min(signif_PA.signif_th),min(signif_PA.our_shuffled_PA))))-5 90];
 yfit4plot = polyval(lfit,xfit4plot);
 
 % compute correlation
-[r, Pr] = corr(reshape(rad2deg(signif_PA.signif_th),[],1),reshape(our_shuffle_th,[],1));
+[r, Pr] = corr(reshape(rad2deg(signif_PA.signif_th),[],1),reshape(signif_PA.our_shuffled_PA,[],1));
 
 hf = figure; hold on
 plot([0 90],[0 90],'color',[.6 .6 .6])
 plot(xfit4plot,yfit4plot,'k','linewidth',1.5)
-plot(rad2deg(signif_PA.signif_th),our_shuffle_th,'.k','markersize',12)
+plot(rad2deg(signif_PA.signif_th),signif_PA.our_shuffled_PA,'.k','markersize',12)
 legend('perfectly equal','method match','Location','SouthEast'),legend boxoff
 set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off, set(hf, 'color', [1 1 1]);
 text(10,75,[num2str(lfit(2),3) '+' num2str(lfit(1),3) '·x'],'FontSize',14)
 text(10,65,['r=' num2str(r,3) '; P=' num2str(Pr,3)],'FontSize',14)
 xlabel('New control'); ylabel('Our random sampling threshold')
 xlim([0 90]),ylim([0 90])
+
 
