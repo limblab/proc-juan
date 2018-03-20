@@ -16,6 +16,9 @@ proj_params = batch_compare_manifold_projs_defaults();
 % overwrite manifold dimension, if necessary
 proj_params.dim_manifold = 12;
 
+% Use trial-averaged data?
+trial_avg_flg = false;
+
 % define which datasets are wrist and which ones are reach-to-grasp,
 % separately
 wrist_ds = [1:3 7:9];
@@ -56,6 +59,7 @@ for ds = 1:length(ds_to_use)
     end
     
     % 3) equalize number of trials across tasks
+%     stdata = equalize_nbr_trials_across_tasks_intheworks( stdata, 'all_conc' );
     stdata = equalize_nbr_trials_across_tasks( stdata, 'all_conc' );
 
     
@@ -137,29 +141,66 @@ for ds = 1:length(ds_to_use)
         n_targets = length(stdata{comb_tasks(c,1)}.target)-1;
         n_bins = length(stdata{comb_tasks(c,1)}.target{1}.t);
         
-        fr_avg1 = zeros(n_units,n_targets,n_bins);
-        fr_avg2 = zeros(n_units,n_targets,n_bins);
-        
-        for t = 1:length(stdata{comb_tasks(c,1)}.target)-1
-
-            fr_t1 = stdata{comb_tasks(c,1)}.target{t}.neural_data.smoothed_fr_mn;
-            fr_t1 = permute(fr_t1,[2 1]);            
-            fr_avg1(:,t,:) = fr_t1;
-        end
-        % do for task 2 in another loop because the number targets may be
-        % different
-        for t = 1:length(stdata{comb_tasks(c,2)}.target)-1
+        if trial_avg_flg
             
-            fr_t2 = stdata{comb_tasks(c,2)}.target{t}.neural_data.smoothed_fr_mn;
-            fr_t2 = permute(fr_t2,[2 1]);
-            fr_avg2(:,t,:) = fr_t2;          
+            fr1 = zeros(n_units,n_targets,n_bins);
+            fr2 = zeros(n_units,n_targets,n_bins);
+
+            for t = 1:length(stdata{comb_tasks(c,1)}.target)-1
+
+                fr_t1 = stdata{comb_tasks(c,1)}.target{t}.neural_data.smoothed_fr_mn;
+                fr_t1 = permute(fr_t1,[2 1]);            
+                fr1(:,t,:) = fr_t1;
+            end
+            % do for task 2 in another loop because the number targets may be
+            % different
+            for t = 1:length(stdata{comb_tasks(c,2)}.target)-1
+
+                fr_t2 = stdata{comb_tasks(c,2)}.target{t}.neural_data.smoothed_fr_mn;
+                fr_t2 = permute(fr_t2,[2 1]);
+                fr2(:,t,:) = fr_t2;          
+            end
+        else
+ 
+            % This was my first version of the code, which is kind of
+            % complicated, instead just take the concatenated trials for
+            % each task
+
+%            n_trials = size(stdata{comb_tasks(c,1)}.target{1}.neural_data.smoothed_fr,3);
+%            
+%             fr1 = zeros(n_units,n_targets,n_bins*n_trials);
+%             fr2 = zeros(n_units,n_targets,n_bins*n_trials);
+%             
+%             for t = 1:length(stdata{comb_tasks(c,1)}.target)-1
+%                 
+%                 fr_t1 = stdata{comb_tasks(c,1)}.target{t}.neural_data.smoothed_fr;
+%                 % fr_t1 has size Time x Neurons x Trials-> make it Neurons
+%                 % x (Time x Trials)
+%                 fr_t1 = permute(fr_t1,[2 1 3]);
+%                 fr_t1 = reshape(fr_t1,size(fr_t1,1),[]);
+%                 
+%                 fr1(:,t,:) = fr_t1;
+%             end
+%             % do for task 2 in another loop because the number targets may be
+%             % different
+%             for t = 1:length(stdata{comb_tasks(c,2)}.target)-1
+% 
+%                 fr_t2 = stdata{comb_tasks(c,2)}.target{t}.neural_data.smoothed_fr;
+%                 fr_t2 = permute(fr_t2,[2 1 3]);
+%                 fr_t2 = reshape(fr_t2,size(fr_t2,1),[]);
+%                 
+%                 fr2(:,t,:) = fr_t2;
+%             end   
+
+            fr1 = stdata{1}.target{end}.neural_data.conc_smoothed_fr';
+            fr2 = stdata{2}.target{end}.neural_data.conc_smoothed_fr';
         end
         
         % -----------------------------------------------------------------
         % Call Machens' dPCA explained variance function
 
-        expl_var_CC1 = dpca_explainedVariance(fr_avg1, W1, V1 );
-        expl_var_CC2 = dpca_explainedVariance(fr_avg2, W2, V2 );
+        expl_var_CC1 = dpca_explainedVariance(fr1, W1, V1 );
+        expl_var_CC2 = dpca_explainedVariance(fr2, W2, V2 );
         
         cum_vaf1 = expl_var_CC1.cumulativeDPCA;
         cum_vaf2 = expl_var_CC2.cumulativeDPCA;
@@ -285,7 +326,7 @@ plot(mn_wrist+sd_wrist,'-.k','linewidth',2)
 plot(mn_wrist-sd_wrist,'-.k','linewidth',2)
 set(gca,'TickDir','out','FontSize',14), box off
 ylabel('Neural variance expl. (%)')
-xlabel('CCA-projected neural modes')
+xlabel('CCA-projected neural mode')
 legend('wrist','reach-to-grasp','Location','NorthEast'), legend boxoff
     
 
@@ -309,7 +350,7 @@ plot(mn_all+sd_all,'-.k','linewidth',2)
 plot(mn_all-sd_all,'-.k','linewidth',2)
 set(gca,'TickDir','out','FontSize',14), box off
 ylabel('Neural variance expl. (%)'), 
-xlabel('CCA-projected neural modes')
+xlabel('CCA-projected neural mode')
 
 
 % V2 - Mean and color surface with SD over the mean
@@ -322,7 +363,7 @@ patch([x_ax, fliplr(x_ax)],[m_sd_vaf(1,:),fliplr(m_sd_vaf(2,:))],[.6 .6 .6],'Fac
 plot(mn_all,'k','linewidth',1.5)
 set(gca,'TickDir','out','FontSize',14), box off
 ylabel('Neural variance expl. (%)'), 
-xlabel('CCA-projected neural modes')
+xlabel('CCA-projected neural mode')
 
 
 
