@@ -35,7 +35,7 @@ reach_ds = [4:6 10:11];
 save_flg = false;
 
 % where to save figures
-dir_figs = '/Users/juangallego/Documents/Publications/2017 - Multi task manifold + some stuff not on DB/additional_analyses_during_review/';
+dir_figs = '/Users/juangallego/Documents/Publications/2017 - Multi task manifold + some stuff not on DB/additional_analyses_during_review/CCA_fcn_delay/';
 
 % plot leading mode?
 raw_data_plot_flg = true;
