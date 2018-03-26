@@ -1,7 +1,10 @@
 %
-% New control for CCA where we shuffle the weights of the linear
-% combinations
+% New set of controls for CCA where we: 1) shuffle the neural units'
+% weights onto the neural modes, 2) shuffle the neural mode dynamics across
+% trials and dimensions, 3) shuffle the neural units' activity patterns
+% across units and targets, plus other options not fully implemented
 % 
+%
 
 
 gcp;
@@ -226,7 +229,7 @@ for ds = 1:length(datasets)
 
                 for s = 1:n_shuffles
 
-                    % shuffle the scores across dimensions and trials
+                    % shuffle the firing rates across dimensions and trials
                     % psc1 has size time x trials x neurons matrix
                     rpfr1 = reshape(pfr1,size(pfr1,1),[]);
                     shuffled_rpfr1 = rpfr1(:,randperm(size(rpfr1,2)*size(rpfr1,3)));
