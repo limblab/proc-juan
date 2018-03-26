@@ -34,8 +34,8 @@ plot_per_comp_flg = true;
 control = 'shuffle_across_neurons_and_targets'; 
 
 % Number of shuffles
-n_shuffles = 1000;
-P_th = 0.01;
+n_shuffles = 2000;
+P_th = 0.05;
 
 
 % -------------------------------------------------------------------------
@@ -144,8 +144,8 @@ for ds = 1:length(datasets)
         
         % get single-trial neuron activity patterns --matrices are time x
         % neurons x trials 
-        fr1 = stdata{comb_tasks(c,1)}.target{end}.neural_data.dim_red.st_scores;
-        fr2 = stdata{comb_tasks(c,2)}.target{end}.neural_data.dim_red.st_scores;
+        fr1 = stdata{comb_tasks(c,1)}.target{end}.neural_data.fr;
+        fr2 = stdata{comb_tasks(c,2)}.target{end}.neural_data.fr;
 
         % turn fri into (time x trials) x neurons matrix
         pfr1 = permute(fr1,[1 3 2]);
@@ -398,8 +398,16 @@ for task_pair = 1:length(metadata.task_pairs.unique_pairs)
        
         highest_this = find(cc_diff(trials_this_pair(c),:)<0,1) -1;
         
-        highest_similar_mode_per_type(task_pair,highest_this) = 1 + ...
+        if highest_this == 0
+            warning('**********************************');
+            warning('**********************************');
+            warning('MODE 1 IS NOT SIGNIFICANTLY SIMILAR');
+            warning('**********************************');
+            warning('**********************************');
+        else
+            highest_similar_mode_per_type(task_pair,highest_this) = 1 + ...
                                 highest_similar_mode_per_type(task_pair,highest_this);
+        end
     end
 end
 
