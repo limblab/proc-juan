@@ -21,6 +21,9 @@ proj_params = batch_compare_manifold_projs_defaults();
 % Plot for each comparison? 
 plot_per_comp_flg = true;
 
+% Manifold dimensionality
+mani_dims = 4;
+
 % -------------------------------------------------------------------------
 % Parameters for the control analysis
 
@@ -31,11 +34,12 @@ plot_per_comp_flg = true;
 %  but shuffles the neural activity rather than the mode dynamics
 %  - 'shuffleSVD_U'
 %  - 'shuffle_over_time' (not fully implemented)  
-control = 'shuffle_across_neurons_and_targets'; 
+control = 'shuffle_across_neurons_and_targets'; % 'shuffle_across_neurons_and_targets'; 
+invert_random_trials_flg = true;
 
 % Number of shuffles
 n_shuffles = 2000;
-P_th = 0.05;
+P_th = 0.01;
 
 
 % -------------------------------------------------------------------------
@@ -48,16 +52,17 @@ P_th = 0.05;
 % end
 
 % overwrite manifold dimension, if necessary
-proj_params.dim_manifold = 12;
+proj_params.dim_manifold = mani_dims;
 
 
 % -------------------------------------------------------------------------
 
 % define which datasets are wrist and which ones are reach-to-grasp,
 % separately
-wrist_ds = [1:3 7:9];
+wrist_ds = [1:3 7:9]; % [1:3 7:9];
 reach_ds = [4:6 10:11];
 
+ds_to_use = [wrist_ds reach_ds];
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,22 +82,22 @@ ctr = 1;
 
 % DO
 
-for ds = 1:length(datasets)
+for ds = 1:length(ds_to_use)
 
     
     % Get task comparisons for this session
-    comb_tasks = nchoosek(1:length(datasets{ds}.labels),2);
+    comb_tasks = nchoosek(1:length(datasets{ds_to_use(ds)}.labels),2);
 
     
    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % PREPARE THE SINGLE TRIALS -- Taken from canon_corr_all_manifolds. Has
     % to be done for all the tasks in the session
     
-    stdata = datasets{ds}.stdata;
+    stdata = datasets{ds_to_use(ds)}.stdata;
     
     % 1) equalize trial duration across all tasks
     stdata = equalize_single_trial_dur( stdata, ...
-        'time_win', proj_params.time_win(ds,:) );
+        'time_win', proj_params.time_win(ds_to_use(ds),:) );
     
     % 2) equalize number of trials for all targets of a given task
     for i = 1:length(stdata)
@@ -144,8 +149,8 @@ for ds = 1:length(datasets)
         
         % get single-trial neuron activity patterns --matrices are time x
         % neurons x trials 
-        fr1 = stdata{comb_tasks(c,1)}.target{end}.neural_data.fr;
-        fr2 = stdata{comb_tasks(c,2)}.target{end}.neural_data.fr;
+        fr1 = stdata{comb_tasks(c,1)}.target{end}.neural_data.smoothed_fr;
+        fr2 = stdata{comb_tasks(c,2)}.target{end}.neural_data.smoothed_fr;
 
         % turn fri into (time x trials) x neurons matrix
         pfr1 = permute(fr1,[1 3 2]);
@@ -229,6 +234,24 @@ for ds = 1:length(datasets)
 
                 for s = 1:n_shuffles
 
+                    % "invert" the activity of some units in some trials
+                    if invert_random_trials_flg
+                        % random matrices of 1s and 0s: 1 => invert. Different for
+                        % the data from each task
+                        idx_invert1 = randi([0 1],[size(pfr1,2) size(pfr1,3)]);
+%                         idx_invert2 = randi([0 1],[size(pfr1,2) size(pfr1,3)]);
+                        for d2 = 1:size(pfr1,2)
+                            for d3 = 1:size(pfr1,3)
+                                if idx_invert1(d2,d3)
+                                    pfr1(:,d2,d3) = pfr1(end:-1:1,d2,d3);
+                                end
+%                               if idx_invert2(d2,d3)
+%                                   pfr2(:,d2,d3) = pfr2(end:-1:1,d2,d3);
+%                               end
+                            end
+                        end
+                    end
+                    
                     % shuffle the firing rates across dimensions and trials
                     % psc1 has size time x trials x neurons matrix
                     rpfr1 = reshape(pfr1,size(pfr1,1),[]);
@@ -336,7 +359,7 @@ for ds = 1:length(datasets)
         
         if plot_per_comp_flg
             figure,hold on %#ok<UNRCH>
-            plot(r,'k','linewidth',1.5)
+            plr = plot(r,'k','linewidth',1.5);
             plot(all_rshuff','color',[216 190 216]/255)
 %             if exist('all_rshuff2','var')
 %                 plot(all_rshuff','color',[255 215 0]/255)
@@ -345,10 +368,13 @@ for ds = 1:length(datasets)
 %             if exist('all_rshuff2','var')
 %                 plot(t_signif_th2','color',[255 140 0]/255,'linewidth',1.5)
 %             end
+            uistack(plr,'top')
             ylim([0 1]),xlim([0 proj_params.dim_manifold]);
             set(gca,'TickDir','out','FontSize',14), box off
             xlabel('Neural mode'),ylabel('Canonical correlation')
             legend('actual','surrogates')
+            title([datasets{ds_to_use(ds)}.monkey ' - ' datasets{ds_to_use(ds)}.date(1:end-4) ' - ' ...
+                datasets{ds_to_use(ds)}.labels{comb_tasks(c,1)} ' vs ' datasets{ds_to_use(ds)}.labels{comb_tasks(c,2)}])
             % pause; close
         end
     end
@@ -356,17 +382,23 @@ end
 
 
 % -------------------------------------------------------------------------
-%% Summary calculations
+%% Summary calculations and figures
 
 
 % Find number of modes for each task whose CC is above this significance
 % threshold
 
 cc_diff = signif_CC.all_actual_CCs-signif_CC.signif_th;
+highest_similar_mode = zeros(1,size(cc_diff,1));
 
 for c = 1:size(cc_diff,1)
     
-    highest_similar_mode(c) = find(cc_diff(c,:)<0,1)-1;
+    t_highest_mode = find(cc_diff(c,:)<0,1)-1;
+    if ~isempty(t_highest_mode)
+        highest_similar_mode(c) = t_highest_mode;
+    else
+        highest_similar_mode(c) = proj_params.dim_manifold;
+    end
 end
 
 
@@ -389,6 +421,9 @@ metadata = batch_get_monkey_task_data(datasets);
 
 highest_similar_mode_per_type = zeros(length(unique(metadata.task_pairs.task_pair_nbr)),...
                                 proj_params.dim_manifold);
+
+% task comparisons with zero similar modes
+no_similar_modes_ctr = 0;
                             
 for task_pair = 1:length(metadata.task_pairs.unique_pairs)
     
@@ -396,14 +431,14 @@ for task_pair = 1:length(metadata.task_pairs.unique_pairs)
     
     for c = 1:length(trials_this_pair)
        
-        highest_this = find(cc_diff(trials_this_pair(c),:)<0,1) -1;
+        highest_this = find(cc_diff(trials_this_pair(c),:)<0,1) - 1;
         
-        if highest_this == 0
-            warning('**********************************');
-            warning('**********************************');
-            warning('MODE 1 IS NOT SIGNIFICANTLY SIMILAR');
-            warning('**********************************');
-            warning('**********************************');
+        if isempty(highest_this)
+            highest_similar_mode_per_type(task_pair,proj_params.dim_manifold) = 1 + ...
+                highest_similar_mode_per_type(task_pair,proj_params.dim_manifold);
+        elseif highest_this == 0
+            % there are no similar modes for this task comparison
+            no_similar_modes_ctr = no_similar_modes_ctr + 1;
         else
             highest_similar_mode_per_type(task_pair,highest_this) = 1 + ...
                                 highest_similar_mode_per_type(task_pair,highest_this);
@@ -417,8 +452,21 @@ for p = 1:length(metadata.task_pairs.unique_pairs)
         metadata.task_pairs.unique_pairs{p}{2}];
 end
 
+
+
+% Summary histogram 
 figure,
 bar(1:proj_params.dim_manifold,highest_similar_mode_per_type','stacked')
+if no_similar_modes_ctr > 1
+    hold on
+    bar(0,no_similar_modes_ctr,'FaceColor',[.7 .7 .7])
+    set(gca,'XTick',0:proj_params.dim_manifold);
+    xt{1} = 'No';
+    for d = 1:proj_params.dim_manifold
+        xt{d+1} = num2str(d);
+    end
+    set(gca,'XTickLabel',xt)
+end
 set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
 xlabel('Highest mode w. similar dynamics'),ylabel('Counts')
 legend(this_legend,'Location','NorthWest'), legend boxoff
