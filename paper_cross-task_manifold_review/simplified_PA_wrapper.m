@@ -3,7 +3,7 @@ clearvars -except datasets, close all;
 
 
 % Manifold dimensionality
-mani_dims_reach = 3;
+mani_dims_reach = 8;
 
 % Params significance threshold
 n_shuffles = 10000;

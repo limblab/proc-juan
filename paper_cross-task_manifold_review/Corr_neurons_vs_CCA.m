@@ -306,7 +306,7 @@ norm_y_hist_cc_lv   = y_hist_cc_lv/numel(all_cc_lv)*100;
 % ylim([0 400])
 
 
-
+% -------------------------------------------------------------------------
 % PLOT NORMALIZED HISTOGRAM CORRELATION NEURONS
 
 figure, hold on
@@ -332,6 +332,8 @@ else
 end
 
 
+
+% -------------------------------------------------------------------------
 % PLOT NORMALIZED HISTOGRAM CORRELATION NEURONS VS CANONICAL CORR LATENT VARS
 
 figure, hold on
@@ -362,7 +364,8 @@ legend('Neurons','Neural modes','Location','NorthEast'), legend boxoff
 
 
 
-% PLOT DIFF HIST CORR LATENT VARS - CORR NEURONS
+% -------------------------------------------------------------------------
+% PLOT HISTOGRAM DIFFERENCE CORR LATENT VARS - CORR NEURONS
 
 if abs_corr
 
@@ -377,5 +380,94 @@ end
 
 
 
+% -------------------------------------------------------------------------
+% PLOT ERRROBAR CCs VS ERROBAR NEURONS
+
+if abs_corr
+
+    mn_cc_dim = mean(cc_lv_mtrx,2);
+    sd_cc_dim = std(cc_lv_mtrx,0,2);
+    
+    hf = figure; hold on
+    errorbar(1:params.dim_manifold,mn_cc_dim,sd_cc_dim,'k','marker','.',...
+        'markersize',30,'linestyle','none','linewidth',2)
+    errorbar(params.dim_manifold+1.5,mn_corr_n,sd_corr_n,'color',[.7 .7 .7],'marker','.',...
+        'markersize',30,'linestyle','none','linewidth',2)
+    set(gca,'TickDir','out','FontSize',14), box off
+    
+    xlb = [];
+    for i = 2:2:params.dim_manifold, xlb{i/2} = num2str(i); end
+    xlbx = [2:2:params.dim_manifold, params.dim_manifold+1.5];
+    xlb{length(xlb)+1} = 'units';
+    set(gca,'XTick',xlbx,'XTickLabel',xlb,'XTickLabelRotation',45)
+    xlabel('Neural modes'),ylabel('Correlation')
+    set(hf, 'color', [1 1 1]);
+    
+%     figure,hold on, yyaxis left
+%     boxplot(cc_lv_mtrx','positions',1:12,'color','k')
+%     boxplot(all_corrs_n,'positions',params.dim_manifold+1,'color','k')
+%     ylim([0 1]), xlim([0 params.dim_manifold+1])    
+end
+
+
+
+% -------------------------------------------------------------------------
+% PLOT BOXPLOT CCs VS BOXPLOT NEURONS
+
+if abs_corr
+
+    dbox = nan(length(all_corrs_n),params.dim_manifold+1);
+    
+    dbox(1:size(cc_lv_mtrx,2),1:params.dim_manifold) = cc_lv_mtrx';
+    dbox(:,end) = all_corrs_n;
+    
+    hb = figure; hold on
+    boxplot(dbox,'color','k')
+    ylim([0 1]), xlim([0 params.dim_manifold+2])
+    set(gca,'TickDir','out','FontSize',14), box off
+    set(gca,'XTick',xlbx,'XTickLabel',xlb,'XTickLabelRotation',45)
+    xlabel('Neural modes'),ylabel('Correlation')
+    set(hb, 'color', [1 1 1]);
+end
+
+
+% -------------------------------------------------------------------------
+% COMPARE CCs AND NEURON CORRs TAKING PERCENTILES OF THE DISTRUBTION OF
+% CORRELATIONS
+
+if abs_corr
+
+    % take means by percentile and SD
+    sort_corrs_n = sort(all_corrs_n);
+    mn_prc = zeros(length(params.dim_manifold),1);
+    sd_prc = zeros(length(params.dim_manifold),1);
+    for i = 1:params.dim_manifold
+       prev_prctile = prctile(all_corrs_n,100/params.dim_manifold*(i-1));
+       t_prctile = prctile(all_corrs_n,100/params.dim_manifold*i);
+       t_corrs = all_corrs_n( all_corrs_n>=prev_prctile & all_corrs_n < t_prctile );
+       mn_prc(i) = mean(t_corrs);
+       sd_prc(i) = std(t_corrs);
+    end
+    mn_prc = fliplr(mn_prc);
+    sd_prc = fliplr(sd_prc);
+   
+    
+    hf = figure; hold on
+    errorbar(1:2:2*params.dim_manifold-1,mn_cc_dim,sd_cc_dim,'k','marker','.',...
+        'markersize',30,'linestyle','none','linewidth',2)
+    errorbar(2:2:2*params.dim_manifold,mn_prc,sd_prc,'color',[.7 .7 .7],'marker','.',...
+        'markersize',30,'linestyle','none','linewidth',2)
+    set(gca,'TickDir','out','FontSize',14), box off
+    
+    for i = 1:1:params.dim_manifold, xlb{i} = num2str(i); end
+    xlbx = 1.5:2:2*params.dim_manifold+1.5;
+    set(gca,'XTick',xlbx,'XTickLabel',xlb)
+    xlabel('Neural modes / 12-ile units'),ylabel('Correlation')
+    set(hf, 'color', [1 1 1]);
+    legend('Neural modes','Units'),legend boxoff
+end
+
+    
+% -------------------------------------------------------------------------
 % Clear vars
 clearvars -except *_results *_params datasets manifold_dim
