@@ -399,7 +399,7 @@ if abs_corr
     for i = 2:2:params.dim_manifold, xlb{i/2} = num2str(i); end
     xlbx = [2:2:params.dim_manifold, params.dim_manifold+1.5];
     xlb{length(xlb)+1} = 'units';
-    set(gca,'XTick',xlbx,'XTickLabel',xlb,'XTickLabelRotation',45)
+    set(gca,'XTick',xlbx,'XTickLabel',xlb)
     xlabel('Neural modes'),ylabel('Correlation')
     set(hf, 'color', [1 1 1]);
     
@@ -422,10 +422,10 @@ if abs_corr
     dbox(:,end) = all_corrs_n;
     
     hb = figure; hold on
-    boxplot(dbox,'color','k')
+    boxplot(dbox,'color','k','symbol','.','OutlierSize',4)
     ylim([0 1]), xlim([0 params.dim_manifold+2])
     set(gca,'TickDir','out','FontSize',14), box off
-    set(gca,'XTick',xlbx,'XTickLabel',xlb,'XTickLabelRotation',45)
+    set(gca,'XTick',xlbx,'XTickLabel',xlb)
     xlabel('Neural modes'),ylabel('Correlation')
     set(hb, 'color', [1 1 1]);
 end
