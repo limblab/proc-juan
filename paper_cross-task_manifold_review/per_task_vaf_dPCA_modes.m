@@ -130,6 +130,7 @@ for ds = 1:length(dPCA_datasets) % with respect to dPCA_datasets (!!!)
     Worth = orth(W);
 
     per_task_var = zeros(S,manifold_dim);
+    per_task_var_pca = zeros(S,manifold_dim);
     per_task_var_per_marg = zeros(S,length(dPCA_results{ds}.marg_names));
 
     % do for each task
@@ -154,7 +155,7 @@ for ds = 1:length(dPCA_datasets) % with respect to dPCA_datasets (!!!)
         % Compute how much of the total variance the dPCA modes explain for
         % each task -- DOES THIS MAKE SENSE? 
         per_task_var(t,:) = explVar.cumulativeDPCA;
-
+        per_task_var_pca(t,:) = explVar.cumulativePCA;
         
         
 %         % Add up the per task covariance per covariate (time, target, ...)
@@ -167,6 +168,7 @@ for ds = 1:length(dPCA_datasets) % with respect to dPCA_datasets (!!!)
     % Store the results
     
     dPCA_results{ds}.per_task_var = per_task_var;
+    dPCA_results{ds}.per_task_var_pca = per_task_var_pca;
 %     dPCA_results{ds}.per_task_var_per_marg = per_task_var_per_marg;
     
 end
@@ -194,4 +196,21 @@ ylabel('Per-task neural variance expl. (%)')
 set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off,
 set(gca,'XTick',[1 2],'XTickLabel',{'C','J'})
 
-% 2. MEAN + SD PER-TASK VARIANCE PER MARGINALIZATION IN THE DPCA MANIFOLD
+
+
+% 2. RATIO DPCA TO PCA NEURAL VAR EXPLAINED
+
+% get a matrix that has all the values
+sptvm_pca = cell2mat(cellfun(@(x) x.per_task_var_pca(:,end), dPCA_results, 'UniformOutput', false )');
+
+dpca_to_pca_var = sptvm./sptvm_pca;
+
+
+figure, hold on
+errorbar([1 2],100*[mean(dpca_to_pca_var(jaco_tasks)) mean(dpca_to_pca_var(jango_tasks))],100*[std(dpca_to_pca_var(jaco_tasks)) std(dpca_to_pca_var(jango_tasks))],...
+    'linestyle','none','linewidth',2,'color','k')
+bar([1 2],100*[mean(dpca_to_pca_var(jaco_tasks)) mean(dpca_to_pca_var(jango_tasks))],'Facecolor',[.6 .6 .6],'linewidth',2)
+xlim([0 3]), ylim([0 100])
+ylabel('Ratio dPCA to PCA per-task neural variance expl. (%)')
+set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off,
+set(gca,'XTick',[1 2],'XTickLabel',{'C','J'})
