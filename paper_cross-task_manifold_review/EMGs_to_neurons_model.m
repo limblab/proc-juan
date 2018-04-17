@@ -235,3 +235,12 @@ legend('Model','Real','Location','NorthEast'), legend boxoff
 
 [~, p] = ttest2(reshape(all_real_CCs,1,[]),reshape(all_model_CCs,1,[]));
 disp(['Paired t-test between CC distributions for model and real data: ' num2str(p)]);
+
+
+% Ratio between model and real data CCs
+
+CCratio = reshape(all_real_CCs,1,[])./reshape(all_model_CCs,1,[]);
+mn_CCratio = mean(CCratio);
+sd_CCratio = std(CCratio);
+
+disp(['Ratio between real data CCs and model CCs: ' num2str(mn_CCratio) ' +/- ' num2str(sd_CCratio)]);
