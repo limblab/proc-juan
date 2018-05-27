@@ -337,7 +337,9 @@ end
 
 
 
-% PAPER FIGURE 
+% -------------------------------------------------------------------------
+%% PAPER FIGURE 3: EXAMPLE SESSIONS; SUMMARY HISTOGRAM
+
 figure
 % Example sessions
 for p = 1:length(sessions2plot)
@@ -376,3 +378,32 @@ xlabel('Highest similar mode'),ylabel('Percentage (%)')
 legend(lgn_hist,'Location','NorthWest'), legend boxoff
 xlim([0 proj_params.dim_manifold+1])
 set(gcf,'color','w')
+
+
+% -------------------------------------------------------------------------
+%% SUPPL FIGURE: NORMALIZED PAs
+
+norm_PAs = all_actual_PAs./TME_th;
+
+cols_norm = parula(length(meta_info.task_pairs.unique_pairs));
+
+lgn_ctr = 1;
+
+figure,hold on
+for c = 1:size(norm_PAs,1)
+    
+    ttc = meta_info.task_pairs.task_pair_nbr(c);
+    t_c = cols_norm(ttc,:);
+    
+    if ttc == lgn_ctr
+        hp(lgn_ctr)  = plot(norm_PAs(c,:),'color',t_c,'linewidth',1.5);
+        lgn_ctr = lgn_ctr + 1;
+    else
+        plot(norm_PAs(c,:),'color',t_c,'linewidth',1.5);
+    end
+end
+plot([0 proj_params.dim_manifold],[1 1],'--','color',[.6 .6 .6],'linewidth',1.5)
+set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off
+xlabel('Highest similar mode'),ylabel('Normalized principal angle')
+ylim([0 1.1]),xlim([0 proj_params.dim_manifold+2])
+legend(hp, lgn_hist, 'location','SouthEast'), legend boxoff
