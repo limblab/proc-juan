@@ -13,7 +13,7 @@ mani_dim = 12;
 ds_to_use = [1:3 7:9];
 
 
-add_noise = true; % add white noise with neuron-dependent variable 'gain'
+add_noise = false; % add white noise with neuron-dependent variable 'gain'
 do_smoothing = false; % make the signals really smooth with a beautiful kernel
 
 % to amplify the noise...
