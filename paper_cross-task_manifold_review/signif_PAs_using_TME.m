@@ -8,7 +8,7 @@ rng('shuffle', 'twister') % randomize the seed
 
 % TME parameters
 surrogate_type = 'surrogate-TC';
-n_surrogates = 2000;
+n_surrogates = 10000;
 
 % Datasets to use?
 ds_to_use = 1:11;
@@ -242,11 +242,70 @@ xlim([0 90]),ylim([0 90])
 
 
 % -------------------------------------------------------------------------
+%%
+
+% Plot histogram number similar modes
+diff_TME_actual = TME_th - all_actual_PAs;
+
+small_PAs = diff_TME_actual > 0;
+
+highest_similar_mode = zeros(1,length(session_nbr));
+
+for c = 1:length(session_nbr)
+    hsm = find(small_PAs(c,:)==0,1);
+    if isempty(hsm)
+        highest_similar_mode(c) = size(diff_TME_actual,2);
+    else
+        highest_similar_mode(c) = hsm-1;
+    end
+end
+
+[c_sim_modes, x_ax] = histcounts( highest_similar_mode, 1:proj_params.dim_manifold+1 );
+c_sim_modes = c_sim_modes / sum(c_sim_modes) * 100;
+
+% % Histogram without specifying the task comparison
+% figure,
+% hb = bar(x_ax(1:end-1),c_sim_modes,'histc');
+% set(hb,'FaceColor',[.6 .6 .6])
+% set(gca,'TickDir','out','FontSize',14), box off
+% ylabel('Percentage (%)')
+% xlabel('Highest similar mode')
+
+
+% Histogram with all task comparisons, organized per task-comparison type
+
+meta_info = batch_get_monkey_task_data(datasets);
+
+
+lgn_hist        = cell(1,length(meta_info.task_pairs.unique_pairs));
+for p = 1:length(meta_info.task_pairs.unique_pairs)
+    lgn_hist{p} = [meta_info.task_pairs.unique_pairs{p}{1} ' vs. ' ...
+                    meta_info.task_pairs.unique_pairs{p}{2}];
+end
+
+
+highest_similar_mode_type = zeros(length(meta_info.task_pairs.unique_pairs),proj_params.dim_manifold);
+
+for i = 1:length(meta_info.task_pairs.task_pair_nbr)
+    
+    thm = highest_similar_mode(i);
+    ttp = meta_info.task_pairs.task_pair_nbr(i);
+    
+    highest_similar_mode_type(ttp,thm) = highest_similar_mode_type(ttp,thm) + 1;
+end
+
+% convert to %
+highest_similar_mode_type = highest_similar_mode_type./sum(sum(highest_similar_mode_type))*100;
+highest_similar_mode_type(isnan(highest_similar_mode_type )) = 0;
+
+
+% -------------------------------------------------------------------------
 %% 	PAPER PLOTS (FIGURE 3)
 
 
 % plot specific sessions --won't do anything if empty
-sessions2plot = [8, 11];
+sessions2plot = [11, 8];
+
 
 % Plot specific sessions --actual PAs, our shuffled PA and the surrogate PAs 
 
@@ -270,9 +329,50 @@ if ~isempty(sessions2plot)
         xlim([0 proj_params.dim_manifold]), ylim([0 90])
         xlabel('Neural mode'),ylabel('Principal angle (deg)')
         hf.Renderer = 'Painters';
+        set(gcf,'color','w')
     end
 end
 
 
 
 
+
+% PAPER FIGURE 
+figure
+% Example sessions
+for p = 1:length(sessions2plot)
+    
+    idx_this = find(session_nbr==sessions2plot(p));
+    colors = parula(length(idx_this));
+    if size(colors,1) == 1, colors = [0 0 0]; end
+    
+    subplot(1,length(sessions2plot)+1,p), hold on
+
+    % get most stringent significance threshold
+    idx_all_comps_this = find(session_nbr==sessions2plot(p));
+    TME_th_this = TME_th(idx_all_comps_this,:);
+    if numel(idx_all_comps_this ) > 1
+        stringent_TME = min(TME_th_this);
+    else
+        stringent_TME = TME_th_this;
+    end
+    
+    % plot
+    for c = 1:size(colors,1)
+        plot(rad2deg(all_actual_PAs(idx_this(c),:)'),'color',colors(c,:),'linewidth',1.5)
+    end
+    plot(rad2deg(stringent_TME'),'--','color',[.6 .6 .6],'linewidth',1.5)
+    
+    set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off
+    xlim([0 proj_params.dim_manifold]), ylim([0 90])
+    xlabel('Neural mode')
+    if p == 1, ylabel('Principal angle (deg)'); end
+end
+% Histogram
+subplot(1,length(sessions2plot)+1,length(sessions2plot)+1)
+bar(x_ax(1:end-1),highest_similar_mode_type','stack')
+set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off
+xlabel('Highest similar mode'),ylabel('Percentage (%)')
+legend(lgn_hist,'Location','NorthWest'), legend boxoff
+xlim([0 proj_params.dim_manifold+1])
+set(gcf,'color','w')
