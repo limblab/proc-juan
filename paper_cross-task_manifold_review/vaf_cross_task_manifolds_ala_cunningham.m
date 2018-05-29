@@ -8,10 +8,10 @@ if ~exist('datasets','var')
     load('/Users/juangallego/Documents/NeuroPlast/Data/_Dimensionality reduction/all_manifold_datasets.mat');
 end
 
-mani_dims = 12;
+mani_dims = 15;
 
 n_shuffles = 10000; % for the control
-P = 0.01; % signif threshold for the control
+P = 0.001; % signif threshold for the control
 
 
 
@@ -141,11 +141,6 @@ x_hist = 0:5:105;
 hist_vaf_ratio = histcounts(all_var_ratio,x_hist)/length(all_var_ratio)*100;
 
 
-% paired t-test
-% [~, p] = ttest2(double(all_var_ratio),double(all_var_ratio_sh)); % this
-% is unpaired
-[~, pp] = ttest(double(all_var_ratio),double(all_var_ratio_sh));
-
 
 % and for the control
 all_var_ratio_sh = all_var_shuffled * 100;
@@ -154,6 +149,13 @@ m_vaf_sh = mean(all_var_ratio_sh);
 sd_vaf_sh = std(all_var_ratio_sh);
 
 hist_vaf_sh = histcounts(all_var_ratio_sh,x_hist)/length(all_var_ratio_sh)*100;
+
+
+% paired t-test
+% [~, p] = ttest2(double(all_var_ratio),double(all_var_ratio_sh)); % this
+% is unpaired
+[~, pp] = ttest(double(all_var_ratio),double(all_var_ratio_sh));
+
 
 
 y_plot = max( ceil(max(hist_vaf_ratio)), ceil(max(hist_vaf_sh))) + 5;
