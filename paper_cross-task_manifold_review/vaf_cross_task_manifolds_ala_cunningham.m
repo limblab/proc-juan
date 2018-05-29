@@ -8,7 +8,7 @@ if ~exist('datasets','var')
     load('/Users/juangallego/Documents/NeuroPlast/Data/_Dimensionality reduction/all_manifold_datasets.mat');
 end
 
-mani_dims = 15;
+mani_dims = 12;
 
 n_shuffles = 10000; % for the control
 P = 0.001; % signif threshold for the control
