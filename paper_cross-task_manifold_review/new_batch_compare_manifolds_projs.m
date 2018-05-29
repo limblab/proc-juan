@@ -7,7 +7,7 @@
 %
 
 
-% gcp;
+gcp;
 
 % Load data if it isn't in the workspace
 if ~exist('datasets','var')
@@ -19,7 +19,7 @@ end
 proj_params = batch_compare_manifold_projs_defaults();
 
 % Plot for each comparison? 
-plot_per_comp_flg = true;
+plot_per_comp_flg = false;
 
 % Manifold dimensionality
 mani_dims = 12;
@@ -41,9 +41,10 @@ invert_random_trials_flg = false;
 kernel_width = 0.05;
 
 % Number of shuffles
-n_shuffles = 5000;
+n_shuffles = 5000; % 5000
 P_th = 0.01;
 
+n_shuffles_within_task = 100; % 100
 
 % -------------------------------------------------------------------------
 % Parameters for analysis
@@ -468,7 +469,7 @@ for ds = 1:length(ds_to_use)
     % Do within-task CCs
     cc_within       = canon_corr_within_all_manifolds( datasets{ds_to_use(ds)}.stdata, ...
         1:proj_params.dim_manifold, true, 'all_conc', ...
-        proj_params.time_win(ds_to_use(ds),:), 100 );
+        proj_params.time_win(ds_to_use(ds),:), n_shuffles_within_task );
     
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -477,11 +478,14 @@ for ds = 1:length(ds_to_use)
     
     proj_results.data{ds}.can_corrs = can_corrs;
     proj_results.data{ds}.within_can_corrs = cc_within;
-    proj_results.data{ds}.can_corrs.signif_boots = signif_CC.signif_th;
+    proj_results.data{ds}.can_corrs.signif_boots = signif_CC.signif_th(end-size(comb_tasks,1)+1:end,:);
     proj_results.data{ds}.can_corrs.params_boots.prctile_signif = P_th;
     proj_results.data{ds}.can_corrs.params_boots.nbr_shuffles = n_shuffles;
     proj_results.data{ds}.can_corrs.params_boots.method = control;
         
+    
+    % empty matrices that are not overwritten
+    can_corrs = [];
 end
 
 
@@ -557,21 +561,23 @@ for p = 1:length(metadata.task_pairs.unique_pairs)
         metadata.task_pairs.unique_pairs{p}{2}];
 end
 
+nbr_pairs_tasks      	= length(metadata.task_pairs.unique_pairs);
+
 
 
 % -------------------------------------------------------------------------
 % -------------------------------------------------------------------------
 %% ------------------------------------------------------------------------
-% SUMMARY DATA AND FIGURES -- most of the code is copied from 
+% SUMMARIZE DATA -- most of the code is copied from 
 % batch_compare_manifold_projs and needs to be refined 
 
 
 % create struct to store the summary results
 summary_data.canon_corrs = struct('pair',[metadata.task_pairs.unique_pairs],...
                             'nbr_canon_corrs_above_chance',[],...
-                            'cc',zeros(1,params.dim_manifold),...
-                            'norm_cc',zeros(1,params.dim_manifold),...
-                            'ceil_cc',zeros(1,params.dim_manifold));
+                            'cc',zeros(1,proj_params.dim_manifold),...
+                            'norm_cc',zeros(1,proj_params.dim_manifold),...
+                            'ceil_cc',zeros(1,proj_params.dim_manifold));
              
                 
 
@@ -579,35 +585,36 @@ summary_data.canon_corrs = struct('pair',[metadata.task_pairs.unique_pairs],...
 % Fill 2D matrices with results, so it's easier to compile them
 
 % matrix with all canonical correlations
+nbr_manifold_pairs      = size(cc_diff,1);
 nbr_projs_above_chance  = zeros(1,nbr_manifold_pairs);
-cc_matrix               = zeros(nbr_manifold_pairs,params.dim_manifold);
-chance_matrix           = zeros(nbr_manifold_pairs,params.dim_manifold);
-norm_cc_matrix          = zeros(nbr_manifold_pairs,params.dim_manifold);
-ceil_cc_matrix          = zeros(nbr_manifold_pairs,params.dim_manifold);
+cc_matrix               = zeros(nbr_manifold_pairs,proj_params.dim_manifold);
+chance_matrix           = zeros(nbr_manifold_pairs,proj_params.dim_manifold);
+norm_cc_matrix          = zeros(nbr_manifold_pairs,proj_params.dim_manifold);
+ceil_cc_matrix          = zeros(nbr_manifold_pairs,proj_params.dim_manifold);
 ctr                     = 1;
     
-for d = 1:length(data)
-    for p = 1:size(data{d}.can_corrs.cc,1)
+for d = 1:length(proj_results.data)
+    for p = 1:size(proj_results.data{d}.can_corrs.cc,1)
         
         % fill matrix with all CCs
-        cc_matrix(ctr,:) = data{d}.can_corrs.cc(p,:);
+        cc_matrix(ctr,:) = proj_results.data{d}.can_corrs.cc(p,:);
         
         % fill chance levels
-        chance_matrix(ctr,:) = data{d}.can_corrs.signif_boots(p,:);
+        chance_matrix(ctr,:) = proj_results.data{d}.can_corrs.signif_boots(p,:);
         
         % ceil CC (max of the 99th percentiel of the within CC)
         % -- it used to be the mean but it was changed following a
         % reviewer's comment
-        ceil_cc_matrix(ctr,:) = data{d}.within_can_corrs.pair{p}.pctile99_max;
+        ceil_cc_matrix(ctr,:) = proj_results.data{d}.within_can_corrs.pair{p}.pctile99_max;
         
         % norm CC matrix
         norm_cc_matrix(ctr,:) = cc_matrix(ctr,:)./chance_matrix(ctr,:);
         
         % get number of projections that are greater than change
-        if params.do_bootstrap
+        if proj_params.do_bootstrap
             nbr_projs_above_chance(ctr) = sum( cc_matrix(ctr,:) > chance_matrix(ctr,:) );
         else
-            nbr_projs_above_chance(ctr) = sum( pooled_P_vals(ctr,:) < params.P_thr );
+            nbr_projs_above_chance(ctr) = sum( pooled_P_vals(ctr,:) < proj_params.P_thr );
         end
         
         ctr             = ctr + 1;
@@ -622,8 +629,8 @@ end
 for i = 1:nbr_manifold_pairs
    for ii = 1:nbr_pairs_tasks
         % retrieve pairs of tasks
-        pair_cmp        = strcmpi(meta_info.task_pairs.unique_pairs{ii},...
-                            sort(meta_info.task_pairs.task_pair{i}));
+        pair_cmp        = strcmpi(metadata.task_pairs.unique_pairs{ii},...
+                            sort(metadata.task_pairs.task_pair{i}));
 
         if sum(pair_cmp) == 2
             % store the canoncorrs per task. Just append each trial one
@@ -662,7 +669,7 @@ end
 % ----------------------------------
 % Store in the mega structure
 proj_results.summary_data = summary_data;
-% update some params
+% update some proj_params
 proj_params.P_thr = P_th;
 proj_params.nbr_shuffles_bootstrap = n_shuffles;
 proj_params.bootstrap_method = control;
@@ -673,8 +680,11 @@ proj_results.params = proj_params;
 
 
 
-% -------------------------------------------------------------------------
-% Get data for summary histogram 
+%% ------------------------------------------------------------------------
+% SUMMARY FIGURES
+
+
+% SUMMARY HISTOGRAM WITH ALL THE SESSIONS PER TASK COMPARISON TYPE
 figure,
 bar(1:proj_params.dim_manifold,highest_similar_mode_per_type','stacked')
 if no_similar_modes_ctr > 1
@@ -690,3 +700,122 @@ end
 set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
 xlabel('Highest mode w. similar dynamics'),ylabel('Counts')
 legend(this_legend,'Location','NorthWest'), legend boxoff
+
+
+% % ALL NORMALIZED CCs
+% figure,hold on
+% plot(norm_cc_matrix','linewidth',1)
+% plot([0 mani_dims],[1 1],'-.','color',[.6 .6 .6],'linewidth',2)
+% set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
+% xlabel('Highest mode w. similar dynamics'),ylabel('Counts')
+
+
+
+% -------------------------------------------------------------------------
+%% SUPPL FIGURE: NORMALIZED CCs
+
+cols_norm = parula(length(metadata.task_pairs.unique_pairs));
+
+lgn_ctr = 1;
+
+figure,hold on
+for c = 1:size(norm_cc_matrix,1)
+    
+    ttc = metadata.task_pairs.task_pair_nbr(c);
+    t_c = cols_norm(ttc,:);
+    
+    if ttc == lgn_ctr
+        hp(lgn_ctr)  = plot(norm_cc_matrix(c,:),'color',t_c,'linewidth',1.5);
+        lgn_ctr = lgn_ctr + 1;
+    else
+        plot(norm_cc_matrix(c,:),'color',t_c,'linewidth',1.5);
+    end
+end
+plot([0 mani_dims],[1 1],'-.','color',[.6 .6 .6],'linewidth',2)
+set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off
+xlabel('Neural mode'),ylabel('Norm. CC mode dynamics')
+xlim([0 proj_params.dim_manifold+2])
+legend(hp, this_legend, 'location','NorthEast'), legend boxoff
+
+
+% -------------------------------------------------------------------------
+%% EXAMPLE SESSIONS
+
+
+% Task comparisons for the example grip and wrist sessions
+t_pairs_wrist = 19:24;
+t_pairs_grip = 28;
+
+% fill data
+
+all_CCs_grip = cc_matrix(t_pairs_grip,:);
+all_CCs_wrist = cc_matrix(t_pairs_wrist,:);
+
+CC_within_grip = ceil_cc_matrix(t_pairs_grip,:);
+CC_within_wrist = ceil_cc_matrix(t_pairs_wrist,:);
+
+if length(t_pairs_grip)>1
+    sign_grip = max(chance_matrix(t_pairs_grip,:));
+else
+    sign_grip = chance_matrix(t_pairs_grip,:);
+end
+if length(t_pairs_wrist)>1
+    sign_wrist = max(chance_matrix(t_pairs_wrist,:));
+else
+    sign_wrist = chance_matrix(t_pairs_wrist,:);
+end
+
+for i = 1:length(t_pairs_grip)
+    lgn_grip{i} = [ metadata.task_pairs.task_pair{t_pairs_grip(i)}{1} ...
+        ' vs ' metadata.task_pairs.task_pair{t_pairs_grip(i)}{2} ];
+end
+lgn_grip{end+1} = 'P=0.001';
+
+for i = 1:length(t_pairs_wrist)
+    lgn_wrist{i} = [ metadata.task_pairs.task_pair{t_pairs_wrist(i)}{1} ...
+        ' vs ' metadata.task_pairs.task_pair{t_pairs_wrist(i)}{2} ];
+end
+lgn_wrist{end+1} = 'P=0.001';
+
+
+if length(t_pairs_grip)>1
+    c_grip = parula(length(t_pairs_grip));
+else
+    c_grip = [0 0 0];
+end
+if length(t_pairs_wrist)>1
+    c_wrist = parula(length(t_pairs_wrist));
+else
+    c_wrist = [0 0 0];
+end
+
+figure%('units','normalized','outerposition',[0.2 0.2 0.6 0.6]);
+% Bottom left panel: Grip summary CC
+subplot(1,2,1), hold on
+plot(all_CCs_grip,'k','linewidth',1.5)
+plot(sign_grip,'--','color',[.6 .6 .6],'linewidth',1.5)
+plot(CC_within_grip,'--k','linewidth',1.5)
+set(gca,'TickDir','out','FontSize',14), box off
+xlim([0 mani_dims]),ylim([0 1])
+legend(lgn_grip,'Location','NorthEast'),legend boxoff
+xlabel('Manifold dimension'), ylabel('CC neural mode dynamics')
+% Bottom middle panel: Wrist summary CC
+subplot(1,2,2), hold on
+for p = 1:size(all_CCs_wrist,1)
+    plot(all_CCs_wrist(p,:),'color',c_wrist(p,:),'linewidth',1.5)
+end
+plot(sign_wrist,'--','color',[.6 .6 .6],'linewidth',1.5)
+for p = 1:size(all_CCs_wrist,1)
+    plot(CC_within_wrist(p,:),'color',c_wrist(p,:),'linewidth',1.5,'linestyle','--')
+end
+set(gca,'TickDir','out','FontSize',14), box off
+xlim([0 mani_dims]),ylim([0 1])
+legend(lgn_wrist,'Location','NorthEast'),legend boxoff
+xlabel('Manifold dimension'), ylabel('CC neural mode dynamics')
+% % Bottom right panel: Histogram summarizing number significant CCs
+% subplot(1,3,3)
+% bar(x_hist',matrix_hist','stack')
+% set(gca,'Tickdir','out'),set(gca,'FontSize',14), box off
+% xlabel('Similar neural mode dynamics'),ylabel('Counts')
+% legend(lgn_hist,'Location','NorthWest'), legend boxoff
+% xlim([0 manifold_dim+1])
