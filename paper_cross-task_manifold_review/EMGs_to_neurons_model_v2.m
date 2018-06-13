@@ -294,11 +294,24 @@ sd_model_CCs = std(all_model_CCs,0,1);
 m_real_CCs = mean(all_real_CCs,1);
 sd_real_CCs = std(all_real_CCs,0,1);
 
+sd2_real_CCs = [m_real_CCs+sd_real_CCs;m_real_CCs-sd_real_CCs];
+sd2_model_CCs = [m_model_CCs+sd_model_CCs;m_model_CCs-sd_model_CCs];
+
+x2_CCs = [1:mani_dim, mani_dim:-1:1];
+
 m_scree_model = 100*mean(all_model_screes,1);
 sd_scree_model = 100*std(all_model_screes,0,1);
 m_scree_real = 100*mean(all_real_screes,1);
 sd_scree_real = 100*std(all_real_screes,0,1);
 
+sd2_scree_real = [m_scree_real+sd_scree_real;m_scree_real-sd_scree_real];
+sd2_scree_model = [m_scree_model+sd_scree_model;m_scree_model-sd_scree_model];
+
+x2_scree = [1:length(m_scree_model), length(m_scree_model):-1:1];
+
+
+% -------------------------------------------------------------------------
+% ALL TRACES
 
 % All scree plots --note that there are two times more than CCs because we
 % keep each simulated task's scree plot and we simulate the two to compare
@@ -321,16 +334,71 @@ sd_scree_real = 100*std(all_real_screes,0,1);
 % legend('Model','Real','Location','NorthEast'), legend boxoff
 
 
+% -------------------------------------------------------------------------
+% SUMMARY STATS
+
+% figure,subplot(121),hold on
+% errorbar(m_scree_model,sd_scree_model,'.-k','markersize',24,'linewidth',1.5)
+% errorbar(m_scree_real,sd_scree_real,'.','color',[.6 .6 .6],'markersize',24,'linewidth',1.5,'linestyle','-')
+% set(gca,'TickDir','out','FontSize',14), box off,xlim([0 20]),ylim([0 100])
+% ylabel('Cumulative neural VAF (%)'),xlabel('Neural mode')
+% legend('Model','Real','Location','SouthEast'), legend boxoff
+% 
+% subplot(122),hold on
+% errorbar(m_model_CCs,sd_model_CCs,'.-k','markersize',24,'linewidth',1.5)
+% errorbar(m_real_CCs,sd_real_CCs,'.','color',[.6 .6 .6],'markersize',24,'linewidth',1.5,'linestyle','-')
+% set(gca,'TickDir','out','FontSize',14), box off, xlim([0 mani_dim]),ylim([0 1])
+% ylabel('CC latent activity'), xlabel('Neural mode')
+% legend('Model','Real','Location','NorthEast'), legend boxoff
+% 
+% set(gcf, 'color', [1 1 1]);
+
+
+% -------------------------------------------------------------------------
+% SUMMARY STATS - V2
+
+% figure,subplot(121),hold on
+% plot(m_scree_model,'k','linewidth',1.5)
+% plot(m_scree_real,'color',[.75 .75 .75],'linewidth',1.5)
+% plot(m_scree_model+sd_scree_model,'-.k','linewidth',1.5)
+% plot(m_scree_model-sd_scree_model,'-.k','linewidth',1.5)
+% plot(m_scree_real-sd_scree_real,'-.','color',[.75 .75 .75],'linewidth',1.5)
+% plot(m_scree_real+sd_scree_real,'-.','color',[.75 .75 .75],'linewidth',1.5)
+% set(gca,'TickDir','out','FontSize',14), box off,xlim([0 20]),ylim([0 100])
+% ylabel('Cumulative neural VAF (%)'),xlabel('Neural mode')
+% legend('Model','Real','Location','SouthEast'), legend boxoff
+% 
+% subplot(122),hold on
+% plot(m_model_CCs,'k','linewidth',1.5)
+% plot(m_real_CCs,'color',[.75 .75 .75],'linewidth',1.5)
+% plot(m_model_CCs+sd_model_CCs,'-.k','linewidth',1.5)
+% plot(m_model_CCs-sd_model_CCs,'-.k','linewidth',1.5)
+% plot(m_real_CCs-sd_real_CCs,'-.','color',[.75 .75 .75],'linewidth',1.5)
+% plot(m_real_CCs+sd_real_CCs,'-.','color',[.75 .75 .75],'linewidth',1.5)
+% set(gca,'TickDir','out','FontSize',14), box off, xlim([0 mani_dim]),ylim([0 1])
+% ylabel('CC latent activity'), xlabel('Neural mode')
+% legend('Model','Real','Location','NorthEast'), legend boxoff
+% 
+% set(gcf, 'color', [1 1 1]);
+
+
+% -------------------------------------------------------------------------
+% SUMMARY STATS - V2
+
 figure,subplot(121),hold on
-errorbar(m_scree_model,sd_scree_model,'.-k','markersize',24,'linewidth',1.5)
-errorbar(m_scree_real,sd_scree_real,'.','color',[.6 .6 .6],'markersize',24,'linewidth',1.5,'linestyle','-')
+plot(m_scree_model,'b','linewidth',1.5)
+plot(m_scree_real,'color',[.75 .75 .75],'linewidth',1.5)
+patch(x2_scree,[sd2_scree_model(1,:),fliplr(sd2_scree_model(2,:))],'b','FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor','b')
+patch(x2_scree,[sd2_scree_real(1,:),fliplr(sd2_scree_real(2,:))],[.75 .75 .75],'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor',[.75 .75 .75])
 set(gca,'TickDir','out','FontSize',14), box off,xlim([0 20]),ylim([0 100])
 ylabel('Cumulative neural VAF (%)'),xlabel('Neural mode')
 legend('Model','Real','Location','SouthEast'), legend boxoff
 
 subplot(122),hold on
-errorbar(m_model_CCs,sd_model_CCs,'.-k','markersize',24,'linewidth',1.5)
-errorbar(m_real_CCs,sd_real_CCs,'.','color',[.6 .6 .6],'markersize',24,'linewidth',1.5,'linestyle','-')
+plot(m_model_CCs,'b','linewidth',1.5)
+plot(m_real_CCs,'color',[.75 .75 .75],'linewidth',1.5)
+patch(x2_CCs,[sd2_model_CCs(1,:),fliplr(sd2_model_CCs(2,:))],'b','FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor','b')
+patch(x2_CCs,[sd2_real_CCs(1,:),fliplr(sd2_real_CCs(2,:))],[.75 .75 .75],'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor',[.75 .75 .75])
 set(gca,'TickDir','out','FontSize',14), box off, xlim([0 mani_dim]),ylim([0 1])
 ylabel('CC latent activity'), xlabel('Neural mode')
 legend('Model','Real','Location','NorthEast'), legend boxoff
@@ -338,6 +406,7 @@ legend('Model','Real','Location','NorthEast'), legend boxoff
 set(gcf, 'color', [1 1 1]);
 
 
+% -------------------------------------------------------------------------
 % Statistical test to compare both distribution of CCs
 
 [~, p] = ttest2(reshape(all_real_CCs,1,[]),reshape(all_model_CCs,1,[]));
