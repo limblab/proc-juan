@@ -34,7 +34,7 @@ load('/Users/juangallego/Documents/NeuroPlast/Data/_Dimensionality reduction/_co
 % Load CCA params ---to use the same analysis window as in the paper
 proj_params = batch_compare_manifold_projs_defaults();
 % overwrite manifold dimension, if necessary
-proj_params.dim_manifold = 15;
+proj_params.dim_manifold = 12;
 
 
 
