@@ -409,8 +409,8 @@ set(gcf, 'color', [1 1 1]);
 % -------------------------------------------------------------------------
 % Statistical test to compare both distribution of CCs
 
-[~, p] = ttest2(reshape(all_real_CCs,1,[]),reshape(all_model_CCs,1,[]));
-disp(['Paired t-test between CC distributions for model and real data: ' num2str(p)]);
+[p,~] = ranksum(reshape(all_real_CCs,1,[]),reshape(all_model_CCs,1,[]));
+disp(['Wilcoxon test between CC distributions for model and real data: ' num2str(p)]);
 
 
 % Ratio between model and real data CCs
