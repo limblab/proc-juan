@@ -152,10 +152,10 @@ end
 
 
 % Do paired t-tests to see if the distributions are different
-[~, p_emgs_modes] = ttest2(snr.emgs,snr.modes);
-[~, p_emgs_units] = ttest2(snr.emgs,snr.units);
-disp(['Probably distribs. EMGs and Neural Modes SNR is similar (t-test): ' num2str(p_emgs_modes)]);
-disp(['Probably distribs. EMGs and Units SNR is similar (t-test): ' num2str(p_emgs_units)]);
+[p_emgs_modes,~] = ranksum(snr.emgs,snr.modes);
+[p_emgs_units,~] = ranksum(snr.emgs,snr.units);
+disp(['Probably distribs. EMGs and Neural Modes SNR is similar (Wilcoxon): ' num2str(p_emgs_modes)]);
+disp(['Probably distribs. EMGs and Units SNR is similar (Wilcoxon): ' num2str(p_emgs_units)]);
 
 
 
