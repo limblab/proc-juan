@@ -313,25 +313,25 @@ x2_scree = [1:length(m_scree_model), length(m_scree_model):-1:1];
 % -------------------------------------------------------------------------
 % ALL TRACES
 
-% All scree plots --note that there are two times more than CCs because we
-% keep each simulated task's scree plot and we simulate the two to compare
-% figure,subplot(121),hold on
-% plot(100*all_model_screes(1,:)','color','k','linewidth',1.5);
-% plot(100*all_real_screes(1,:)','color',[.6 .6 .6],'linewidth',1.5);
-% plot(100*all_model_screes(2:end,:)','color','k','linewidth',1.5);
-% plot(100*all_real_screes(2:end,:)','color',[.6 .6 .6],'linewidth',1.5);
-% set(gca,'TickDir','out','FontSize',14), box off,xlim([0 20]),ylim([0 100])
-% ylabel('Cumulative neural VAF (%)'),xlabel('Neural mode')
-% legend('Model','Real','Location','SouthEast'), legend boxoff
+% % All scree plots --note that there are two times more than CCs because we
+% % keep each simulated task's scree plot and we simulate the two to compare
+figure,subplot(121),hold on
+plot(100*all_model_screes(1,:)','color','k','linewidth',1.5);
+plot(100*all_real_screes(1,:)','color',[.6 .6 .6],'linewidth',1.5);
+plot(100*all_model_screes(2:end,:)','color','k','linewidth',1.5);
+plot(100*all_real_screes(2:end,:)','color',[.6 .6 .6],'linewidth',1.5);
+set(gca,'TickDir','out','FontSize',14), box off,xlim([0 20]),ylim([0 100])
+ylabel('Cumulative neural VAF (%)'),xlabel('Neural mode')
+legend('Model','Real','Location','SouthEast'), legend boxoff
             
-% subplot(122),hold on
-% plot(all_model_CCs(1,:)','linewidth',1.5,'color','k')
-% plot(all_real_CCs(1,:)','linewidth',1.5,'color',[.6 .6 .6])
-% plot(all_model_CCs(2:end,:)','linewidth',1.5,'color','k')
-% plot(all_real_CCs(2:end,:)','linewidth',1.5,'color',[.6 .6 .6])
-% set(gca,'TickDir','out','FontSize',14), box off, xlim([0 mani_dim]),ylim([0 1])
-% ylabel('CC latent activity'), xlabel('Neural mode')
-% legend('Model','Real','Location','NorthEast'), legend boxoff
+subplot(122),hold on
+plot(all_model_CCs(1,:)','linewidth',1.5,'color','k')
+plot(all_real_CCs(1,:)','linewidth',1.5,'color',[.6 .6 .6])
+plot(all_model_CCs(2:end,:)','linewidth',1.5,'color','k')
+plot(all_real_CCs(2:end,:)','linewidth',1.5,'color',[.6 .6 .6])
+set(gca,'TickDir','out','FontSize',14), box off, xlim([0 mani_dim]),ylim([0 1])
+ylabel('CC latent activity'), xlabel('Neural mode')
+legend('Model','Real','Location','NorthEast'), legend boxoff
 
 
 % -------------------------------------------------------------------------
@@ -385,25 +385,75 @@ x2_scree = [1:length(m_scree_model), length(m_scree_model):-1:1];
 % -------------------------------------------------------------------------
 % SUMMARY STATS - V2
 
+
+% figure,subplot(121),hold on
+% plot(m_scree_model,'color',col_model,'linewidth',1.5)
+% plot(m_scree_real,'color',col_real,'linewidth',1.5)
+% patch(x2_scree,[sd2_scree_model(1,:),fliplr(sd2_scree_model(2,:))],col_model,'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor','b')
+% patch(x2_scree,[sd2_scree_real(1,:),fliplr(sd2_scree_real(2,:))],col_real,'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor',[.75 .75 .75])
+% set(gca,'TickDir','out','FontSize',14), box off,xlim([0 20]),ylim([0 100])
+% ylabel('Cumulative neural VAF (%)'),xlabel('Neural mode')
+% legend('Model','Real','Location','SouthEast'), legend boxoff
+% 
+% subplot(122),hold on
+% plot(m_model_CCs,'color',col_model,'linewidth',1.5)
+% plot(m_real_CCs,'color',col_real,'linewidth',1.5)
+% patch(x2_CCs,[sd2_model_CCs(1,:),fliplr(sd2_model_CCs(2,:))],col_model,'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor','b')
+% patch(x2_CCs,[sd2_real_CCs(1,:),fliplr(sd2_real_CCs(2,:))],col_real,'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor',[.75 .75 .75])
+% set(gca,'TickDir','out','FontSize',14), box off, xlim([0 mani_dim]),ylim([0 1])
+% ylabel('CC latent activity'), xlabel('Neural mode')
+% legend('Model','Real','Location','NorthEast'), legend boxoff
+% 
+% set(gcf, 'color', [1 1 1]);
+
+
+% -------------------------------------------------------------------------
+% SUMMARY STATS - V2 WITH RAW DATA
+
+
+col_model = [204 106 166]/255;
+col_real = [72 40 109]/255;
+
+col_model_data = [206 161 191]/255;
+col_real_data = [154 134 183]/255;
+
+% % All scree plots --note that there are two times more than CCs because we
+% % keep each simulated task's scree plot and we simulate the two to compare
 figure,subplot(121),hold on
-plot(m_scree_model,'b','linewidth',1.5)
-plot(m_scree_real,'color',[.75 .75 .75],'linewidth',1.5)
-patch(x2_scree,[sd2_scree_model(1,:),fliplr(sd2_scree_model(2,:))],'b','FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor','b')
-patch(x2_scree,[sd2_scree_real(1,:),fliplr(sd2_scree_real(2,:))],[.75 .75 .75],'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor',[.75 .75 .75])
+
+plot(100*all_model_screes(1,:)','color',col_model_data,'linewidth',.5);
+plot(100*all_real_screes(1,:)','color',col_real_data,'linewidth',.5);
+plot(100*all_model_screes(2:end,:)','color',col_model_data,'linewidth',.5);
+plot(100*all_real_screes(2:end,:)','color',col_real_data,'linewidth',.5);
+
+plot(m_scree_model,'color',col_model,'linewidth',3)
+plot(m_scree_real,'color',col_real,'linewidth',3)
+patch(x2_scree,[sd2_scree_model(1,:),fliplr(sd2_scree_model(2,:))],col_model,'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor','b')
+patch(x2_scree,[sd2_scree_real(1,:),fliplr(sd2_scree_real(2,:))],col_real,'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor',[.75 .75 .75])
+
 set(gca,'TickDir','out','FontSize',14), box off,xlim([0 20]),ylim([0 100])
 ylabel('Cumulative neural VAF (%)'),xlabel('Neural mode')
 legend('Model','Real','Location','SouthEast'), legend boxoff
+            
 
 subplot(122),hold on
-plot(m_model_CCs,'b','linewidth',1.5)
-plot(m_real_CCs,'color',[.75 .75 .75],'linewidth',1.5)
-patch(x2_CCs,[sd2_model_CCs(1,:),fliplr(sd2_model_CCs(2,:))],'b','FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor','b')
-patch(x2_CCs,[sd2_real_CCs(1,:),fliplr(sd2_real_CCs(2,:))],[.75 .75 .75],'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor',[.75 .75 .75])
+
+plot(all_model_CCs(1,:)','linewidth',.5,'color',col_model_data)
+plot(all_real_CCs(1,:)','linewidth',.5,'color',col_real_data)
+plot(all_model_CCs(2:end,:)','linewidth',.5,'color',col_model_data)
+plot(all_real_CCs(2:end,:)','linewidth',.5,'color',col_real_data)
+
+plot(m_model_CCs,'color',col_model,'linewidth',3)
+plot(m_real_CCs,'color',col_real,'linewidth',3)
+patch(x2_CCs,[sd2_model_CCs(1,:),fliplr(sd2_model_CCs(2,:))],col_model,'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor','b')
+patch(x2_CCs,[sd2_real_CCs(1,:),fliplr(sd2_real_CCs(2,:))],col_real,'FaceAlpha',.3,'EdgeAlpha',.5,'EdgeColor',[.75 .75 .75])
+
 set(gca,'TickDir','out','FontSize',14), box off, xlim([0 mani_dim]),ylim([0 1])
 ylabel('CC latent activity'), xlabel('Neural mode')
 legend('Model','Real','Location','NorthEast'), legend boxoff
 
 set(gcf, 'color', [1 1 1]);
+
 
 
 % -------------------------------------------------------------------------
