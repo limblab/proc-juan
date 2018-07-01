@@ -151,7 +151,7 @@ monk            = {'JacoB','Jango'};
 % components)
 
 perc_neural_var_marg    = cell(1,length(D));
-for d = 1:6, 
+for d = 1:6
     
     % find the two leading dPCs that correspond to each marginalization
     [~, marg_max ]      = max(dPCA_data{d}.expl_var.margVar);
@@ -293,10 +293,12 @@ end
 % for each marginalziation across all muscles
 
 mn_R2_marg_all_musc     = zeros(length(D),length(marg_leg));
+median_R2_marg_all_musc = zeros(length(D),length(marg_leg));
 sd_R2_marg_all_musc     = zeros(length(D),length(marg_leg));
 sem_R2_marg_all_musc    = zeros(length(D),length(marg_leg));
 
 mn_norm_R2_marg_all_musc = zeros(length(D),length(marg_leg));
+median_norm_R2_marg_all_musc = zeros(length(D),length(marg_leg));
 sd_norm_R2_marg_all_musc = zeros(length(D),length(marg_leg));
 sem_norm_R2_marg_all_musc = zeros(length(D),length(marg_leg));
 
@@ -306,10 +308,12 @@ for d = 1:length(D)
     
     for m = 1:length(marg_leg)
         mn_R2_marg_all_musc(d,m)    = mean(R2_marg_all_musc{d,m});
+        median_R2_marg_all_musc(d,m) = median(R2_marg_all_musc{d,m});
         sd_R2_marg_all_musc(d,m)    = std(R2_marg_all_musc{d,m});
         sem_R2_marg_all_musc(d,m)   = sd_R2_marg_all_musc(d,m)/sqrt(length(R2_marg_all_musc{d,m}));
         
         mn_norm_R2_marg_all_musc(d,m) = mean(norm_R2_marg_all_musc{d,m});
+        median_norm_R2_marg_all_musc(d,m) = median(norm_R2_marg_all_musc{d,m});
         sd_norm_R2_marg_all_musc(d,m) = std(norm_R2_marg_all_musc{d,m});
         sem_norm_R2_marg_all_musc(d,m) = sd_norm_R2_marg_all_musc(d,m)/sqrt(length(norm_R2_marg_all_musc{d,m}));
     end
@@ -319,6 +323,7 @@ end
 % using all dPCs across all muscles
 
 mn_R2_marg_all_musc_all_dPCs    = cellfun(@(x) mean(x), R2_marg_all_musc_all_dPCs );
+median_R2_marg_all_musc_all_dPCs = cellfun(@(x) median(x), R2_marg_all_musc_all_dPCs );
 sd_R2_marg_all_musc_all_dPCs    = cellfun(@(x) std(x), R2_marg_all_musc_all_dPCs );
 sem_R2_marg_all_musc_all_dPCs   = cellfun(@(x) std(x)/sqrt(length(x)), R2_marg_all_musc_all_dPCs );
 
@@ -332,6 +337,7 @@ sem_R2_marg_all_musc_all_dPCs   = cellfun(@(x) std(x)/sqrt(length(x)), R2_marg_a
 % Neural variance explained per monkey
 for k = 1:numel(monk)
     neural_marg_mn{k} = mean( cell2mat(perc_neural_var_marg(ds_p_monk{k})') );
+    neural_marg_median{k} = median( cell2mat(perc_neural_var_marg(ds_p_monk{k})') );
     neural_marg_sd{k} = std( cell2mat(perc_neural_var_marg(ds_p_monk{k})') );
     neural_marg_sem{k} = std( cell2mat(perc_neural_var_marg(ds_p_monk{k})') )/...
                             sqrt(size(cell2mat(perc_neural_var_marg(ds_p_monk{k})'),1));
@@ -341,6 +347,7 @@ end
 % R2 for each marginalziation across all muscles for each monkey
 
 mn_R2_marg_all_musc_per_monk    = cellfun(@(x) mean(x), R2_marg_all_musc_per_monk(:,:) );
+median_R2_marg_all_musc_per_monk = cellfun(@(x) median(x), R2_marg_all_musc_per_monk(:,:) );
 sd_R2_marg_all_musc_per_monk    = cellfun(@(x) std(x), R2_marg_all_musc_per_monk(:,:) );
 sem_R2_marg_all_musc_per_monk   = cellfun(@(x) std(x)/sqrt(numel(x)), R2_marg_all_musc_per_monk(:,:) );
 
@@ -348,6 +355,7 @@ sem_R2_marg_all_musc_per_monk   = cellfun(@(x) std(x)/sqrt(numel(x)), R2_marg_al
 % R2 using all dPCs across all muscles for each monkey
 
 mn_R2_marg_all_musc_all_dPCs_per_monk   = cellfun( @(x) mean(x), R2_marg_all_musc_all_dPCs_per_monk);
+median_R2_marg_all_musc_all_dPCs_per_monk = cellfun( @(x) median(x), R2_marg_all_musc_all_dPCs_per_monk);
 sd_R2_marg_all_musc_all_dPCs_per_monk   = cellfun( @(x) std(x), R2_marg_all_musc_all_dPCs_per_monk);
 sem_R2_marg_all_musc_all_dPCs_per_monk  = cellfun( @(x) std(x)/sqrt(numel(x)), R2_marg_all_musc_all_dPCs_per_monk);
 
@@ -355,6 +363,7 @@ sem_R2_marg_all_musc_all_dPCs_per_monk  = cellfun( @(x) std(x)/sqrt(numel(x)), R
 % Norm. R2 for each marginalziation across all muscles for each monkey
 
 mn_norm_R2_marg_all_musc_per_monk       = cellfun(@(x) mean(x), norm_R2_marg_all_musc_per_monk(:,:) );
+median_norm_R2_marg_all_musc_per_monk   = cellfun(@(x) median(x), norm_R2_marg_all_musc_per_monk(:,:) );
 sd_norm_R2_marg_all_musc_per_monk       = cellfun(@(x) std(x), norm_R2_marg_all_musc_per_monk(:,:) );
 sem_norm_R2_marg_all_musc_per_monk      = cellfun(@(x) std(x)/sqrt(numel(x)), norm_R2_marg_all_musc_per_monk(:,:) );
 
@@ -363,14 +372,17 @@ sem_norm_R2_marg_all_musc_per_monk      = cellfun(@(x) std(x)/sqrt(numel(x)), no
 % STATS FOR BOTH MONKEYS TOGETHER
 
 mn_R2_marg_all          = cellfun( @(x) mean(x), R2_marg_all );
+median_R2_marg_all      = cellfun( @(x) median(x), R2_marg_all );
 sd_R2_marg_all          = cellfun( @(x) std(x), R2_marg_all );
 sem_R2_marg_all         = cellfun( @(x) std(x)/sqrt(numel(x)), R2_marg_all );
 
 mn_R2_marg_all_all_dPCs = mean(R2_marg_all_all_dPCs);
+median_R2_marg_all_all_dPCs = median(R2_marg_all_all_dPCs);
 sd_R2_marg_all_all_dPCs = std(R2_marg_all_all_dPCs);
 sem_R2_marg_all_all_dPCs = std(R2_marg_all_all_dPCs)/sqrt(numel(R2_marg_all_all_dPCs));
 
 mn_norm_R2_marg_all     = cellfun( @(x) mean(x), norm_R2_marg_all );
+median_norm_R2_marg_all = cellfun( @(x) median(x), norm_R2_marg_all );
 sd_norm_R2_marg_all     = cellfun( @(x) std(x), norm_R2_marg_all );
 sem_norm_R2_marg_all    = cellfun( @(x) std(x)/sqrt(numel(x)), norm_R2_marg_all );
 
