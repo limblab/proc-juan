@@ -18,9 +18,10 @@ marg_labels     = {'task','target','time','task-target'};
 
 figure, hold on
 %boxplot(norm_R2_marg);
-for m = 1:size(norm_R2_marg,2)
-    bplot(norm_R2_marg(~isnan(norm_R2_marg(:,m)),m),m,'nomean')
-end
+% for m = 1:size(norm_R2_marg,2)
+%     bplot(norm_R2_marg(~isnan(norm_R2_marg(:,m)),m),m,'nomean')
+% end
+boxplot(norm_R2_marg,'Whisker',.5)
 ylim([0 1]); xlim([0 5]); box off
 ylabel('Norm. R^2 EMG')
 set(gca,'TickDir','out','FontSize',12)
