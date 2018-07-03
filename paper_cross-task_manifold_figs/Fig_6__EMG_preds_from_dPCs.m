@@ -141,10 +141,10 @@ set(gca,'TickDir','out','FontSize',12)
 figure('units','normalized','outerposition',[0.25 0.25 0.5 0.45])
 % bottom left panel: Norm R^2 preds
 subplot(1,2,1), hold on
-for s = 1:4
-    % boxplot(norm_R2_marg_all_mtrx); %,'color',marg_cols(s,:));
-    bplot(norm_R2_marg_all_mtrx(:,s),s,'nomean')%,'color',marg_cols(s,:));
-end
+% for s = 1:4
+%     bplot(norm_R2_marg_all_mtrx(:,s),s,'nomean')%,'color',marg_cols(s,:));
+% end
+boxplot(norm_R2_marg_all_mtrx,'Whisker',.5,'Symbol','.'); %,'color',marg_cols(s,:));
 ylim([0 1]); xlim([0 5]); box off
 ylabel('Norm. R^2 EMG')
 set(gca,'TickDir','out','FontSize',12)
@@ -175,3 +175,5 @@ ylim([0 1]);xlim([0 .45])
 ylabel('R^2 EMG')
 xlabel('Neural varance expl. (%)')
 set(gca,'TickDir','out','FontSize',12)
+
+set(gcf,'color','w')
