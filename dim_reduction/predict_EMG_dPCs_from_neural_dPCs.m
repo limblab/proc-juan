@@ -175,3 +175,7 @@ R2_all_dPCs_mtrx = cell2mat(R2_ds_muscle_marg_all_dPCs')';
 
 norm_R2_marg = R2_per_marg_mtrx ./ R2_all_dPCs_mtrx;
 
+
+
+% PLOT
+Suppl_Fig_9d__Predicting_EMG_margs;
