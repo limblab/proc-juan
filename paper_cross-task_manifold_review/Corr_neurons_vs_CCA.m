@@ -422,7 +422,7 @@ if abs_corr
     dbox(:,end) = all_corrs_n;
     
     hb = figure; hold on
-    boxplot(dbox,'color','k','symbol','.','OutlierSize',4)
+    boxplot(dbox,'color','b','symbol','.','OutlierSize',4,'Whisker',.5)
     ylim([0 1]), xlim([0 params.dim_manifold+2])
     set(gca,'TickDir','out','FontSize',14), box off
     set(gca,'XTick',xlbx,'XTickLabel',xlb)
