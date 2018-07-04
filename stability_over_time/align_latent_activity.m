@@ -91,3 +91,14 @@ aligned_latent_results.aligned_info     = aligned_info;
 aligned_latent_results.corr_info        = corr_info;
 aligned_latent_results.diff_days        = diff_days;
 aligned_latent_results.comb_sessions    = comb_sessions;
+
+% add 
+switch method
+    case 'cca'
+        aligned_latent_results.cc       = cell2mat(arrayfun(@(x) x.cc, aligned_info, ...
+                                            'uniformoutput', false )');
+    case 'procrustes'
+        
+end
+aligned_latent_results.r                = cell2mat(arrayfun(@(x) x.r, corr_info, ...
+                                            'uniformoutput', false )');
