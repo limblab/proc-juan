@@ -192,6 +192,7 @@ for c = 1:size(comb_sessions,1)
     diff_days(c) = datenum(sessions{comb_sessions(c,2)}) - datenum(sessions{comb_sessions(c,1)});
 end
 res.diff_days           = diff_days;
+res.comb_sessions       = comb_sessions;
 
 
 % return variable
