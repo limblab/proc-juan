@@ -10,17 +10,17 @@ latent_vars_plot = 1:4;
 errorbars = 'sem'; % 'sd' 'sem'
 
 
-dd = aligned_latent_results.diff_days; % define for convenience
+dd = align_results.diff_days; % define for convenience
 
 
 % Get some basic stats
-mn_aligned_plot = arrayfun( @(x) mean(x.cc(latent_vars_plot)), aligned_latent_results.aligned_info );
-sd_aligned_plot = arrayfun( @(x) std(x.cc(latent_vars_plot)), aligned_latent_results.aligned_info );
+mn_aligned_plot = arrayfun( @(x) mean(x.cc(latent_vars_plot)), align_results.aligned_info );
+sd_aligned_plot = arrayfun( @(x) std(x.cc(latent_vars_plot)), align_results.aligned_info );
 sem_aligned_plot = sd_aligned_plot/sqrt(length(latent_vars_plot));
 
 
-mn_corr_plot = arrayfun( @(x) mean(abs(x.r(latent_vars_plot))), aligned_latent_results.corr_info );
-sd_corr_plot = arrayfun( @(x) std(abs(x.r(latent_vars_plot))), aligned_latent_results.corr_info );
+mn_corr_plot = arrayfun( @(x) mean(abs(x.r(latent_vars_plot))), align_results.corr_info );
+sd_corr_plot = arrayfun( @(x) std(abs(x.r(latent_vars_plot))), align_results.corr_info );
 sem_corr_plot = sd_corr_plot/sqrt(length(latent_vars_plot));
 
 
@@ -58,8 +58,8 @@ ylim([0 1]), xlabel('Days from first session'), ylabel(['CC latent activity (top
 % bin_hist = 0.05;
 % x_hist = 0:bin_hist:(1+bin_hist);
 % 
-% data_aligned = cell2mat(arrayfun( @(x) x.cc(latent_vars_plot), aligned_latent_results.aligned_info, 'UniformOutput', false));
-% data_unaligned = cell2mat(arrayfun( @(x) abs(x.r(latent_vars_plot)), aligned_latent_results.corr_info, 'UniformOutput', false));
+% data_aligned = cell2mat(arrayfun( @(x) x.cc(latent_vars_plot), align_results.aligned_info, 'UniformOutput', false));
+% data_unaligned = cell2mat(arrayfun( @(x) abs(x.r(latent_vars_plot)), align_results.corr_info, 'UniformOutput', false));
 % 
 % hist_aligned = histcounts(data_aligned,x_hist)/length(data_aligned)*100;
 % hist_unaligned = histcounts(data_unaligned,x_hist)/length(data_unaligned)*100;
@@ -93,8 +93,8 @@ diff_days = datenum(meta.sessions{s2})-datenum(meta.sessions{s1});
 modesplot = 1:3;
 
 
-% Get the comparison that we want from aligned_latent_results
-idx_cmp = find( aligned_latent_results.comb_sessions(:,1)==s1 & aligned_latent_results.comb_sessions(:,2)==s2 );
+% Get the comparison that we want from align_results
+idx_cmp = find( align_results.comb_sessions(:,1)==s1 & align_results.comb_sessions(:,2)==s2 );
 
 % Hack: create aux TD signals with each of these sessions
 [~, td1] = getTDidx( master_td, {'date',meta.sessions(s1)} );
@@ -112,8 +112,8 @@ bins_p_trial = size(td1(1).pos,1);
 for t = 1:length(td1)
     be = bins_p_trial*(t-1)+1;
     en = bins_p_trial*t;
-    td1(t).(latent_signals_plot) = aligned_latent_results.aligned_info(idx_cmp).U(be:en,:);
-    td2(t).(latent_signals_plot) = aligned_latent_results.aligned_info(idx_cmp).V(be:en,:);
+    td1(t).(latent_signals_plot) = align_results.aligned_info(idx_cmp).U(be:en,:);
+    td2(t).(latent_signals_plot) = align_results.aligned_info(idx_cmp).V(be:en,:);
 end
 
 
