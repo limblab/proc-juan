@@ -40,7 +40,7 @@ mod_params.out_signals  = out;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % THE THING ITSELF
 
-disp('Testing decoder stability');
+disp(['Testing decoder stability using ' in ' inputs']);
 disp(['Decoding: ' out]);
 
 
@@ -89,7 +89,7 @@ for c = 1:n_comb_sessions
             
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % FOR THE UNALIGNED LATENT ACTIVITY  
-        case 'raw_data'
+        case 'unaligned_data'
             
             % a) Set model params inputs
             mod_params.in_signals = {[manifold '_shift'],1:length(mani_dims)*hist_bins};
@@ -98,6 +98,28 @@ for c = 1:n_comb_sessions
             td1         = dupeAndShift(td1,{manifold,hist_bins});
             td2         = dupeAndShift(td2,{manifold,hist_bins});
         
+            
+        % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % FOR THE UNALIGNED LATENT ACTIVITY  
+        case 'spikes'
+            
+            % a) Get the channels that have threshold crossings in both datasets
+            this_td     = td([trials1 trials2]);
+            this_td     = getCommonUnits(this_td);
+
+            % b) Create TD structs that only have common units
+            [~,td1]     = getTDidx(this_td, 'date', sessions{comb_sessions(c,1)} );
+            [~,td2]     = getTDidx(this_td, 'date', sessions{comb_sessions(c,2)} );
+
+            % c) Set model params and inputs
+            spike_in    = [manifold(1:end-4) '_spikes'];
+            n_units     = size(td1(1).(spike_in),2);
+            mod_params.in_signals = {[spike_in '_shift'],1:1:n_units*hist_bins};
+            
+            % d) Duplicate and shift to have history
+            td1         = dupeAndShift(td1,{spike_in,hist_bins});
+            td2         = dupeAndShift(td2,{spike_in,hist_bins});
+            
         otherwise
             error('wrong decoder input');
     end
@@ -109,21 +131,22 @@ for c = 1:n_comb_sessions
     % a) Build it!
     [td1, mod_info]     = getModel(td1,mod_params);
 
-    % b) Cross-validate the predictions
+    % b) Cross-validate the predictions on day 2, which is the day we want
+    % as reference
     % Trick: first randomize trial order, because the function that
     % equalizes the number of trials across targets and session sorts them
     % by target
     
-    td1 = td1(randperm(length(td1)));
-    trials_p_fold = floor(length(td1)/n_folds);
+    td2                 = td2(randperm(length(td2)));
+    trials_p_fold       = floor(length(td2)/n_folds);
 
-    R2xval              = zeros(n_folds,size(td1(1).(out),2));
+    R2xval              = zeros(n_folds,size(td2(1).(out),2));
     
     for f = 1:n_folds
         trials_test     = (f-1)*trials_p_fold+1 : f*trials_p_fold;
-        trials_train    = setdiff(1:length(td1),trials_test);
-        td_test         = td1(trials_test);
-        td_train        = td1(trials_train);
+        trials_train    = setdiff(1:length(td2),trials_test);
+        td_test         = td2(trials_test);
+        td_train        = td2(trials_train);
         
         [~, mod_info_xval] = getModel(td_train,mod_params);
         % [R2train(f,:), ~] = testModel(td_train,mod_info_xval);
@@ -151,24 +174,26 @@ for c = 1:n_comb_sessions
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % 4. CONTROL: compute how well a decoder generalizes without aligning
+    % the latent activity
     
-    % HERE HERE HERE
+    if strcmp(in,'aligned_data')
     
-    % duplicate and shift --to have history in the model
-    ctrl_td1            = dupeAndShift(td1,{manifold,hist_bins});
-    ctrl_td2            = dupeAndShift(td2,{manifold,hist_bins});
+        % a) duplicate and shift --to have history in the model
+        ctrl_td1            = dupeAndShift(td1,{manifold,hist_bins});
+        ctrl_td2            = dupeAndShift(td2,{manifold,hist_bins});
 
-    % build model on day 1
-    ctrl_mod_params.model_type = mod_params.model_type;
-    ctrl_mod_params.out_signals = mod_params.out_signals;
-    ctrl_mod_params.in_signals = {[manifold '_shift'],1:length(mani_dims)*hist_bins};
-    
-    [~, ctrl_mod_info]  = getModel(ctrl_td1,ctrl_mod_params);
+        % b) build model on day 1
+        ctrl_mod_params.model_type = mod_params.model_type;
+        ctrl_mod_params.out_signals = mod_params.out_signals;
+        ctrl_mod_params.in_signals = {[manifold '_shift'],1:length(mani_dims)*hist_bins};
 
-    % test it on day 2
-    R2ctrl              = testModel(ctrl_td2,ctrl_mod_info);
-    res.ctrlR2(c,:)     = R2ctrl;
-    
+        [~, ctrl_mod_info]  = getModel(ctrl_td1,ctrl_mod_params);
+
+        % c) test it on day 2
+        R2ctrl              = testModel(ctrl_td2,ctrl_mod_info);
+        res.ctrlR2(c,:)     = R2ctrl;
+    end
+        
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % 5. SEE IF THERE IS A GAIN CHANGE IN THE MODEL
