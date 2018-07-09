@@ -16,8 +16,8 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'chewie'; % 'chewie'; 'mihili'; 'han'
-pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}
+pars.monkey         = 'mihili'; % 'chewie'; 'mihili'; 'han'
+pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
 pars.sessions_discard = []; %[12 13 14];
@@ -26,29 +26,38 @@ pars.sessions_discard = []; %[12 13 14];
 % Data preprocessing
 
 % "Unsort" the sorted neurons?
-pars.unsorted_yn    = false; 
+pars.unsorted_yn                = false; 
 % Only use electrodes that have units in all the sessions (aonly for
 % unsorted_yn == true)
-pars.only_common_elecs = false;
+pars.only_common_elecs          = false;
 
 % Gaussian kernel for smoothing
-pars.kernel_SD      = 0.1;
+pars.kernel_SD                  = 0.05;
 
 % Neural modes to use
-pars.mani_dims      = 1:10; % 1:10; 'estimate';
+pars.mani_dims                  = 1:10; % 1:10; 'estimate';
+
+% "Downsampling rate": nbr of bins that will be combined
+pars.n_bins_downs               = 3;
 
 % Window start & end --if idx_end is empty: the duration of the shortest trial 
+% WATCH OUT -- THIS IS AFTER DOWNSAMPLING SO I NEED TO UPDATE IT BASED ON
+% N_BINS_DOWNS
 switch pars.monkey
     case 'han'
-        pars.idx_start      = {'idx_goCueTime',round(-2*5/3)};% {'idx_goCueTime',-2}; % {'idx_movement_on',-2}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
-        pars.idx_end        = {'idx_goCueTime',round(9*5/3)}; % {'idx_goCueTime',9}; % {'idx_movement_on',13}; % {''}; % {'idx_go_cue',18}
+        pars.idx_start          = {'idx_goCueTime',round(-2*5/3)};% {'idx_goCueTime',-2}; % {'idx_movement_on',-2}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
+        pars.idx_end            = {'idx_goCueTime',round(9*5/3)}; % {'idx_goCueTime',9}; % {'idx_movement_on',13}; % {''}; % {'idx_go_cue',18}
     case {'chewie','mihili'}
-        pars.idx_start      = {'idx_movement_on',-2}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
-        pars.idx_end        = {'idx_movement_on',13}; % {''}; % {'idx_go_cue',18}
+        switch pars.spiking_inputs{1}
+            case 'M1_spikes'
+                pars.idx_start  = {'idx_movement_on',-2}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
+                pars.idx_end    = {'idx_movement_on',13}; % {''}; % {'idx_go_cue',18}
+            case 'PMd_spikes'
+                pars.idx_start  = {'idx_target_on',0}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
+                pars.idx_end    = {'idx_target_on',15}; % {''}; % {'idx_go_cue',18}
+        end
 end
         
-% "Downsampling rate": nbr of bins that will be combined
-pars.n_bins_downs   = 3;
 
 
 % -------------------------------------------------------------------------
@@ -71,11 +80,13 @@ pars.align_latent_params.signals        = [pars.spiking_inputs{1}(1:find(pars.sp
 pars.align_latent_params.mani_dims      = pars.mani_dims;
 
 % -------------------------------------------------------------------------
-% Decoder settings -to predict behavior
+% Decoder settings -to predict behavior. In the current version, only done
+% for M1 and S1, since for PMd we classify target location basde on
+% preparatory activity
 
 % Inputs and Outputs
 pars.decoder_params.out                 = 'vel';
-pars.decoder_params.in                  = 'aligned_data'; % 'aligned_data'; 'raw_data'
+pars.decoder_params.in                  = 'aligned_data'; % 'aligned_data'; 'unaligned_data'; 'spikes' (it always does spikes afterwards)
 
 % Bins for decoder history
 pars.decoder_params.hist_bins           = 3;
@@ -86,6 +97,32 @@ pars.decoder_params.n_folds             = 6;
 % A couple other slightly redundant definitions
 pars.decoder_params.manifold            = [pars.spiking_inputs{1}(1:end-7) '_pca'];
 pars.decoder_params.mani_dims           = pars.mani_dims;
+
+pars.decoder_params.unsort_chs_to_pred = true; % "unsort" channels to predict
+
+% -------------------------------------------------------------------------
+% Classifier settings -to predict target location based on the preparatory
+% activity
+
+% Method
+pars.class_params.method                = 'Bayes'; % 'NN' 'Bayes'
+
+% Inputs and Outputs
+pars.class_params.out                   = 'target_direction';
+pars.class_params.in                    = 'aligned_data'; % 'aligned_data'; 'unaligned_data'; 'spikes' (it always does spikes afterwards)
+
+% Bins for decoder history
+pars.class_params.win_size              = 0.150; % if empty, the entire window
+% History?
+pars.class_params.hist_bins             = 0;
+
+% Folds for multi-fold cross-validation
+pars.class_params.n_folds               = 8; 
+
+% A couple other slightly redundant definitions
+pars.class_params.manifold              = [pars.spiking_inputs{1}(1:end-7) '_pca'];
+pars.class_params.mani_dims             = pars.mani_dims;
+
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -138,7 +175,7 @@ switch pars.monkey
             cd('/Users/juangallego/Documents/NeuroPlast/Data/Chewie')
         else
             cd('/Users/juangallego/Documents/NeuroPlast/Data/Chewie/Unsorted')
-            for f = 1:length(files_chewie), 
+            for f = 1:length(files_chewie)
                 files_chewie{f} = [files_chewie{f}(1:end-4) '_unsorted.mat']; 
             end
         end
@@ -327,11 +364,16 @@ end
 % (For the spikes we do this during the loading)
 if pars.unsorted_yn
     
-    % Downsample
-    master_td       = binTD(master_td,pars.n_bins_downs);
-    
+    for s = 1:n_sessions
+        this_s      = getTDidx(master_td,{'date',meta.sessions{s}});
+
+        % Downsample
+        master_td(this_s) = binTD(master_td(this_s),pars.n_bins_downs);
+    end
+
     % Square-root transform
-    master_td       = sqrtTransform(master_td,pars.spiking_inputs);
+    master_td(this_s) = sqrtTransform(master_td(this_s),pars.spiking_inputs);
+
     % Smooth
     master_td       = smoothSignals(master_td,struct(...
                                 'signals',pars.spiking_inputs,...
@@ -381,16 +423,19 @@ master_td           = equalNbrTrialsSessions(master_td);
 % ESTIMATE DIMENSIONALITY
 %
 
-% NEEDTOFIX: SINCE THE BINS ARE PRETTY WIDE AND WE HAVE ONLY 4 TRIALS AND A
-% LOT OF NEURONS, THE PCA FUNCTION DOESN'T WORK 
-for s = 1:n_sessions
-    
-    this_s          = getTDidx(master_td,{'date',meta.sessions{s}});
-    dims(s)         = estimateDimensionality(master_td(this_s),struct(...
-                            'signals',pars.spiking_inputs,...
-                            'alpha',0.95,...
-                            'num_iter',1000));
-                        
+% % NEEDTOFIX: SINCE THE BINS ARE PRETTY WIDE AND WE HAVE ONLY 4 TRIALS AND A
+% % LOT OF NEURONS, THE PCA FUNCTION DOESN'T WORK 
+
+if strcmp(pars.spiking_inputs{1},'M1_spikes') % || strcmp(pars.spiking_inputs{1},'PMd_spikes')
+ 
+    for s = 1:n_sessions
+
+        this_s          = getTDidx(master_td,{'date',meta.sessions{s}});
+        dims(s)         = estimateDimensionality(master_td(this_s),struct(...
+                                'signals',pars.spiking_inputs,...
+                                'alpha',0.95,...
+                                'num_iter',1000));
+    end
     figure, histogram(dims,0:10,'facecolor','k')
     set(gca,'TickDir','out','FontSize',14), box off
     xlabel('Dimensionality'),ylabel('Counts'),
@@ -405,17 +450,51 @@ end
 % ALIGN LATENT ACTIVITY OVER SESSIONS
 %
 
-aligned_latent_results = align_latent_activity( master_td, pars.align_latent_params );
+align_results       = align_latent_activity( master_td, pars.align_latent_params );
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % DECODE KINEMATICS TRAINING BUILDING A DECODER ON ONE DAY AND TESTING IT
-% ON ANOTHER
+% ON ANOTHER USING THE ALIGNED LATENT ACTIVITY
+%
+% only do decoding for S1 / M1 for PMd we'll classify target direction
+
+if strcmp(pars.spiking_inputs{1},'M1_spikes') || strcmp(pars.spiking_inputs{1},'S1_spikes')
+    
+    dec_results     = decode_across_days( master_td, pars.decoder_params );
+end
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% DECODE KINEMATICS TRAINING BUILDING A DECODER ON ONE DAY AND TESTING IT
+% ON ANOTHER USING THE ALIGNED LATENT ACTIVITY
+%
+% only do decoding for S1 / M1 for PMd we'll classify target direction
+
+if strcmp(pars.spiking_inputs{1},'M1_spikes') || strcmp(pars.spiking_inputs{1},'S1_spikes')
+    in_old          = pars.decoder_params.in;
+    pars.decoder_params.in = 'spikes';
+
+    dec_spike_results = decode_across_days( master_td, pars.decoder_params );
+
+    pars.decoder_params.in = in_old; clear in_old;
+end
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% CLASSIFY TARGET LOCATION
 %
 
-decoding_results = decode_from_aligned( master_td, pars.decoder_params );
+if strcmp(pars.spiking_inputs{1},'PMd_spikes')
+   
+    clas_results    = classify_across_days( master_td, pars.class_params );
+end
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -424,4 +503,12 @@ decoding_results = decode_from_aligned( master_td, pars.decoder_params );
 % PLOTTING
 %
 
+% Plot aligned latent activity and similarity over days
 SOT_Fig_3_aligned_latent_activity;
+
+
+% Plot decoding results
+if strcmp(pars.spiking_inputs{1},'M1_spikes') || strcmp(pars.spiking_inputs{1},'S1_spikes')
+    
+    SOT_Fig_decoding;
+end
