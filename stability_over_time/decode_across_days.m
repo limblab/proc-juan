@@ -13,6 +13,7 @@ hist_bins               = 5;
 n_folds                 = 6; % 'cca' or 'procrustes'
 manifold                = [];
 mani_dims               = 1:10;
+unsort_chs_to_pred      = false;
 
 
 if nargin > 1, assignParams(who,params); end % overwrite defaults
@@ -65,7 +66,7 @@ for c = 1:n_comb_sessions
             
             
             % a) Set model params inputs
-            mod_params.in_signals = {['align_' manifold '_shift'],1:length(mani_dims)*hist_bins};
+            mod_params.in_signals = {[manifold '_align_shift'],1:length(mani_dims)*hist_bins};
 
 
             % b) "align" dynamics with CCA
@@ -78,13 +79,13 @@ for c = 1:n_comb_sessions
             for t = 1:length(trials1)
                 be      = bins_p_trial*(t-1)+1;
                 en      = bins_p_trial*t;        
-                td1(t).(['align_' manifold]) = cca_info(c).U(be:en,:);
-                td2(t).(['align_' manifold]) = cca_info(c).V(be:en,:);
+                td1(t).([manifold '_align' ]) = cca_info(c).U(be:en,:);
+                td2(t).([manifold '_align' ]) = cca_info(c).V(be:en,:);
             end        
             
             % d) Duplicate and shift to have history
-            td1         = dupeAndShift(td1,{['align_' manifold],hist_bins});
-            td2         = dupeAndShift(td2,{['align_' manifold],hist_bins});
+            td1         = dupeAndShift(td1,{[manifold '_align' ],hist_bins});
+            td2         = dupeAndShift(td2,{[manifold '_align' ],hist_bins});
             
             
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -102,6 +103,13 @@ for c = 1:n_comb_sessions
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % FOR THE UNALIGNED LATENT ACTIVITY  
         case 'spikes'
+            
+            % optional: "unsort" channels 
+            if unsort_chs_to_pred 
+                
+                td(trials1) = mergeUnits( td(trials1) );
+                td(trials2) = mergeUnits( td(trials2) );
+            end
             
             % a) Get the channels that have threshold crossings in both datasets
             this_td     = td([trials1 trials2]);
