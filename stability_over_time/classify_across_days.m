@@ -147,22 +147,21 @@ for c = 1:n_comb_sessions
                             td1(itrain)', 'uniformoutput', false ) );
             Ytrain      = [td1(itrain).target_direction];
 
-            
+            % c) Train classifier
             if zsc
                 Xtrain  = zscore(Xtrain);
-%                Ytrain  = zscore(Ytrain);
             end
             
-            % c) Train classifier
             switch method
                 case 'NN'
                     clas_within = fitcknn(Xtrain,Ytrain);
                 case 'Bayes'
-                    clas_within = fitcnb(Xtrain,Ytrain,'DistributionNames','kernel', ...
-                                                        'Kernel','triangle', ...
-                                                        'Support','unbounded', ...
-                                                        'OptimizeHyperparameters',{'Width'});
-                    close all;
+%                     clas_within = fitcnb(Xtrain,Ytrain,'DistributionNames','kernel', ...
+%                                                         'Kernel','triangle', ...
+%                                                         'Support','unbounded', ...
+%                                                         'OptimizeHyperparameters',{'Width'});
+%                     close all;
+                    clas_within = fitcnb(Xtrain,Ytrain);
                 otherwise
                     error('Only NN implemented so far');
             end
@@ -204,18 +203,18 @@ for c = 1:n_comb_sessions
 
         if zsc
             X1          = zscore(X1);
-%            Y1          = zscore(Y1);
         end
         
         switch method
             case 'NN'
                 clas    = fitcknn(X1,Y1);
             case 'Bayes'
-                clas    = fitcnb(X1,Y1,'DistributionNames','kernel', ...
-                                        'Kernel','triangle', ...
-                                        'Support','unbounded', ...
-                                        'OptimizeHyperparameters',{'Width'});
-                close all;
+%                 clas    = fitcnb(X1,Y1,'DistributionNames','kernel', ...
+%                                         'Kernel','triangle', ...
+%                                         'Support','unbounded', ...
+%                                         'OptimizeHyperparameters',{'Width'});
+%                 close all;
+                clas    = fitcnb(X1,Y1);
             otherwise
                 error('Only NN implemented so far');
         end
@@ -224,25 +223,83 @@ for c = 1:n_comb_sessions
         pred1           = predict(clas,X1)';
         perf1(c)        = ( length(pred1) - sum( ( pred1 - Y1 ~= 0 ) ) ) / length(pred1)*100;
 
-        % b) Test on another day
+        % b) Test on day 2
         X2              = cell2mat( arrayfun( @(x) x.(clas_input)(b,1:n_clas_vars), ...
                                 td2', 'uniformoutput', false ) );            
         Y2              = [td2.target_direction];
 
         if zsc
             X2          = zscore(X2);
-%            Y2          = zscore(Y2);
         end
         
         pred2           = predict(clas,X2)';
+        
+        
+        % c) Train within-session decoder on day 2
+        perf_test2      = zeros(1,n_folds);
+        
+        for f = 1:n_folds
+            
+            % a) Retrieve training and testing bins
+            itest       = ishuf( (f-1)*bins_p_fold + 1 : f*bins_p_fold );
+            itrain      = ishuf(~ismember(ishuf,itest));
+
+            % b) Prepare data for classifier -- X has to be a trial x
+            % datapoints matrix; Y a trial x 1 matrix
+            Xtrain2     = cell2mat( arrayfun( @(x) x.(clas_input)(b,1:n_clas_vars), ...
+                            td1(itrain)', 'uniformoutput', false ) );
+            Ytrain2     = [td1(itrain).target_direction];
+
+            % c) Train classifier
+            if zsc
+                Xtrain2 = zscore(Xtrain2);
+            end
+            
+            switch method
+                case 'NN'
+                    clas_within = fitcknn(Xtrain2,Ytrain2);
+                case 'Bayes'
+%                     clas_within = fitcnb(Xtrain,Ytrain,'DistributionNames','kernel', ...
+%                                                         'Kernel','triangle', ...
+%                                                         'Support','unbounded', ...
+%                                                         'OptimizeHyperparameters',{'Width'});
+%                     close all;
+                    clas_within = fitcnb(Xtrain2,Ytrain2);
+                otherwise
+                    error('Only NN implemented so far');
+            end
+            
+            % d) Test on testing set (derrr) on the same day
+            Xtest2      = cell2mat( arrayfun( @(x) x.(clas_input)(b,1:n_clas_vars), ...
+                            td1(itest)', 'uniformoutput', false ) );            
+            Ytest2      = [td1(itest).target_direction];
+            
+            if zsc
+                Xtest2  = zscore(Xtest2);
+%                Ytest   = zscore(Ytest);
+            end
+            
+            pred_test2  = predict(clas_within,Xtest2)';
+
+            % Performance (% succesfully classified targets)
+            perf_test2(f) = ( length(pred_test2) - sum( ( pred_test2 - Ytest2 ~= 0 ) ) ) / length(pred_test2)*100;
+        end
+        
+        % TO DELETE TO DELETE TO DELETE TO DELETE TO DELETE TO DELETE TO DELETE TO DELETE
+        perf_within_m2(c,b) = mean(perf_test2);
+        
 
         % Performance (% succesfully classified targets)          
         perf_across(c,b) = ( length(pred2) - sum( ( pred2 - Y2 ~= 0 ) ) ) / length(pred2)*100;
 
         % Classif error (degrees)
         err_across_m(c,b) = mean(abs(Y2-pred2));
+        
+        % For the normalized predictions
+        norm_perf_across(c,b) = perf_across(c,b)/perf_within_m2(c)*100;
     end
 end
+
 
 
 % Distirbution predictions 
@@ -251,51 +308,93 @@ x_hist                  = 0:hist_res:100+hist_res;
 hist_within             = histcounts(perf_within_m(:,end),x_hist)/numel(perf_within_m)*100;
 hist_across             = histcounts(perf_across(:,end),x_hist)/numel(perf_across)*100;
 
+x_hist_norm             = 0:hist_res:100+hist_res+50;
+hist_norm_across        = histcounts(norm_perf_across(:,end),x_hist_norm)/numel(norm_perf_across)*100;
+
+% not xvalidated within session
+hist_noxval             = histcounts(perf1,x_hist)/length(perf1)*100;
+
+Pchance                 = 100/numel(unique([td1.target_direction]));
+
+
 
 figure('units','normalized','outerposition',[0.25 0.1 0.5 0.9])    
-subplot(321), hold on
+subplot(331), hold on
 errorbar(mean(perf_within_m,1),std(perf_within_m,1),'k','marker','none', 'linestyle', 'none', 'linewidth', 1.5)
 bar(mean(perf_within_m,1),'FaceColor',[.7 .7 .7])
-plot([0 size(perf_within_m,2)+1],[100 100], '-.k', 'linewidth',1.5)
+plot([0 size(perf_within_m,2)+1],[100 100], '-.', 'color', [.7 .7 .7], 'linewidth',1.5)
+plot([0 size(perf_within_m,2)+1],[Pchance Pchance], '-.k', 'linewidth',1.5)
 ylim([0 110])
 set(gca,'TickDir','out','FontSize',14), box off
-ylabel('Within-session accuracy (%)')
+xlabel('Parameter b'),ylabel('Within-session accuracy (%)')
 title(['Classifier: ' method])
 
-subplot(322), hold on
+subplot(332), hold on
 errorbar(mean(perf_across,1),std(perf_across,1),'k','marker','none', 'linestyle', 'none', 'linewidth', 1.5)
 bar(mean(perf_across,1),'FaceColor','b')
-plot([0 size(perf_within_m,2)+1],[100 100], '-.k', 'linewidth',1.5)
-ylabel('Across-session accuracy (%)')
+plot([0 size(perf_within_m,2)+1],[100 100], '-.', 'color', [.7 .7 .7], 'linewidth',1.5)
+plot([0 size(perf_within_m,2)+1],[Pchance Pchance], '-.k', 'linewidth',1.5)
+xlabel('Parameter b'),ylabel('Across-session accuracy (%)')
 ylim([0 110])
 set(gca,'TickDir','out','FontSize',14), box off
 title(['History bins: ' num2str(hist_bins) ' - Bin size: ' num2str(td1(1).bin_size)])
 
-subplot(323),
-errorbar(mean(err_within_m,1),std(err_within_m),'.k','markersize',30, 'linestyle', 'none', 'linewidth', 1.5)
-xlabel('Parameter b'), ylabel('Angular error')
-xlim([0 size(perf_within_m,2)+1])
+subplot(333), hold on
+errorbar(mean(norm_perf_across,1),std(norm_perf_across,1),'k','marker','none', 'linestyle', 'none', 'linewidth', 1.5)
+bar(mean(norm_perf_across,1),'FaceColor','g')
+plot([0 size(norm_perf_across,2)+1],[1 1], 'color', 'k', 'linewidth',.5)
+ylabel('Across-session accuracy (%)')
+xlabel('Parameter b'),ylim([0 150])
 set(gca,'TickDir','out','FontSize',14), box off
+title(['History bins: ' num2str(hist_bins) ' - Bin size: ' num2str(td1(1).bin_size)])
 
-subplot(324),
-errorbar(mean(err_across_m,1),std(err_across_m),'.b','markersize',30, 'linestyle', 'none', 'linewidth', 1.5)
-xlabel('Parameter b'), ylabel('Angular error')
-set(gca,'TickDir','out','FontSize',14), box off
-xlim([0 size(perf_within_m,2)+1])
 
-subplot(325),
+subplot(334),hold on
 hw = bar(x_hist(1:end-1),hist_within,'histc');
-set(hw,'FaceColor','k');
+hn = bar(x_hist(1:end-1),hist_noxval,'histc');
+yl = ylim;
+set(hw,'FaceColor','k'); alpha(hw,0.7)
+set(hn,'FaceColor','r'); alpha(hn,0.7)
+plot([Pchance, Pchance],[yl(1) yl(2)],'-.k', 'linewidth',1.5)
+legend('X-val','Not','Location','NorthWest'), %legend boxoff
 xlabel(['Within-session accuracy (%) b = ' num2str(size(perf_across,2))]), ylabel('Sessions (%)')
 set(gca,'TickDir','out','FontSize',14), box off
 xlim([0 x_hist(end-1)])
 
-subplot(326),
+subplot(335), hold on
 ha = bar(x_hist(1:end-1),hist_across,'histc');
+yl = ylim;
+plot([Pchance, Pchance],[yl(1) yl(2)],'-.k', 'linewidth',1.5)
 set(ha,'FaceColor','b');
 xlabel(['Across-session accuracy (%) b = ' num2str(size(perf_across,2))]), ylabel('Sessions (%)')
 set(gca,'TickDir','out','FontSize',14), box off
 xlim([0 x_hist(end-1)])
+
+subplot(336), hold on
+ha = bar(x_hist_norm(1:end-1),hist_norm_across,'histc');
+set(ha,'FaceColor','g');
+xlabel(['Normalized across accuracy (%) b = ' num2str(size(perf_across,2))]), ylabel('Sessions (%)')
+set(gca,'TickDir','out','FontSize',14), box off
+xlim([0 x_hist_norm(end-1)])
+
+
+subplot(337),hold on
+plot(1.25*ones(1,length(err_within_m)),rad2deg(err_within_m),'.','markersize',20,'color',[.7 .7 .7],'linestyle','none')
+errorbar(rad2deg(mean(err_within_m,1)),rad2deg(std(err_within_m)),'.k','markersize',30, 'linestyle', 'none', 'linewidth', 1.5)
+xlabel('Parameter b'), ylabel('Angular error')
+xlim([0 size(perf_within_m,2)+1])
+set(gca,'TickDir','out','FontSize',14), box off
+yl = ylim;
+ylim([0 floor(yl(2)/10)*10])
+
+subplot(338),hold on
+plot(1.25*ones(1,length(err_across_m)),rad2deg(err_within_m),'.','markersize',20,'color','c','linestyle','none')
+errorbar(rad2deg(mean(err_across_m,1)),rad2deg(std(err_across_m)),'.b','markersize',30, 'linestyle', 'none', 'linewidth', 1.5)
+xlabel('Parameter b'), ylabel('Angular error')
+set(gca,'TickDir','out','FontSize',14), box off
+xlim([0 size(perf_within_m,2)+1])
+yl = ylim;
+ylim([0 floor(yl(2)/10)*10])
 
 set(gcf,'color','w')
 
@@ -308,6 +407,42 @@ set(gcf,'color','w')
 % RETURN VARS
 results.perf_within     = perf_within_m;
 results.perf_across     = perf_across;
+
+
+
+% --------------------------------------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------
+% Other plots to understand what's going on
+
+
+figure; hold on; cols = parula(9); 
+for t = 1:8
+    for r = 1:15
+        idx = r + (t-1)*15; 
+        plot3( X1(idx,1), X1(idx,2), X1(idx,3), '.', 'color', cols(t,:),'markersize',30); 
+    end 
+end
+
+% figure; hold on;
+% for t = 1:8
+%     for r = 1:15
+%         idx = r + (t-1)*15; 
+%         plot3(td1(idx).PMd_pca_align(:,1),td1(idx).PMd_pca_align(:,2),td1(idx).PMd_pca_align(:,3), ...
+%             '.', 'color', cols(t,:),'markersize',30); 
+%     end
+% end
+
+figure; hold on;
+for t = 1:8
+    for r = 1:15
+        idx = r + (t-1)*15; 
+        plot3(td_orig(idx).PMd_pca(:,1),td_orig(idx).PMd_pca(:,2),td_orig(idx).PMd_pca(:,3), ...
+            'color', cols(t,:)); 
+        plot3(td_orig(idx).PMd_pca(end,1),td_orig(idx).PMd_pca(end,2),td_orig(idx).PMd_pca(end,3), ...
+            '.', 'color', cols(t,:),'markersize',30); 
+    end
+    %pause
+end
 
 
 clear perf_* err*
