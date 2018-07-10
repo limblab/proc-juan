@@ -1,6 +1,7 @@
 %
 %
 %
+% ZSCORING DOESN'T WORK WELL
 
 
 function results = classify_across_days( td, params )
@@ -10,13 +11,14 @@ function results = classify_across_days( td, params )
 % DEFAULT PARAMETER VALUES
 in                      = [];
 out                     = [];
-method                  = 'NN'; % 'NN' 'Bayes'
+method                  = 'Bayes'; % 'NN' 'Bayes'
 % win                     = [];
 hist_bins               = [];
 win_size                = [];
 n_folds                 = 5; % 'cca' or 'procrustes'
 manifold                = [];
 mani_dims               = 1:6;
+zsc                     = false;
 
 
 if nargin > 1, assignParams(who,params); end % overwrite defaults
@@ -145,12 +147,22 @@ for c = 1:n_comb_sessions
                             td1(itrain)', 'uniformoutput', false ) );
             Ytrain      = [td1(itrain).target_direction];
 
+            
+            if zsc
+                Xtrain  = zscore(Xtrain);
+%                Ytrain  = zscore(Ytrain);
+            end
+            
             % c) Train classifier
             switch method
                 case 'NN'
                     clas_within = fitcknn(Xtrain,Ytrain);
                 case 'Bayes'
-                    clas_within = fitcnb(Xtrain,Ytrain);
+                    clas_within = fitcnb(Xtrain,Ytrain,'DistributionNames','kernel', ...
+                                                        'Kernel','triangle', ...
+                                                        'Support','unbounded', ...
+                                                        'OptimizeHyperparameters',{'Width'});
+                    close all;
                 otherwise
                     error('Only NN implemented so far');
             end
@@ -165,6 +177,11 @@ for c = 1:n_comb_sessions
                             td1(itest)', 'uniformoutput', false ) );            
             Ytest       = [td1(itest).target_direction];
 
+            if zsc
+                Xtest   = zscore(Xtest);
+%                Ytest   = zscore(Ytest);
+            end
+            
             pred_test   = predict(clas_within,Xtest)';
 
             % Performance (% succesfully classified targets)
@@ -185,11 +202,20 @@ for c = 1:n_comb_sessions
                                 td1', 'uniformoutput', false ) );            
         Y1              = [td1.target_direction];
 
+        if zsc
+            X1          = zscore(X1);
+%            Y1          = zscore(Y1);
+        end
+        
         switch method
             case 'NN'
                 clas    = fitcknn(X1,Y1);
             case 'Bayes'
-                clas    = fitcnb(X1,Y1);
+                clas    = fitcnb(X1,Y1,'DistributionNames','kernel', ...
+                                        'Kernel','triangle', ...
+                                        'Support','unbounded', ...
+                                        'OptimizeHyperparameters',{'Width'});
+                close all;
             otherwise
                 error('Only NN implemented so far');
         end
@@ -203,6 +229,11 @@ for c = 1:n_comb_sessions
                                 td2', 'uniformoutput', false ) );            
         Y2              = [td2.target_direction];
 
+        if zsc
+            X2          = zscore(X2);
+%            Y2          = zscore(Y2);
+        end
+        
         pred2           = predict(clas,X2)';
 
         % Performance (% succesfully classified targets)          
