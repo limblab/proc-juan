@@ -16,8 +16,8 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'mihili'; % 'chewie'; 'mihili'; 'han'
-pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
+pars.monkey         = 'chewie'; % 'chewie'; 'mihili'; 'han'
+pars.spiking_inputs = {'PMd_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
 pars.sessions_discard = []; %[12 13 14];
@@ -115,6 +115,9 @@ pars.class_params.in                    = 'aligned_data'; % 'aligned_data'; 'una
 pars.class_params.win_size              = 0.150; % if empty, the entire window
 % History?
 pars.class_params.hist_bins             = 0;
+
+% Z-score?
+pars.class_params.zsc                   = true;
 
 % Folds for multi-fold cross-validation
 pars.class_params.n_folds               = 8; 
