@@ -94,7 +94,7 @@ mean_boots_cc = mean(cc_boots,2);
 for p = 1:length(percs)
     lg{p} = [num2str(100-percs(p)*100) '% drop'];
 end
-lg{percs+1} = 'shuffled in t';
+lg{length(percs)+1} = 'shuffled in t';
 
 % Raw data and means
 cols_ctrl = parula(length(percs)+1);
