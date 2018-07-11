@@ -105,6 +105,10 @@ for iFile = 1:length(file_list)
     file_info(iFile).pert = pert;
 end
 
+% sort by date
+[~,idx] = sort(cellfun(@(x) datenum(x,'yyyy-mm-dd'),{file_info.date}));
+file_info = file_info(idx);
+
 if strcmpi(monkey,'han')
     load(fullfile(data_dir,'han_tds.mat'));
     

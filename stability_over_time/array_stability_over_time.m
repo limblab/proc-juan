@@ -11,7 +11,7 @@ save_dir = 'C:\Users\Matt\Desktop\LimblabData\StabilityData';%'C:\Users\Matt\Dro
 fig_dir = '/Users/mattperich/Dropbox/Research/Papers/2018 - Stability latent activity/Figs/raw/';
 
 redo_data = false;
-redo_results = false;
+redo_results = true;
 save_figs = false;
 
 monkey = 'Chewie';
@@ -142,7 +142,7 @@ if ~exist(fullfile(save_dir,[monkey '_' array '_ArrayStabilityData.mat']),'file'
         
         file_data{iFile} = data;
     end
-    save(fullfile(save_dir,[monkey '_' array '_ArrayStabilityData.mat']),'file_data','file_info');
+    save(fullfile(save_dir,[monkey '_' array '_ArrayStabilityData.mat']),'file_data','file_info','-v7.3');
 end
 
 %% do statistical test
