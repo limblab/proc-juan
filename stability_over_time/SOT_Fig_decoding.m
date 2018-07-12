@@ -3,6 +3,9 @@
 %
 
 
+function SOT_Fig_decoding( dec_results, dec_spike_results )
+
+
 %% ------------------------------------------------------------------------
 % Get some info
 

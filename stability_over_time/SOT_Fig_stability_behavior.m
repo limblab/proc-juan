@@ -2,6 +2,8 @@
 % Plot "stability" of the behavior
 %
 
+function SOT_Fig_stability_behavior( corr_kin )
+
 
 x_lf = [0 max(corr_kin.diff_days)+1];
 
@@ -21,5 +23,5 @@ plot(corr_kin.diff_days,corr_kin.r(:,2),'.','markersize',32,'color',cols(2,:))
 ylim([0 1])
 set(gca,'TickDir','out','FontSize',14), box off
 legend(['X ' corr_kin.var],['Y ' corr_kin.var],'Location','SouthEast'),legend boxoff 
-xlabel('Days between sessions'),ylabel(['Corr hand ' corr_kin.var])
+xlabel('Days between sessions'),ylabel(['Correlation hand ' corr_kin.var])
 set(gcf,'color','w')
