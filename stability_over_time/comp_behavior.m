@@ -52,10 +52,4 @@ end
 results.diff_days           = diff_days;
 results.comb_sessions       = comb_sessions;
 results.r                   = r;
-
-
-figure,plot(diff_days,r','.','markersize',20)
-ylim([0 1])
-set(gca,'TickDir','out','FontSize',14), box off
-xlabel('Days between sessions'),ylabel(['Corr hand ' signal])
-set(gcf,'color','w')
+results.var                 = signal;
