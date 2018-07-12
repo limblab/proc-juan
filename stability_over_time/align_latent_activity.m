@@ -102,3 +102,4 @@ switch method
 end
 aligned_latent_results.r                = cell2mat(arrayfun(@(x) x.r, corr_info, ...
                                             'uniformoutput', false )');
+aligned_latent_results.signal           = signals;
