@@ -16,8 +16,8 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'chewie'; % 'chewie'; 'mihili'; 'han'
-pars.spiking_inputs = {'PMd_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
+pars.monkey         = 'chips'; % 'chewie'; 'mihili'; 'han'
+pars.spiking_inputs = {'S1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
 pars.sessions_discard = []; %[12 13 14];
@@ -26,7 +26,7 @@ pars.sessions_discard = []; %[12 13 14];
 % Data preprocessing
 
 % "Unsort" the sorted neurons?
-pars.unsorted_yn                = false; 
+pars.unsorted_yn                = true; 
 % Only use electrodes that have units in all the sessions (aonly for
 % unsorted_yn == true)
 pars.only_common_elecs          = false;
@@ -44,7 +44,7 @@ pars.n_bins_downs               = 3;
 % WATCH OUT -- THIS IS AFTER DOWNSAMPLING SO I NEED TO UPDATE IT BASED ON
 % N_BINS_DOWNS
 switch pars.monkey
-    case 'han'
+    case {'han','chips'}
         pars.idx_start          = {'idx_goCueTime',round(-2*5/3)};% {'idx_goCueTime',-2}; % {'idx_movement_on',-2}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
         pars.idx_end            = {'idx_goCueTime',round(9*5/3)}; % {'idx_goCueTime',9}; % {'idx_movement_on',13}; % {''}; % {'idx_go_cue',18}
     case {'chewie','mihili'}
@@ -52,6 +52,7 @@ switch pars.monkey
             case 'M1_spikes'
                 pars.idx_start  = {'idx_movement_on',-2}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
                 pars.idx_end    = {'idx_movement_on',13}; % {''}; % {'idx_go_cue',18}
+%                 pars.idx_end    = {[]}; % {''}; % {'idx_go_cue',18}
             case 'PMd_spikes'
                 pars.idx_start  = {'idx_target_on',0}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
                 pars.idx_end    = {'idx_target_on',15}; % {''}; % {'idx_go_cue',18}
@@ -120,13 +121,16 @@ pars.class_params.hist_bins             = 0;
 pars.class_params.zsc                   = true;
 
 % Folds for multi-fold cross-validation
-pars.class_params.n_folds               = 8; 
+pars.class_params.n_folds               = 5; 
 
 % A couple other slightly redundant definitions
 pars.class_params.manifold              = [pars.spiking_inputs{1}(1:end-7) '_pca'];
 pars.class_params.mani_dims             = pars.mani_dims;
 
-
+% -------------------------------------------------------------------------
+% To estimate the "stability" of the behavior
+pars.stab_behav.signal                  = 'vel';
+pars.stab_behav.top_lv_plot             = 4;
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -158,10 +162,32 @@ files_mihili        = { ...
                         'Mihili_CO_VR_2014-03-03.mat', ...
                         'Mihili_CO_VR_2014-03-04.mat', ...
                         'Mihili_CO_VR_2014-03-06.mat', ...
-                        'Mihili_CO_FF_2014-03-07.mat' ...
+                        'Mihili_CO_FF_2014-03-07.mat', ...
+                        'Mihili_CO_FF_2015-06-10.mat', ...
+                        'Mihili_CO_FF_2015-06-11.mat', ...
+                        'Mihili_CO_FF_2015-06-15.mat', ...
+                        'Mihili_CO_FF_2015-06-16.mat', ...
+                        'Mihili_CO_FF_2015-06-17.mat', ...
+                        'Mihili_CO_VR_2015-06-23.mat', ...
+                        'Mihili_CO_VR_2015-06-25.mat', ...
+                        'Mihili_CO_VR_2015-06-26.mat' ...
                         };
             
 files_han           = { 'all_TDs_Han.mat' }; 
+
+files_chips         = { 'Chips_20151113_TD_nosort_notrack_noemg.mat', ...
+                        'Chips_20151117_TD_nosort_notrack_noemg.mat', ...
+                        'Chips_20151120_TD_nosort_notrack_noemg.mat', ...
+                        'Chips_20151201_TD_nosort_notrack_noemg.mat', ...
+                        'Chips_20151204_TD_nosort_notrack_noemg.mat', ...
+                        'Chips_20151211_TD_nosort_notrack_noemg.mat' ...
+                        };
+
+% files_chips         = { 'Chips_20170322_TD_nosort_notrack_noemg.mat', ...
+%                         'Chips_20170323_TD_nosort_notrack_noemg.mat', ...
+%                         'Chips_20170505_TD_nosort_notrack_noemg.mat', ...
+%                         'Chips_20170613_TD_nosort_notrack_noemg.mat' ...
+%                         };
 
 
 % -------------------------------------------------------------------------
@@ -189,7 +215,7 @@ switch pars.monkey
             cd('/Users/juangallego/Documents/NeuroPlast/Data/Mihili')
         else
             cd('/Users/juangallego/Documents/NeuroPlast/Data/Mihili/Unsorted')
-            for f = 1:length(files_mihili), 
+            for f = 1:length(files_mihili) 
                 files_mihili{f} = [files_mihili{f}(1:end-4) '_unsorted.mat']; 
             end
         end
@@ -208,6 +234,20 @@ switch pars.monkey
             files_han = 'all_TDs_Han.mat';
         end
         files = files_han;
+    % Chips
+    case 'chips'
+        if ~pars.unsorted_yn
+            warning('Data for Chips are not sorted'); 
+            warning('Loading threshold crossings'); 
+            pause(3);
+            pars.unsorted_yn = true;
+            cd('/Users/juangallego/Documents/NeuroPlast/Data/Chips')
+            files_han = 'all_TDs_Han.mat';
+        else
+            cd('/Users/juangallego/Documents/NeuroPlast/Data/Chips')
+            files_han = 'all_TDs_Han.mat';
+        end
+        files = files_chips; 
 end
 
 
@@ -330,6 +370,9 @@ if strcmp(pars.monkey,'han')
     [~,master_td] = getTDidx(master_td,{'target_direction',targets_always_present});
     
     clear unique_targets_session is_target targets_always_present u_targets targets_session this_s all_targets;
+elseif strcmp(pars.monkey,'chips')
+     % there are trials with targets = NaN -> exclude them
+    master_td       = master_td(~isnan([master_td.target_direction]));
 end
 
 
@@ -450,6 +493,16 @@ end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
+% COMPARE KINEMATICS
+%
+
+corr_kin            = comp_behavior( master_td, pars.stab_behav );
+
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
 % ALIGN LATENT ACTIVITY OVER SESSIONS
 %
 
@@ -506,12 +559,20 @@ end
 % PLOTTING
 %
 
+
+% Plot similarity behavior
+SOT_Fig_stability_behavior( corr_kin );
+
+
 % Plot aligned latent activity and similarity over days
-SOT_Fig_3_aligned_latent_activity;
+SOT_Fig_3_aligned_latent_activity( master_td, align_results, meta, pars.stab_behav );
 
 
 % Plot decoding results
 if strcmp(pars.spiking_inputs{1},'M1_spikes') || strcmp(pars.spiking_inputs{1},'S1_spikes')
     
-    SOT_Fig_decoding;
+    SOT_Fig_decoding( dec_results, dec_spike_results );
+elseif strcmp(pars.spiking_inputs{1},'PMd_spikes')
+    
+    
 end

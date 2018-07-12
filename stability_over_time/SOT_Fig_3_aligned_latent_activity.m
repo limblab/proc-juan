@@ -3,10 +3,23 @@
 %
 
 
+function SOT_Fig_3_aligned_latent_activity( td, align_results, meta, params )
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DEFAULT PARAMETER VALUES
+top_lv_plot             = 4;
+
+if nargin > 1, assignParams(who,params); end % overwrite defaults
+
+
+
+n_sessions = length(meta.sessions);
+
 % -------------------------------------------------------------------------
 % PLOT CC LEADING X LATENT VARIABLES VS NUMBER OF SESSIONS
 
-latent_vars_plot = 1:4;
+latent_vars_plot = 1:top_lv_plot;
 errorbars = 'sem'; % 'sd' 'sem'
 
 
@@ -97,11 +110,11 @@ modesplot = 1:3;
 idx_cmp = find( align_results.comb_sessions(:,1)==s1 & align_results.comb_sessions(:,2)==s2 );
 
 % Hack: create aux TD signals with each of these sessions
-[~, td1] = getTDidx( master_td, {'date',meta.sessions(s1)} );
-[~, td2] = getTDidx( master_td, {'date',meta.sessions(s2)} );
+[~, td1] = getTDidx( td, {'date',meta.sessions(s1)} );
+[~, td2] = getTDidx( td, {'date',meta.sessions(s2)} );
 
 % define name var to plot
-latent_signals_plot = ['align_' pars.spiking_inputs{1}(1:end-7) '_pca'];
+latent_signals_plot = align_results.signals;
 
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
