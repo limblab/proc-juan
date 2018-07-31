@@ -2,21 +2,17 @@ clear;
 clc;
 close all;
 
+data_root = '/Volumes/MattData/';
+data_save_dir = '/Users/mattperich/Dropbox/Research/Data/StabilityData';
+out_dir = '/Users/mattperich/Dropbox/Research/Papers/2018 - Stability latent activity/Results/Neuron stability/';
 
+do_data_processing = false; % can only do this if you have raw data
+do_tracking        = false; % can only do this if you have completed data processing
+save_results       = true; % save a .mat file with the results
+save_figs          = true;
 
-% data_root = '/Volumes/MattData/';
-data_root = 'C:\Users\Matt\Desktop\LimblabData';
-% save_dir = '/Users/mattperich/Dropbox/Research/Data/StabilityData';
-save_dir = 'C:\Users\Matt\Desktop\LimblabData\StabilityData';%'C:\Users\Matt\Dropbox\Research\Data\StabilityData';
-fig_dir = '/Users/mattperich/Dropbox/Research/Papers/2018 - Stability latent activity/Figs/raw/';
-
-redo_data = false;
-redo_results = true;
-save_figs = false;
-
-monkey = 'Chewie';
-array = 'PMd';
-
+pars.monkey = 'Mihili';
+pars.array = 'PMd';
 
 files_chewie = { ...
     'Chewie_CO_VR_2016-09-12.mat', ...
@@ -28,12 +24,7 @@ files_chewie = { ...
     'Chewie_CO_VR_2016-10-06.mat', ...
     'Chewie_CO_FF_2016-10-07.mat', ...
     'Chewie_CO_FF_2016-10-11.mat', ...
-    'Chewie_CO_FF_2016-10-13.mat' ...% % add these below here to TD maybe
-    'Chewie_CO_VR_2016-09-09.mat', ...
-    'Chewie_CO_FF_2016-09-23.mat', ...
-    'Chewie_CO_VR_2016-09-29.mat', ...
-    'Chewie_CO_CS_2016-10-14.mat', ... % this one was sorted without the Ricardo split
-    'Chewie_CO_CS_2016-10-21.mat', ...
+    'Chewie_CO_FF_2016-10-13.mat' ...
     };
 
 files_mihili = { ...
@@ -56,7 +47,7 @@ files_mihili = { ...
 
 
 %% get the list of file paths
-switch lower(monkey)
+switch lower(pars.monkey)
     case 'chewie'
         file_list = files_chewie;
     case 'mihili'
@@ -73,7 +64,7 @@ for iFile = 1:length(file_list)
     monkey = temp{1};
     pert = temp{3};
     
-    filename = [monkey '_' array '_' task '_' pert '_BL_' datestr(date,'mmddyyyy') '_001.nev'];
+    filename = [pars.monkey '_' pars.array '_' task '_' pert '_BL_' datestr(date,'mmddyyyy') '_001.nev'];
     
     %     file_info(iFile).filepath = fullfile(data_root,monkey,'CerebusData',date,filename);
     file_info(iFile).filepath = fullfile(data_root,filename);
@@ -83,9 +74,28 @@ for iFile = 1:length(file_list)
     file_info(iFile).pert = pert;
 end
 
+% sort by date
+[~,idx] = sort(cellfun(@(x) datenum(x,'yyyy-mm-dd'),{file_info.date}));
+file_info = file_info(idx);
+
+
+%% pick the sesson comparisons
+% get all pairs of sessions
+% get all pairs of sessions
+sessions                = {file_info.date};
+n_sessions              = length(sessions);
+comb_sessions           = nchoosek(1:n_sessions,2);
+n_comb_sessions         = size(comb_sessions,1);
+
+diff_days   = zeros(1,size(comb_sessions,1));
+for c = 1:size(comb_sessions,1)
+    diff_days(c) = datenum(sessions{comb_sessions(c,2)}) - datenum(sessions{comb_sessions(c,1)});
+end
+
 
 %% process raw data
-if ~exist(fullfile(save_dir,[monkey '_' array '_ArrayStabilityData.mat']),'file') || redo_data
+% Requires access to the raw data
+if do_data_processing
     file_data = cell(1,length(file_info));
     for iFile = 1:length(file_info)
         clear data;
@@ -96,10 +106,10 @@ if ~exist(fullfile(save_dir,[monkey '_' array '_ArrayStabilityData.mat']),'file'
         end
         
         % convert NEV to data struct format
-        %   cell array where each day is an entry
+        %   cell pars.array where each day is an entry
         %   each day has fields:
         %       .sg (spike guide)
-        %       .units(:) (array of units recorded on that day
+        %       .units(:) (pars.array of units recorded on that day
         %       .units(:).ts (spike times)
         %       .units(:).wf (waveforms)
         %       .units(:).id ([electrode unit] label, duplicate of spike guide
@@ -142,41 +152,55 @@ if ~exist(fullfile(save_dir,[monkey '_' array '_ArrayStabilityData.mat']),'file'
         
         file_data{iFile} = data;
     end
-    save(fullfile(save_dir,[monkey '_' array '_ArrayStabilityData.mat']),'file_data','file_info','-v7.3');
+    save(fullfile(data_save_dir,[pars.monkey '_' pars.array '_ArrayStabilityData.mat']),'file_data','file_info','-v7.3');
 end
 
 %% do statistical test
-if ~exist(fullfile(save_dir,[monkey '_' array '_ArrayStabilityResults.mat']),'file') || redo_results
-    load(fullfile(save_dir,[monkey '_' array '_ArrayStabilityData.mat']));
+% TAKES FOREVER TO RUN!!!!
+if do_tracking
+    load(fullfile(data_save_dir,[pars.monkey '_' pars.array '_ArrayStabilityData.mat']));
     
     [COMPS, ts_ISI, D_wave, lda_proj] = KS_p({'isi','wf'},file_data,0.95);
     
     % save results
-    save(fullfile(save_dir,[monkey '_' array '_ArrayStabilityResults.mat']),'COMPS','ts_ISI','D_wave','lda_proj');
+    save(fullfile(out_dir,[pars.monkey '_' pars.array '_ArrayStabilityResults.mat']),'COMPS','ts_ISI','D_wave','lda_proj');
 else
-    load(fullfile(save_dir,[monkey '_' array '_ArrayStabilityResults.mat']),'COMPS','ts_ISI','D_wave','lda_proj');
+    load(fullfile(out_dir,[pars.monkey '_' pars.array '_ArrayStabilityResults.mat']),'COMPS');
     
 end
 
 
-%%
+%% find the percent of stable cells for all comparisons
 
-perc_stable = [];
-time_diff = [];
-for i = 1:length(COMPS)-1
-    for j = i+1:length(COMPS)
-        % how many neurons from day 'i' ("first day") are matched on Day j
-        % (percent is found as divided by number of neurons on day i)
-        perc_stable = [perc_stable, 100*sum(COMPS{j}.chan(:,i) ~= 0)/size(COMPS{i}.chan,1)];
-        time_diff = [time_diff, datenum(file_info(j).date,'yyyy-mm-dd') - datenum(file_info(i).date,'yyyy-mm-dd')];
-    end
+perc_stable = zeros(n_comb_sessions,1);
+for c = 1:n_comb_sessions
+    % how many neurons from day 'i' ("first day") are matched on Day j
+    % (percent is found as divided by number of neurons on day i)
+    perc_stable(c) = 100*sum(COMPS{comb_sessions(c,2)}.chan(:,comb_sessions(c,1)) ~= 0)/size(COMPS{comb_sessions(c,1)}.chan,1);
 end
 
+
+%% package up the results
+if save_results
+    results = struct( ...
+        'perc_stable',perc_stable, ...
+        'file_info',file_info, ...
+        'diff_days',diff_days, ...
+        'comb_sessions',comb_sessions, ...
+        'pars',pars);
+    
+    fn = fullfile(out_dir,['SortedNeuronStability_' pars.monkey '_' pars.array '.mat']);
+    save(fn,'results');
+end
+
+
+
+%% plot the stuff
 figure; hold all;
-plot(time_diff,perc_stable,'ko','LineWidth',2);
+plot(diff_days,perc_stable,'ko','LineWidth',2);
 
 % fit a line
-[b,~,~,~,s] = regress(perc_stable',[ones(size(time_diff))' time_diff']);
+[b,~,~,~,s] = regress(perc_stable,[ones(size(diff_days))' diff_days']);
 r = s(1);
 p = s(3);
 
@@ -184,14 +208,14 @@ V = axis;
 plot(V(1:2),b(1)+b(2)*V(1:2),'k-','LineWidth',2);
 text(0.1*V(2),0.1*V(3),['y = ' num2str(b(1)) ' + ' num2str(b(2)) ' * x; R^2 = ' num2str(r,3) '; p = ' num2str(p,3)],'FontSize',12);
 
-set(gca,'Box','off','TickDir','out','FontSize',14,'XLim',[0 max(time_diff)+1],'YLim',[0 100]);
+set(gca,'Box','off','TickDir','out','FontSize',14,'XLim',[0 max(diff_days)+1],'YLim',[0 100]);
 xlabel('Days between sessions');
 ylabel('% of Day 1 neurons that match');
 
-title([monkey ' - ' array]);
+title([pars.monkey ' - ' pars.array]);
 
 if save_figs
-    fn = fullfile(fig_dir,['SortedNeuronStability' '_' monkey '_' array]);
+    fn = fullfile(out_dir,['SortedNeuronStability_' pars.monkey '_' pars.array]);
     savefig(gcf,[fn '.fig']);
     saveas(gcf,fn,'png');
     saveas(gcf,fn,'pdf');
