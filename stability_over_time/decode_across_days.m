@@ -14,7 +14,7 @@ n_folds                 = 6; % 'cca' or 'procrustes'
 manifold                = [];
 mani_dims               = 1:10;
 unsort_chs_to_pred      = false;
-
+lag_kin_S1              = 0.050; % in s
 
 if nargin > 1, assignParams(who,params); end % overwrite defaults
 
@@ -30,6 +30,18 @@ if isempty(manifold), error('Must provide decoder output'); end
 % get all pairs of sessions
 sessions                = unique({td.date});
 n_sessions              = length(sessions);
+
+% Sometimes the sessions are not sorted by time --fix that here by
+% resorting the trials in master_td
+[~, i_sort]         = sort(datenum([sessions]));
+if sum( i_sort - 1:length(i_sort) ) > 0
+   
+    sorted_dates = sort( cell2mat( cellfun(@(x) datenum(x), sessions, 'uni', 0) ) );
+    for s = 1:n_sessions
+        sessions{s} = datestr(sorted_dates(s),'mm-dd-yyyy');
+    end
+end
+
 comb_sessions           = nchoosek(1:n_sessions,2);
 n_comb_sessions         = size(comb_sessions,1);
 
@@ -37,6 +49,8 @@ n_comb_sessions         = size(comb_sessions,1);
 mod_params.model_type   = 'linmodel';
 mod_params.out_signals  = out;   
 
+% Convert the kinematics to S1 lag to number of bins
+lag_kin_S1_bins         = round( lag_kin_S1 / td(1).bin_size );
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % THE THING ITSELF
@@ -107,8 +121,8 @@ for c = 1:n_comb_sessions
             % optional: "unsort" channels 
             if unsort_chs_to_pred 
                 
-                td(trials1) = mergeUnits( td(trials1) );
-                td(trials2) = mergeUnits( td(trials2) );
+                td(trials1) = stripSpikeSorting( td(trials1) );
+                td(trials2) = stripSpikeSorting( td(trials2) );
             end
             
             % a) Get the channels that have threshold crossings in both datasets
@@ -130,6 +144,21 @@ for c = 1:n_comb_sessions
             
         otherwise
             error('wrong decoder input');
+    end
+    
+    
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % 1B. IF IT'S FOR S1, WE WANT TO PREDICT PAST KINEMATICS !!!
+    
+    if strcmp( params.manifold(1:end-4), 'S1' ) && lag_kin_S1_bins ~= 0 && ...
+            sum( strcmp( params.out, {'pos','vel','acc'} ) ) == 1 
+        
+        % duplicate and shift to get past kinematics
+        td1             = dupeAndShift(td1,{out,lag_kin_S1_bins});
+        td2             = dupeAndShift(td2,{out,lag_kin_S1_bins});
+        
+        % update model outputs to past kinematics
+        mod_params.out_signals = {[out '_shift'], [size(td1(1).vel_shift,2)-1 size(td1(1).vel_shift,2)]};
     end
     
     

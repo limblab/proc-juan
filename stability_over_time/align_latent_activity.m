@@ -31,6 +31,17 @@ if nargin > 1, assignParams(who,params); end % overwrite defaults
 sessions        = unique({td.date});
 n_sessions      = length(sessions);
 
+% Sometimes the sessions are not sorted by time --fix that here by
+% resorting the trials in master_td
+[~, i_sort]         = sort(datenum([sessions]));
+if sum( i_sort - 1:length(i_sort) ) > 0
+   
+    sorted_dates = sort( cell2mat( cellfun(@(x) datenum(x), sessions, 'uni', 0) ) );
+    for s = 1:n_sessions
+        sessions{s} = datestr(sorted_dates(s),'mm-dd-yyyy');
+    end
+end
+
 comb_sessions   = nchoosek(1:n_sessions,2);
 
 
