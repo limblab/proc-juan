@@ -4,32 +4,28 @@
 % ZSCORING DOESN'T WORK WELL
 
 
-function results = classify_across_days( td, params )
+function results = classify_across_days( td, which_type, params )
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % DEFAULT PARAMETER VALUES
-in                  = [];
-out                 = [];
+out                 = 'target_direction';
 method              = 'Bayes'; % 'NN' 'Bayes'
-% win                     = [];
-hist_bins           = [];
-win_size            = [];
-n_folds             = 5; % 'cca' or 'procrustes'
+hist_bins           = 0;
+n_folds             = 100; % 'cca' or 'procrustes'
 manifold            = [];
-mani_dims           = 1:6;
-zsc                 = false;
-
-
+mani_dims           = 1:10;
+idx_start_align     = {};
+idx_end_align       = {};
+idx_start_classify  = {};
+idx_end_classify    = {};
+num_test_trials     = 1; % number per target for within session  CV
 if nargin > 1, assignParams(who,params); end % overwrite defaults
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if isempty(in), error('Must provide decoder inputs'); end
-if isempty(out), error('Must provide decoder output'); end
-if isempty(manifold), error('Must provide decoder output'); end
-if hist_bins<0, error('Must provide decoder output'); end
+if hist_bins < 0, error('Must provide decoder output'); end
 % ToDo: Implement some more checks
 
 
@@ -49,31 +45,20 @@ n_comb_sessions     = size(comb_sessions,1);
 % FUNCTION
 td_orig             = td;
 
-% downsample again
-%win_size                = 0.150; %0.150;
-down_rate           = round(win_size/td_orig(1).bin_size);
-
-% Only keep the last 'win_size' s of the trial
-td                  = trimTD(td_orig,{'end',-down_rate},{'end',0});
-
-% Make one big bin (a la Santhanam et al JNP 2007)
-td                	= binTD(td,down_rate);
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % THE THING ITSELF
 
-disp(['Testing classifier stability using ' in ' inputs']);
+disp(['Testing classifier stability using ' which_type ' inputs']);
 disp(['Type: ' method]);
 disp(['Classifying: ' out]);
-
 
 
 % For all pairs of sessions, build a model on session 1 and test it on
 % session 2
 for c = 1:n_comb_sessions
-
-
+    
+    disp(['Combination ' num2str(c) '/' num2str(n_comb_sessions)]);
+    
     % =====================================================================
     % CLASSIFIER BASED ON ALIGNED LATENT ACTIVITY
     % =====================================================================
@@ -82,290 +67,256 @@ for c = 1:n_comb_sessions
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % ALIGN LATENT ACTIVITY -- HAS TO BE DONE WITH THE ORIGINAL DATA,
     %                   BECAUSE THAT'S WHAT WE USE FOR THE OTHER ANALYSES
+    td = td_orig;
     
-    % a) get two TD structs, one per session to compare
-    trials1         = getTDidx(td_orig,'date',sessions{comb_sessions(c,1)});
-    trials2         = getTDidx(td_orig,'date',sessions{comb_sessions(c,2)});
-
-
-    % b) "align" dynamics with CCA
-    cca_info(c)     = compDynamics( td_orig, manifold, trials1, trials2, mani_dims );
-
-
-    % c) Add latent activity to the tdi structs
-    td1             = td(trials1);
-    td2             = td(trials2);
-    
-    for t = 1:length(trials1)
-        proj1       = td(trials1(t)).PMd_pca(:,mani_dims) * cca_info(c).A;
-        proj2       = td(trials2(t)).PMd_pca(:,mani_dims) * cca_info(c).B;
-        td1(t).([manifold '_align']) = proj1;
-        td2(t).([manifold '_align']) = proj2;
-    end
-    
-
-    % d) Duplicate and shift to have history
-    if hist_bins > 0
-        td1      	= dupeAndShift(td1,{[manifold '_align'],hist_bins});
-        td2        	= dupeAndShift(td2,{[manifold '_align'],hist_bins});
-    end
-
-
-    
-    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % PREPARE SOME EXTRA THINGS
-
-    % overwrite classifier input
-    if hist_bins > 0
-        clas_input  = [manifold '_align_shift'];
-    else
-        clas_input 	= [manifold '_align'];
-    end
-    
-    
-    % TEMP: Do for each bin (after dupe and shifting)
-    n_clas_vars     = size(td1(1).(clas_input),2);
-
-
-    % TEMP: do not need this either
-    b               = 1;
-    
-    
-    
-    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % CROSS-VALIDATED WITHIN-DAY PREDICTIONS FOR DAY 1
-    %       - This is currently done without optimizing the classifier
-    
-    % a) To cross-validate, shuffle the trials because they are sorted by
-    % target location
-    ishuf           = randperm(length(td1));
-    bins_p_fold     = floor(length(td1)/n_folds);
-
-    % To store the results
-    perf_train      = zeros(1,n_folds);
-    perf_test       = zeros(1,n_folds);
-    
-    % b) Do
-    for f = 1:n_folds
-        
-        % i) Retrieve the training and testing bins
-        itest       = ishuf( (f-1)*bins_p_fold + 1 : f*bins_p_fold );
-        itrain      = ishuf(~ismember(ishuf,itest));
-
-        % ii) Prepare the data for the classifier -- Dimensions: 
-        % X: trial x datapoints; Y: trial x target
-        Xtrain      = cell2mat( arrayfun( @(x) x.(clas_input)(b,1:n_clas_vars), ...
-                        td1(itrain)', 'uniformoutput', false ) );
-        Ytrain      = [td1(itrain).target_direction];
-        
-        if zsc
-            Xtrain  = zscore(Xtrain);
-        end
-        
-        % iii) Train the classifier
-        switch method
-            case 'NN'
-                clas_xval = fitcknn(Xtrain,Ytrain);
-            case 'Bayes'
-                clas_xval = fitcnb(Xtrain,Ytrain);
-            otherwise
-                error('Only NN implemented so far');
-        end
-
-        % iv) Test performance on the testing set
-        Xtest       = cell2mat( arrayfun( @(x) x.(clas_input)(b,1:n_clas_vars), ...
-                            td1(itest)', 'uniformoutput', false ) );            
-        Ytest       = [td1(itest).target_direction];
-
-        if zsc
-            Xtest   = zscore(Xtest);
-        end
+    switch lower(which_type)
+        case {'aligned_data','unaligned_data'}
+            % a) get two TD structs, one per session to compare
+            trials1         = getTDidx(td,'date',sessions{comb_sessions(c,1)});
+            trials2         = getTDidx(td,'date',sessions{comb_sessions(c,2)});
             
-        pred_test   = predict(clas_xval,Xtest)';
-        
-        % Performance (% succesfully classified targets)
-        perf_test1(f) = ( length(pred_test) - sum( ( pred_test - Ytest ~= 0 ) ) ) / length(pred_test)*100;
-        
-        err_test1(f) = mean(abs(Ytest - pred_test));
-        
-
-        % v) For reference, compute performance on the training set
-        pred_train  = predict(clas_xval,Xtrain)';
-        
-        perf_train(f) = ( length(pred_train) - sum( ( pred_train - Ytrain ~= 0 ) ) ) / length(pred_train)*100;
-    end
-    
-    
-    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % TRAIN CLASSIFIER ON DAY 1
-
-    
-    % a) Prepare the data
-    X1              = cell2mat( arrayfun( @(x) x.(clas_input)(b,1:n_clas_vars), ...
-                        td1', 'uniformoutput', false ) );
-    Y1              = [td1.target_direction];    
-
-    if zsc % z-score recommended for Bayes
-        X1          = zscore(X1);
-    end
-    
-    
-    % b) Train classifier
-    switch method
-        case 'NN'
-            clas = fitcknn(X1,Y1);
-        case 'Bayes'
-%             clas = fitcnb(X1,Y1);            
-            clas = fitcnb(X1,Y1,'DistributionNames','kernel', ...
-                'Kernel','triangle', ...
-                'Support','unbounded', ...
-                'OptimizeHyperparameters',{'Width'},...
-                'HyperparameterOptimizationOptions',struct('ShowPlots',false));
-        otherwise
-            error('Only NN and Bayes implemented so far');
-    end
-    
-    
-    % c) Test performance on training set -- Remember that the optimal
-    %       parameters where identified with cross-validation, thus these
-    %       predictions are cross-validated
-    pred_within     = predict(clas,X1)';
-    perf_within     = ( length(pred_within) - sum( ( pred_within - Y1 ~= 0 ) ) ) / length(pred_within)*100;
-    
-    
-    % d) Compute classif error (degrees)
-    err_within      = mean(abs(Y1-pred_within));
-    
-    
-
-    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % TEST ON DAY 2
-    
-    
-    % a) Prepare data from day 2
-    X2              = cell2mat( arrayfun( @(x) x.(clas_input)(b,1:n_clas_vars), ...
-                            td2', 'uniformoutput', false ) );            
-    Y2              = [td2.target_direction];
-
-    if zsc % z-score recommended for Bayes
-        X2          = zscore(X2);
-    end
-    
-
-    % b) Test performance on day 2
-    pred_across     = predict(clas,X2)';
-    perf_across     = ( length(pred_across) - sum( (pred_across - Y2 ~= 0) ) ) / length(pred_across)*100;
-   
-    
-    % c) Classifier error
-    err_across      = mean(abs(Y2-pred_across));
-
-    
-    
-    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % WITHIN-DAY DECODER FOR DAY 2, TO NORMALIZE THE TEST RESULTS
-
-    % a) Prepare the data
-    
-    clas_input_within2 = clas_input(1:end-6); % decode based on the raw latent activity
-    
+            % b) "align" dynamics with CCA
+            if strcmpi(which_type,'aligned_data')
+                model_in = [manifold '_align'];
+                td = trimTD(td,idx_start_align,idx_end_align);
+                cca_info(c)     = compDynamics( td, manifold, trials1, trials2, mani_dims );
+            else
+                model_in = manifold;
+            end
             
-    % b) To cross-validate, shuffle the trials because they are sorted by
-    % target location
-    ishuf2          = randperm(length(td2));
-    bins_p_fold2    = floor(length(td2)/n_folds);
-
-    % To store the results
-    perf_train2     = zeros(1,n_folds);
-    perf_test2      = zeros(1,n_folds);
-    
-    
-    % c) Do
-    for f = 1:n_folds
-        
-        % i) Retrieve the training and testing bins
-        itest2      = ishuf2( (f-1)*bins_p_fold2 + 1 : f*bins_p_fold2 );
-        itrain2     = ishuf2(~ismember(ishuf2,itest2));
-
-        % ii) Prepare the data for the classifier -- Dimensions: 
-        % X: trial x datapoints; Y: trial x target
-        Xtrain2     = cell2mat( arrayfun( @(x) x.(clas_input_within2)(b,1:n_clas_vars), ...
-                        td2(itrain2)', 'uniformoutput', false ) );
-        Ytrain2     = [td2(itrain2).target_direction];
-        
-        if zsc
-            Xtrain2 = zscore(Xtrain2);
-        end
-        
-        % iii) Train the classifier
-        switch method
-            case 'NN'
-                clas_xval2 = fitcknn(Xtrain2,Ytrain2);
-            case 'Bayes'
-                clas_xval2 = fitcnb(Xtrain2,Ytrain2);
-            otherwise
-                error('Only NN implemented so far');
-        end
-
-        % iv) Test performance on the testing set
-        Xtest2      = cell2mat( arrayfun( @(x) x.(clas_input_within2)(b,1:n_clas_vars), ...
-                            td2(itest2)', 'uniformoutput', false ) );            
-        Ytest2       = [td2(itest2).target_direction];
-
-        if zsc
-            Xtest2  = zscore(Xtest2);
-        end
+            % c) Add latent activity to the tdi structs
+            td = td_orig;
+            td1             = td(trials1);
+            td2             = td(trials2);
             
-        pred_test2  = predict(clas_xval2,Xtest2)';
-        
-        % v) Performance (% succesfully classified targets)
-        perf_test2(f) = ( length(pred_test2) - sum( ( pred_test2 - Ytest2 ~= 0 ) ) ) / length(pred_test2)*100;
-        err_test2(f) = mean(abs(Ytest2-pred_test2));
-        
-        % For reference, compute performance on the training set
-        pred_train2  = predict(clas_xval2,Xtrain2)';
-        perf_train2(f) = ( length(pred_train2) - sum( ( pred_train2 - Ytrain2 ~= 0 ) ) ) / length(pred_train2)*100;
+            if strcmpi(which_type,'aligned_data')
+                for t = 1:length(td1)
+                    temp = td1(t).(manifold);
+                    proj1       = temp(:,mani_dims) * cca_info(c).A;
+                    td1(t).(model_in) = proj1;
+                end
+                for t = 1:length(td2)
+                    temp = td2(t).(manifold);
+                    proj2       = temp(:,mani_dims) * cca_info(c).B;
+                    td2(t).(model_in) = proj2;
+                end
+            end
+            
+            if hist_bins > 0
+                td1      	= dupeAndShift(td1,model_in,hist_bins);
+                td2        	= dupeAndShift(td2,model_in,hist_bins);
+            end
+            
+            for trial = 1:length(td1)
+                temp = td1(trial).(model_in);
+                td1(trial).(model_in) = temp(:,mani_dims);
+            end
+            for trial = 1:length(td2)
+                temp = td2(trial).(model_in);
+                td2(trial).(model_in) = temp(:,mani_dims);
+            end
+            
+            td1 = trimTD(td1,idx_start_classify,idx_end_classify);
+            td2 = trimTD(td2,idx_start_classify,idx_end_classify);
+            
+            if hist_bins > 0
+                clas_input  = [model_in '_shift'];
+            else
+                clas_input 	= model_in;
+            end
+            
+            n_clas_vars     = mani_dims;
+            
+            % define some new parameters to pass throughout the function
+            new_params = struct( ...
+                'method',method, ...
+                'n_folds',n_folds, ...
+                'clas_input',clas_input, ...
+                'n_clas_vars',n_clas_vars, ...
+                'hist_bins',hist_bins, ...
+                'num_test_trials',num_test_trials);
+            
+            
+            % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % CROSS-VALIDATED WITHIN-DAY PREDICTIONS FOR DAY 1
+            %       - This is currently done without optimizing the classifier
+            
+            [~, perf_test1, err_test1] = do_classify_xval(td1,new_params);
+            
+            
+            
+            % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % TRAIN CLASSIFIER ON DAY 1
+            [X1,Y1] = process_td_for_classification(td1,new_params);
+            
+            % b) Train classifier
+            clas = fit_classifier(X1,Y1,new_params);
+            
+            
+            % c) Test performance on training set -- Remember that the optimal
+            %       parameters where identified with cross-validation, thus these
+            %       predictions are cross-validated
+            pred_within = clas.predict(X1)';
+            %pred_within     = predict(clas,X1)';
+            perf_within     = 100 * ( 1 - sum( angleDiff(pred_within,Y1,true,true) ~= 0 ) / length(pred_within) );
+            
+            
+            % d) Compute classif error (degrees)
+            err_within      = mean(angleDiff(Y1,pred_within,true,false));
+            
+            
+            % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % TEST ON DAY 2
+            
+            [X2,Y2] = process_td_for_classification(td2,new_params);
+            
+            
+            % b) Test performance on day 2
+            pred_across = clas.predict(X2)';
+            
+            perf_across     = 100 * ( 1 - sum( angleDiff(pred_across,Y2,true,true) ~= 0 ) / length(pred_across) );
+            
+            % c) Classifier error
+            err_across      = mean(angleDiff(Y2,pred_across,true,false));
+            
+            
+            % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % WITHIN-DAY DECODER FOR DAY 2, TO NORMALIZE THE TEST RESULTS
+            [~, perf_test2, err_test2] = do_classify_xval(td2,new_params);
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %  Save results
+            
+            
+            % Optimized classifier, not cross-validated on day 1
+            res.perf_within_opt_noxval1(c) = perf_within;
+            res.err_within_opt_noxval1(c) = err_within;
+            
+            % Cross-validated on day 1
+            res.perf_within_xval1(c,:) = perf_test1;
+            res.err_within_xval1(c,:) = err_test1;
+            
+            % Cross-validated on day 2
+            res.perf_within_xval2(c,:) = perf_test2;
+            res.err_within_xval2(c,:) = err_test2;
+            
+            % Across day classifier
+            res.perf_across(c) = perf_across;
+            res.err_across(c) = err_across;
+            
+            % For the normalized predictions
+            res.norm_perf_across(c) = perf_across/mean(perf_test2)*100;
+            
+            
+            
+        case 'spikes'
+            td = td_orig;
+            
+            % a) get two TD structs, one per session to compare
+            trials1         = getTDidx(td,'date',sessions{comb_sessions(c,1)});
+            trials2         = getTDidx(td,'date',sessions{comb_sessions(c,2)});
+            
+            td1             = td(trials1);
+            td2             = td(trials2);
+            
+            if hist_bins > 0
+                td1      	= dupeAndShift(td1,model_in,hist_bins);
+                td2        	= dupeAndShift(td2,model_in,hist_bins);
+            end
+            
+            td1 = trimTD(td1,idx_start_classify,idx_end_classify);
+            td2 = trimTD(td2,idx_start_classify,idx_end_classify);
+            
+            if hist_bins > 0
+                clas_input  = [model_in '_shift'];
+            else
+                clas_input 	= model_in;
+            end
+            
+            % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % CLASSIFIERS BASED ON SPIKES, WITHIN AND ACROSS DAY
+            
+            % first get the electrode/unit pairs that are common across days
+            sg1 = td1(1).PMd_unit_guide;
+            sg2 = td2(1).PMd_unit_guide;
+            [~,idx1,idx2] = intersect(sg1,sg2,'rows');
+            
+            
+            %%%% this code removes cells with zero variance in the
+            %%%% conditions
+            % a bit of a hack to initialize the size of things... just run
+            % it once to start
+            [X1_spike,Y1_spike] = process_td_for_classification(td1,new_params);
+            % check the spikes
+            utheta = unique(Y1_spike);
+            v = true(length(utheta),size(X1_spike,2));
+            
+            while any(any(v == true,1))
+                [X1_spike,Y1_spike] = process_td_for_classification(td1,new_params);
+                [X2_spike,Y2_spike] = process_td_for_classification(td2,new_params);
+                
+                % check the spikes
+                utheta = unique(Y1_spike);
+                v1 = zeros(length(utheta),size(X1_spike,2));
+                for u = 1:length(utheta)
+                    idx = Y1_spike == utheta(u);
+                    v1(u,:)  = var(X1_spike(idx,:));
+                end
+                v2 = zeros(length(utheta),size(X2_spike,2));
+                for u = 1:length(utheta)
+                    idx = Y2_spike == utheta(u);
+                    v2(u,:)  = var(X2_spike(idx,:));
+                end
+                
+                v = v1 == 0 | v2 == 0;
+                
+                idx = find(any(v,1));
+                for u = 1:length(idx)
+                    temp = idx(u);
+                    if temp > length(idx1), temp = temp - length(idx1); end
+                    idx1(temp) = NaN;
+                    
+                    if temp > length(idx2), temp = temp - length(idx2); end
+                    idx2(temp) = NaN;
+                end
+                
+                idx1(isnan(idx1)) = [];
+                idx2(isnan(idx2)) = [];
+            end
+            
+            [X1_spike,Y1_spike] = process_td_for_classification(td1,new_params);
+            [X2_spike,Y2_spike] = process_td_for_classification(td2,new_params);
+            
+            % b) Train classifier
+            if ~isempty(X1_spike) && ~isempty(X2_spike)
+                clas = fit_classifier(X1_spike,Y1_spike,new_params);
+                
+                % c) Test performance on training set -- Remember that the optimal
+                %       parameters where identified with cross-validation, thus these
+                %       predictions are cross-validated
+                pred_within_spike = clas.predict(X1_spike)';
+                perf_within_spike     = 100 * ( 1 - sum( angleDiff(pred_within_spike,Y1_spike,true,true) ~= 0 ) / length(pred_within_spike) );
+                
+                % d) Compute classif error (degrees)
+                err_within_spike      = mean(angleDiff(Y1_spike,pred_within_spike,true,false));
+                
+                % b) Test performance on day 2
+                pred_spike = clas.predict(X2_spike)';
+                
+                perf_spike     = 100 * ( 1 - sum( angleDiff(pred_spike,Y2_spike,true,true) ~= 0 ) / length(pred_spike) );
+                err_spike      = mean(angleDiff(Y2_spike,pred_spike,true,false));
+                
+                
+                % Spike classifier
+                res.perf_spike(c) = perf_spike;
+                res.err_spike(c) = err_spike;
+                % res.norm_perf_spike(c) = perf_spike/mean(perf_test2)*100;
+            else
+                res.perf_spike(c) = 0;
+                res.err_spike(c) = 0;
+            end
+            
     end
-    
-    
-%     % d) Test performance on training set 
-%     pred_within2    = predict(clas_xval2,Xwithin2)';
-%     perf_within2    = ( length(pred_within2) - sum( ( pred_within2 - Y2 ~= 0 ) ) ) / length(pred_within2)*100;
-%     err_within2     = mean(abs(Y2-pred_within2));
-    
-    
-    
-    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % CLASSIFIERS BASED ON SPIKES, WITHIN AND ACROSS DAY
-    
-    % ToDo
-    
-    
-    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Save results
-    
-    
-    % Optimized classifier, not cross-validated on day 1
-    res.perf_within_opt_noxval1(c,b) = perf_within;
-    res.err_within_opt_noxval1(c,b) = err_within;
-    
-    % Cross-validated on day 1
-    res.perf_within_xval1(c,b,:) = perf_test1;
-    res.err_within_xval1(c,b,:) = err_test1;
-%     % not-cross-validated on day 1
-%     res.perf_within_xval_on_train_set(c,b,:) = perf_train;
-        
-    % Cross-validated on day 2
-    res.perf_within_xval2(c,b,:) = perf_test2;
-    res.err_within_xval2(c,b,:) = err_test2;
-
-    % Across day classifier
-    res.perf_across(c,b) = perf_across;
-    res.err_across(c,b) = err_across;
-    
-    % For the normalized predictions
-    res.norm_perf_across(c,b) = perf_across/mean(perf_test2)*100;
-    
 end
 
 
@@ -374,186 +325,152 @@ end
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUMMARY STATS AND PLOTS
 
-
-% Compute mean training performance per day
-res.perf_within_xval1_m  = mean(res.perf_within_xval1,3);
-res.perf_within_xval2_m  = mean(res.perf_within_xval2,3);
-
-res.err_within_xval1_m  = mean(res.err_within_xval1,3);
-res.err_within_xval2_m  = mean(res.err_within_xval2,3);
-
-
-% get number of days between sessions, to summarize the results
-diff_days   = zeros(1,size(comb_sessions,1));
-for c = 1:size(comb_sessions,1)
-    diff_days(c) = datenum(sessions{comb_sessions(c,2)}) - datenum(sessions{comb_sessions(c,1)});
+switch lower(which_type)
+    case 'align'
+        % Compute mean training performance per day
+        res.perf_within_xval1_m  = mean(res.perf_within_xval1,2);
+        res.perf_within_xval2_m  = mean(res.perf_within_xval2,2);
+        
+        res.err_within_xval1_m  = mean(res.err_within_xval1,2);
+        res.err_within_xval2_m  = mean(res.err_within_xval2,2);
+        
+        
+        % get number of days between sessions, to summarize the results
+        diff_days   = zeros(1,size(comb_sessions,1));
+        for c = 1:size(comb_sessions,1)
+            diff_days(c) = datenum(sessions{comb_sessions(c,2)}) - datenum(sessions{comb_sessions(c,1)});
+        end
+        res.diff_days           = diff_days;
+        res.comb_sessions       = comb_sessions;
+        
+    case 'spikes'
+        % nothing for now
 end
-res.diff_days           = diff_days;
-res.comb_sessions       = comb_sessions;
-
 
 results                 = res;
 
 
 
-
-% Histograms of metrics
-hist_res                = 5;
-x_hist                  = 0:hist_res:100+hist_res;
-hist_within             = histcounts(res.perf_within_xval1_m(:,end),x_hist)/numel(res.perf_within_xval1_m)*100;
-hist_across             = histcounts(res.perf_across(:,end),x_hist)/numel(res.perf_across)*100;
-
-x_hist_norm             = 0:hist_res:100+hist_res+50;
-hist_norm_across        = histcounts(res.norm_perf_across(:,end),x_hist_norm)/numel(res.norm_perf_across)*100;
-
-Pchance                 = 100/numel(unique([td1.target_direction]));
-
-
-% linear fits
-x_fit                   = [0 max(diff_days)];
-lfacross                = polyfit(diff_days,res.perf_across',1);
-lfwithin2               = polyfit(diff_days,res.perf_within_xval2_m',1);
-y_across                = polyval(lfacross,x_fit);
-y_within2               = polyval(lfwithin2,x_fit);
+end
 
 
 
-% Fig
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [X,Y] = process_td_for_classification(td,params)
+hist_bins = params.hist_bins;
+n_clas_vars = params.n_clas_vars;
+clas_input = params.clas_input;
 
-f1 = figure('units','normalized','outerposition',[0.11 0.1 0.9 0.9]);
+% ii) Prepare the data for the classifier -- Dimensions:
+% X: trial x datapoints; Y: trial x target
+X = zeros(length(td),length(n_clas_vars)*(hist_bins+1));
+for i = 1:length(td)
+    
+    temp = get_the_signals(td(i),clas_input,n_clas_vars);
+    
+    X(i,:) = mean(temp,1);
+end
 
-subplot(331), hold on
-errorbar(mean(res.perf_within_xval1_m,1),std(res.perf_within_xval1_m,1),'k','marker','none', 'linestyle', 'none', 'linewidth', 1.5)
-bar(mean(res.perf_within_xval1_m,1),'FaceColor',[.7 .7 .7])
-plot([0 size(res.perf_within_xval1_m,2)+1],[100 100], '-.', 'color', [.7 .7 .7], 'linewidth',1.5)
-plot([0 size(res.perf_within_xval1_m,2)+1],[Pchance Pchance], '-.k', 'linewidth',1.5)
-ylim([0 110])
-set(gca,'TickDir','out','FontSize',14), box off
-xlabel('Parameter b'),ylabel('Within-session accuracy (%)')
-title(['Classifier: ' method])
+Y  = [td.(out)];
 
-subplot(332), hold on
-errorbar(mean(res.perf_across,1),std(res.perf_across,1),'k','marker','none', 'linestyle', 'none', 'linewidth', 1.5)
-bar(mean(res.perf_across,1),'FaceColor','b')
-plot([0 size(res.perf_across,2)+1],[100 100], '-.', 'color', [.7 .7 .7], 'linewidth',1.5)
-plot([0 size(res.perf_across,2)+1],[Pchance Pchance], '-.k', 'linewidth',1.5)
-xlabel('Parameter b'),ylabel('Across-session accuracy (%)')
-ylim([0 110])
-set(gca,'TickDir','out','FontSize',14), box off
-title(['History bins: ' num2str(hist_bins) ' - Bin size: ' num2str(td1(1).bin_size)])
-
-subplot(333), hold on
-errorbar(mean(res.norm_perf_across,1),std(res.norm_perf_across,1),'k','marker','none', 'linestyle', 'none', 'linewidth', 1.5)
-bar(mean(res.norm_perf_across,1),'FaceColor','g')
-plot([0 size(res.norm_perf_across,2)+1],[100 100], 'color', 'k', 'linewidth',.5)
-ylabel('Across-session accuracy (%)')
-xlabel('Parameter b'),ylim([0 150])
-set(gca,'TickDir','out','FontSize',14), box off
-title(['History bins: ' num2str(hist_bins) ' - Bin size: ' num2str(td1(1).bin_size)])
+X  = zscore(X);
+end
 
 
-subplot(334),hold on
-hw = bar(x_hist(1:end-1),hist_within,'histc');
-% hn = bar(x_hist(1:end-1),hist_noxval,'histc');
-yl = ylim;
-set(hw,'FaceColor','k'); alpha(hw,0.7)
-%set(hn,'FaceColor','r'); alpha(hn,0.7)
-plot([Pchance, Pchance],[yl(1) yl(2)],'-.k', 'linewidth',1.5)
-% legend('X-val','Not','Location','NorthWest'), %legend boxoff
-xlabel(['Within-session accuracy (%) b = ' num2str(size(perf_across,2))]), ylabel('Sessions (%)')
-set(gca,'TickDir','out','FontSize',14), box off
-xlim([0 x_hist(end-1)])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [perf_train, perf_test, err_test] = do_classify_xval(td,params)
+n_folds = params.n_folds;
+num_test_trials = params.num_test_trials;
 
-subplot(335), hold on
-ha = bar(x_hist(1:end-1),hist_across,'histc');
-yl = ylim;
-plot([Pchance, Pchance],[yl(1) yl(2)],'-.k', 'linewidth',1.5)
-set(ha,'FaceColor','b');
-xlabel(['Across-session accuracy (%) b = ' num2str(size(res.perf_across,2))]), ylabel('Sessions (%)')
-set(gca,'TickDir','out','FontSize',14), box off
-xlim([0 x_hist(end-1)])
+% To store the results
+perf_train      = zeros(1,n_folds);
+perf_test       = zeros(1,n_folds);
+err_test       = zeros(1,n_folds);
 
-subplot(336), hold on
-ha = bar(x_hist_norm(1:end-1),hist_norm_across,'histc');
-set(ha,'FaceColor','g');
-xlabel(['Normalized across accuracy (%) b = ' num2str(size(res.perf_across,2))]), ylabel('Sessions (%)')
-set(gca,'TickDir','out','FontSize',14), box off
-% xlim([0 x_hist_norm(end-1)])
-xlim([0 x_hist_norm(end-1)])
+% b) Do
+for f = 1:n_folds
+    % a) To cross-validate, shuffle the trials because they are sorted by
+    % target location
+    [itrain, itest] = get_test_train_trials(td,num_test_trials);
+    
+    % i) Retrieve the training and testing bins
+    
+    [Xtrain,Ytrain] = process_td_for_classification(td(itrain),params);
+    
+    % iii) Train the classifier
+    clas_xval = fit_classifier(Xtrain,Ytrain,params);
+    
+    [Xtest,Ytest] = process_td_for_classification(td(itest),params);
+    
+    pred_test = clas_xval.predict(Xtest)';
+    % Performance (% succesfully classified targets)
+    perf_test(f) = 100 * ( 1 - sum( angleDiff(pred_test,Ytest,true,true) ~= 0 ) / length(pred_test) );
+    err_test(f) = mean(angleDiff(Ytest,pred_test,true,false));
+    
+    % v) For reference, compute performance on the training set
+    pred_train  = clas_xval.predict(Xtrain)';
+    perf_train(f) = 100 * ( 1 - sum( angleDiff(pred_train,Ytrain,true,true) ~= 0 ) / length(pred_train) );
+end
 
-subplot(337),hold on
-plot(1.25*ones(1,length(res.err_within_xval1_m)),rad2deg(res.err_within_xval1_m),'.','markersize',20,'color',[.7 .7 .7],'linestyle','none')
-errorbar(rad2deg(mean(res.err_within_xval1_m,1)),rad2deg(std(res.err_within_xval1_m)),'.k','markersize',30, 'linestyle', 'none', 'linewidth', 1.5)
-xlabel('Parameter b'), ylabel('Angular error')
-xlim([0 size(perf_within,2)+1])
-set(gca,'TickDir','out','FontSize',14), box off
-yl = ylim;
-ylim([0 floor(yl(2)/10)*10])
-
-subplot(338),hold on
-plot(1.25*ones(1,length(res.err_across)),rad2deg(res.err_across),'.','markersize',20,'color','c','linestyle','none')
-errorbar(rad2deg(mean(res.err_across,1)),rad2deg(std(res.err_across)),'.b','markersize',30, 'linestyle', 'none', 'linewidth', 1.5)
-xlabel('Parameter b'), ylabel('Angular error')
-set(gca,'TickDir','out','FontSize',14), box off
-xlim([0 size(perf_within,2)+1])
-yl = ylim;
-ylim([0 floor(yl(2)/10)*10])
-
-subplot(339),hold on
-plot(x_fit,y_across,'b','linewidth',1.5)
-plot(x_fit,y_within2,'color',[.7 .7 .7],'linewidth',1.5)
-plot(diff_days,res.perf_across,'.b','markersize',32)
-plot(diff_days,res.perf_within_xval2_m,'.','markersize',32,'color',[.7 .7 .7])
-ylim([0 100]),xlim([0 max(diff_days)+1])
-set(gca,'TickDir','out','FontSize',14), box off
-xlabel('Days since classifier training'), ylabel('Accuracy (%)')
-set(gcf,'color','w')
-legend('across','within','Location','SouthWest'),legend boxoff
-   
-
-ff = '/Users/juangallego/Dropbox/Juan and Matt - Stability latent activity/Results/PMd/';
-fn = [td(1).monkey '_' clas_input(1:end-10) '_' method '_' num2str(win_size*1000) 'ms_bin'];
-
-savefig(f1,[ff filesep fn]);
-saveas(f1,[ff filesep fn '.png']);
-
-% end
+end
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function clas = fit_classifier(X,Y,params)
+method = params.method;
 
-% % --------------------------------------------------------------------------------------------------
-% % --------------------------------------------------------------------------------------------------
-% % Other plots to understand what's going on
-% 
-% 
-% figure; hold on; cols = parula(9); 
-% for t = 1:8
-%     for r = 1:15
-%         idx = r + (t-1)*15; 
-%         plot3( X1(idx,1), X1(idx,2), X1(idx,3), '.', 'color', cols(t,:),'markersize',30); 
-%     end 
-% end
-% 
-% % figure; hold on;
-% % for t = 1:8
-% %     for r = 1:15
-% %         idx = r + (t-1)*15; 
-% %         plot3(td1(idx).PMd_pca_align(:,1),td1(idx).PMd_pca_align(:,2),td1(idx).PMd_pca_align(:,3), ...
-% %             '.', 'color', cols(t,:),'markersize',30); 
-% %     end
-% % end
-% 
-% figure; hold on;
-% for t = 1:8
-%     for r = 1:15
-%         idx = r + (t-1)*15; 
-%         plot3(td_orig(idx).PMd_pca(:,1),td_orig(idx).PMd_pca(:,2),td_orig(idx).PMd_pca(:,3), ...
-%             'color', cols(t,:)); 
-%         plot3(td_orig(idx).PMd_pca(end,1),td_orig(idx).PMd_pca(end,2),td_orig(idx).PMd_pca(end,3), ...
-%             '.', 'color', cols(t,:),'markersize',30); 
-%     end
-%     %pause
-% end
+switch method
+    case 'NN'
+        clas = fitcknn(X,Y);
+    case 'Bayes'
+        clas = fitcnb(X,Y,'ClassNames',unique(Y), ...
+            'DistributionNames','normal');
+    otherwise
+        error('Only NN implemented so far');
+end
+
+end
 
 
-% clear perf_* err*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function s = get_the_signals(td,params)
+clas_input = params.clas_input;
+n_clas_vars = params.n_clas_vars;
+
+if length(td) > 1
+    error('currently assumes you pass only one trial.');
+end
+
+% see if it's a shift
+if ~isempty(regexp(clas_input,'_shift', 'once'))
+    % use present bin and shifted
+    temp1 = td.(clas_input(1:end-6));
+    temp2 = td.(clas_input);
+    
+    % we need to grab the indices from all the shifted signals
+    orig_n = size(temp2,2)/size(temp1,2);
+    idx = [];
+    for n  = 1:orig_n
+        idx = [idx, n_clas_vars + size(temp1,2)*(n-1)];
+    end
+    
+    s = [temp1(:,n_clas_vars), temp2(:,idx) ];
+else
+    s = td.(clas_input);
+    s = s(:,n_clas_vars);
+end
+
+end
+
+

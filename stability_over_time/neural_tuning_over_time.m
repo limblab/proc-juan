@@ -3,12 +3,13 @@ clc;
 close all;
 
 data_dir = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/';
-out_dir = '/Users/mattperich/Dropbox/Research/Papers/2018 - Stability latent activity/Results/Tuning stability/';
-save_figs = false;
-save_results = false;
+out_dir = '/Users/mattperich/Dropbox/Research/Papers/Juan and Matt - Stability latent activity/Results/Tuning stability/';
+save_figs = true;
+save_results = true;
+do_the_boxplots = false;
 
 pars.monkey = 'Mihili';
-pars.array = 'M1';
+pars.array = 'PMd';
 
 % will plot all of these
 which_tuning_params = [1,2,3]; %1 = mean firing rate, 2 = modulation depth, 3 = preferred direction
@@ -16,7 +17,7 @@ pars.tuning_param_labels = {'Mean Firing Rate','Modulation Depth','Preferred Dir
 
 % use this to throw away some super-badly-tuned cells just to denoise a bits
 %   note: currently, the lower 95% C.I. of R2 must be above this value
-pars.min_r2 = 0.4;
+pars.min_r2 = 0;
 
 % I just use this match Juan's tuning window calculation... in reality I
 % don't bother ACTUALLY downsampling
@@ -34,83 +35,32 @@ switch lower(pars.monkey)
     case {'han','chips'}
         pars.idx_start          = {'idx_goCueTime',round(-2*5/3 * pars.n_bins_downs)};
         pars.idx_end            = {'idx_goCueTime',round(9*5/3 * pars.n_bins_downs)};
-    case {'chewie','mihili'}
+    case {'chewie','mihili','jaco','chewie2','mrt'}
         switch lower(pars.array)
             case 'm1'
-                pars.idx_start  = {'idx_go_cue',-2 * pars.n_bins_downs};
-                pars.idx_end    = {'idx_go_cue',13 * pars.n_bins_downs};
+                pars.idx_start  = {'idx_movement_on',-2 * pars.n_bins_downs};
+                pars.idx_end    = {'idx_movement_on',13 * pars.n_bins_downs};
             case 'pmd'
-                pars.idx_start  = {'idx_target_on',0 * pars.n_bins_downs};
-                pars.idx_end    = {'idx_target_on',15 * pars.n_bins_downs};
+                pars.idx_start  = {'idx_go_cue',-13 * pars.n_bins_downs};
+                pars.idx_end    = {'idx_go_cue',2 * pars.n_bins_downs};
         end
 end
 
-
-files_chewie        = { ...
-    'Chewie_CO_VR_2016-09-12.mat', ...
-    'Chewie_CO_VR_2016-09-14.mat', ...
-    'Chewie_CO_FF_2016-09-15.mat', ...
-    'Chewie_CO_FF_2016-09-19.mat', ...
-    'Chewie_CO_FF_2016-09-21.mat', ...
-    'Chewie_CO_FF_2016-10-05.mat', ...
-    'Chewie_CO_VR_2016-10-06.mat', ...
-    'Chewie_CO_FF_2016-10-07.mat', ...
-    'Chewie_CO_FF_2016-10-11.mat', ...
-    'Chewie_CO_FF_2016-10-13.mat' ...
-    };
-
-files_mihili = { ...
-    'Mihili_CO_FF_2014-02-03.mat', ...
-    'Mihili_CO_FF_2014-02-17.mat', ...
-    'Mihili_CO_FF_2014-02-18.mat', ...
-    'Mihili_CO_VR_2014-03-03.mat', ...
-    'Mihili_CO_VR_2014-03-04.mat', ...
-    'Mihili_CO_VR_2014-03-06.mat', ...
-    'Mihili_CO_FF_2014-03-07.mat', ...
-    'Mihili_CO_FF_2015-06-10.mat', ...
-    'Mihili_CO_FF_2015-06-11.mat', ...
-    'Mihili_CO_FF_2015-06-15.mat', ...
-    'Mihili_CO_FF_2015-06-16.mat', ...
-    'Mihili_CO_FF_2015-06-17.mat', ...
-    'Mihili_CO_VR_2015-06-23.mat', ...
-    'Mihili_CO_VR_2015-06-25.mat', ...
-    'Mihili_CO_VR_2015-06-26.mat', ...
-    };
-
-% I wrote out the dates as dummy filenames so that I can use the same loops
-%   in reality, I just load the Han_td file Juan made
-files_han = { ...
-    'Han_CO_BB_2017-10-24.mat', ...
-    'Han_CO_BB_2017-10-30.mat', ...
-    'Han_CO_BB_2017-10-31.mat', ...
-    'Han_CO_BB_2017-11-03.mat', ...
-    'Han_CO_BB_2017-11-16.mat', ...
-    'Han_CO_BB_2017-11-20.mat', ...
-    'Han_CO_BB_2017-11-21.mat', ...
-    'Han_CO_BB_2017-11-22.mat', ...
-    'Han_CO_BB_2017-11-27.mat', ...
-    'Han_CO_BB_2017-11-28.mat', ...
-    'Han_CO_BB_2017-11-29.mat', ...
-    'Han_CO_BB_2017-12-01.mat', ...
-    'Han_CO_BB_2017-12-04.mat', ...
-    'Han_CO_BB_2017-12-07.mat', ...
-    };
-
-files_chips = { ...
-    'Chips_20151113_TD_nosort_notrack_noemg.mat', ...
-    'Chips_20151120_TD_nosort_notrack_noemg.mat', ...
-    'Chips_20151201_TD_nosort_notrack_noemg.mat', ...
-    'Chips_20151204_TD_nosort_notrack_noemg.mat', ...
-    'Chips_20151211_TD_nosort_notrack_noemg.mat', ...
-    };
+monkey_lists;
 
 
 %% get the list of file paths
 switch lower(pars.monkey)
     case 'chewie'
         file_list = files_chewie;
+    case 'chewie2'
+        file_list = files_chewie2;
     case 'mihili'
         file_list = files_mihili;
+    case 'mrt'
+        file_list = files_mrt;
+    case 'jaco'
+        file_list = files_jaco;
     case 'chips'
         if ~strcmpi(pars.array,'s1')
             error('Han only has an S1 array.');
@@ -163,6 +113,7 @@ if strcmpi(pars.monkey,'han')
         [~,td] = getTDidx(trial_data,'result','R','date',dates{iFile});
         td = td(~isnan([td.idx_goCueTime]));
         td = stripSpikeSorting(td);
+        td = removeBadTrials(td);
         td = removeBadNeurons(td,pars.bad_neuron_params);
         td = trimTD(td,pars.idx_start,pars.idx_end);
         
@@ -178,6 +129,7 @@ elseif strcmpi(pars.monkey,'chips')
         [~,td] = getTDidx(trial_data,'result','R');
         td = td(~isnan([td.idx_goCueTime]));
         td = stripSpikeSorting(td);
+        td = removeBadTrials(td);
         td = removeBadNeurons(td,pars.bad_neuron_params);
         td = trimTD(td,pars.idx_start,pars.idx_end);
         
@@ -191,8 +143,9 @@ else % chewie and mihili both fall in this one
         filepaths{iFile} = fullfile(data_dir,file_list{iFile});
     end
     load_fn_call = { ...
-        {@getTDidx,'result','R'}, ...
+        {@getTDidx,'result','R','epoch','BL'}, ...
         @stripSpikeSorting, ...
+        @removeBadTrials, ...
         {@removeBadNeurons,pars.bad_neuron_params}, ...
         {@trimTD,pars.idx_start,pars.idx_end}, ...
         };
@@ -245,6 +198,7 @@ end
 
 %% do the comparison, save the results
 [tuneDiff_m, tuneDiff_sd] = deal(zeros(n_comb_sessions,length(which_tuning_params)));
+tuneDiff_all = cell(n_comb_sessions,length(which_tuning_params));
 for tp = 1:length(which_tuning_params)
     
     for c = 1:n_comb_sessions
@@ -262,6 +216,7 @@ for tp = 1:length(which_tuning_params)
             d = angleDiff(file_tuning{comb_sessions(c,1),1}(idx1,3),file_tuning{comb_sessions(c,2),1}(idx2,3),true,false);
             m = 180/pi*circular_mean(d);
             s = 180/pi*circular_std(d)/sqrt(length(d));
+            d = 180/pi*d; % for tuneDiff_all, convert it to degrees
         else % mean firing and modulation depth
             d = abs(file_tuning{comb_sessions(c,2),1}(idx2,which_tuning_params(tp)) - file_tuning{comb_sessions(c,1),1}(idx1,which_tuning_params(tp)));
             m = mean(d);
@@ -270,6 +225,7 @@ for tp = 1:length(which_tuning_params)
         
         tuneDiff_m(c,tp) = m;
         tuneDiff_sd(c,tp) = s;
+        tuneDiff_all{c,tp} = d;
     end
     
     
@@ -280,6 +236,7 @@ if save_results
     results = struct( ...
         'tuneDiff_m',tuneDiff_m, ...
         'tuneDiff_sd',tuneDiff_sd, ...
+        'tuneDiff_all',{tuneDiff_all}, ...
         'file_info',file_info, ...
         'file_tuning',{file_tuning}, ...
         'file_sgs',{file_sgs}, ...
@@ -301,6 +258,7 @@ for tp = 1:length(which_tuning_params)
     subplot(1,length(which_tuning_params),tp);
     hold all;
     
+    [d,g] = deal([]);
     for c = 1:n_comb_sessions
         m = tuneDiff_m(c,tp);
         s = tuneDiff_sd(c,tp);
@@ -334,4 +292,52 @@ if save_figs
     savefig(gcf,[fn '.fig']);
     saveas(gcf,fn,'png');
     saveas(gcf,fn,'pdf');
+end
+
+%% this version does the boxplot
+if do_the_boxplots
+    figure('Position',[100 100 1200 400]);
+    for tp = 1:length(which_tuning_params)
+        
+            subplot(1,length(which_tuning_params),tp);
+        hold all;
+        
+        [d,g] = deal([]);
+        for c = 1:n_comb_sessions
+            m = tuneDiff_m(c,tp);
+            s = tuneDiff_sd(c,tp);
+            
+            x = datenum(file_info(comb_sessions(c,2)).date,'mm-dd-yyyy') - datenum(file_info(comb_sessions(c,1)).date,'mm-dd-yyyy');
+            
+            d = [d; tuneDiff_all{c,tp}];
+            g = [g; x*ones(size(tuneDiff_all{c,tp}))];
+            
+            %         plot(x,m,'ko','LineWidth',2);
+            %         plot([x, x],[m-s,m+s],'k-','LineWidth',2)
+            
+        end
+        boxplot(d,g);
+
+        set(gca,'Box','off','TickDir','out','FontSize',14);
+        
+        % fit a line
+        [b,~,~,~,s] = regress(tuneDiff_m(:,tp),[ones(size(diff_days))' diff_days']);
+        r = s(1);
+        p = s(3);
+        
+        V = axis;
+        plot(V(1:2),b(1)+b(2)*V(1:2),'k-','LineWidth',2);
+        text(0.1*V(2),0.1*V(3),['y = ' num2str(b(1)) ' + ' num2str(b(2)) ' * x; R^2 = ' num2str(r,3) '; p = ' num2str(p,3)],'FontSize',12);
+        
+        title([pars.monkey ' - ' pars.array]);
+        xlabel('Days between sessions')
+        ylabel(['|Change in ' pars.tuning_param_labels{tp} '|']);
+        
+        if save_figs
+            fn = fullfile(out_dir,['NeuralTuningStability_' pars.monkey '_' pars.array '_Boxplot']);
+            savefig(gcf,[fn '.fig']);
+            saveas(gcf,fn,'png');
+            saveas(gcf,fn,'pdf');
+        end
+    end
 end

@@ -34,9 +34,6 @@ pars.unsorted_yn                = true;
 % Gaussian kernel for smoothing
 pars.kernel_SD                  = 0.05;
 
-% Neural modes to use
-pars.mani_dims                  = 1:8; % 1:10; 'estimate';
-
 % "Downsampling rate": nbr of bins that will be combined
 pars.n_bins_downs               = 3;
 
@@ -45,27 +42,27 @@ pars.n_bins_downs               = 3;
 % N_BINS_DOWNS
 switch pars.monkey
     case {'chips'} % S1
+        pars.mani_dims = 1:8; % Neural modes to use
         pars.idx_start          = {'idx_go_cue', 0};
         pars.idx_end            = {'idx_go_cue', 19};
     case {'han'} % S1
+        pars.mani_dims = 1:8;  % Neural modes to use
         pars.idx_start          = {'idx_go_cue', 0};
         pars.idx_end            = {'idx_go_cue', 22};
     case {'chewie','chewie2','mihili','mrt'}
         switch pars.spiking_inputs{1}
             case 'M1_spikes'
+                pars.mani_dims = 1:10; % Neural modes to use
 %                 pars.idx_start  = {'idx_movement_on',-2}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
 %                 pars.idx_end    = {'idx_movement_on',13}; % {'idx_movement_on',13}% {''}; % {'idx_go_cue',18}
                 pars.idx_start  = {'idx_movement_on',-4}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
                 pars.idx_end    = {'idx_movement_on',13}; % {'idx_movement_on',13}% {''}; % {'idx_go_cue',18}
             case 'PMd_spikes'
-                pars.idx_start  = {'idx_go_cue',-13}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
-                pars.idx_end    = {'idx_go_cue',2}; % {''}; % {'idx_go_cue',18}
-%                 pars.idx_start  = {'idx_movement_on',-15}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
-%                 pars.idx_end    = {'idx_movement_on',0}; % {''}; % {'idx_go_cue',18}
+                pars.mani_dims = 1:16; % Neural modes to use
+                pars.idx_start  = {'idx_movement_on',-15};
+                pars.idx_end    = {'idx_movement_on',0};
         end
 end
-        
-
 
 % -------------------------------------------------------------------------
 % To remove bad units
@@ -150,25 +147,29 @@ pars.class_params.method                = 'Bayes'; % 'NN' 'Bayes'
 
 % Inputs and Outputs
 pars.class_params.out                   = 'target_direction';
-pars.class_params.in                    = 'aligned_data'; % 'aligned_data'; 'unaligned_data'; 'spikes' (it always does spikes afterwards)
+% will do spikes after this one, by default
+pars.class_params.in                    = 'aligned_data'; % 'aligned_data'; 'unaligned_data'; 'spikes'
 
-% Bins for decoder history
-pars.class_params.win_size              = 0.300; % if empty, the entire window
 % History?
 pars.class_params.hist_bins             = 0;
 
-% Z-score?
-pars.class_params.zsc                   = true;
-
 % Folds for multi-fold cross-validation
-pars.class_params.n_folds               = 5; 
+pars.class_params.n_folds               = 100;
+pars.class_params.num_test_trials       = 1; % number of trials per target for test set
 
 % A couple other slightly redundant definitions
 pars.class_params.manifold              = [pars.spiking_inputs{1}(1:end-7) '_pca'];
 pars.class_params.mani_dims             = pars.mani_dims;
 
-pars.class_params.save_fig              = false;
+pars.class_params.idx_start             = pars.idx_start;
+pars.class_params.idx_end               = pars.idx_end;
+pars.class_params.idx_start_classify    = {'idx_go_cue',-13};
+pars.class_params.idx_end_classify      = {'idx_go_cue',2};
 
+pars.class_params.save_fig              = false;   
+    
+    
+    
 % -------------------------------------------------------------------------
 % To estimate the "stability" of the behavior
 pars.stab_behav.signal                  = 'vel';
@@ -816,16 +817,19 @@ end
 % CLASSIFY TARGET LOCATION
 %
 
-% if strcmp(pars.spiking_inputs{1},'PMd_spikes')
-%    
-%     % Do for many window sizes
-%     for w = 1:16
-%         
-%         pars.class_params.win_size = master_td(1).bin_size * w;
-%         
-%         clas_results    = classify_across_days( master_td, pars.class_params );
-%     end
-% end
+if strcmp(pars.spiking_inputs{1},'PMd_spikes')
+    
+    % first do aligned or unaligned
+    clas_results = classify_across_days(master_td,params.class_params.in,params.class_params);
+
+    % now do spikes
+    clas_results_spike = classify_across_days(master_td,'spikes',params.class_params);
+    results_spike.norm_perf_spike =  results_spike.perf_spike./mean(clas_results.perf_within_xval2,2)*100;
+    
+    % now do plotting
+    %%%% TO DO
+    
+end
 
 
 
