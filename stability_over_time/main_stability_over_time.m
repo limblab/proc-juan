@@ -349,7 +349,9 @@ if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     clas_spike_results = classify_across_days(master_td,'spikes',pars.class_params);
     
     % save some results
+    fn1 = [pars.monkey '_' pars.spiking_inputs{1}(1:end-7) '_Classification_over_time_' num2str(length(pars.mani_dims)) 'D'];
     
+    savefig(f1,fullfile(params.save_dir,pars.spiking_inputs{1}(1:end-7),[fn1 '.fig']));
 end
 
 
