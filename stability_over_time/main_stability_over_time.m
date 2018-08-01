@@ -18,8 +18,8 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'MrT'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'
-pars.spiking_inputs = {'PMd_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
+pars.monkey         = 'Chips'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
+pars.spiking_inputs = {'S1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
 pars.sessions_discard = []; %6:14; %[12 13 14];
@@ -51,7 +51,7 @@ switch lower(pars.monkey)
         pars.mani_dims = 1:8;  % Neural modes to use
         pars.idx_start          = {'idx_go_cue', 0};
         pars.idx_end            = {'idx_go_cue', 22};
-    case {'chewie','chewie2','mihili','mrt'}
+    case {'chewie','chewie2','mihili','mrt','jaco'}
         switch pars.spiking_inputs{1}
             case 'M1s_spikes'
                 pars.mani_dims = 1:10; % Neural modes to use
@@ -202,6 +202,8 @@ switch lower(pars.monkey)
     case 'chewie2'
         %cd('/Users/juangallego/Documents/NeuroPlast/Data/Chewie')
         files = files_chewie2;
+    case 'jaco'
+        files = files_jaco;
     % Mihili M1-PMd
     case 'mihili'
         %cd('/Users/juangallego/Documents/NeuroPlast/Data/Mihili')
@@ -414,42 +416,10 @@ end
 
 % --For Han and Chips, we need a couple of tricks, because of errors in
 % data storage
-if strcmpi(pars.monkey,'han')
-    
-    % ---------------------------------------------------------------------
-    % there are trials with targets = NaN -> exclude them
-    master_td       = master_td(~isnan([master_td.target_direction]));
-    
-    % ---------------------------------------------------------------------
-    % in some sessions he had 4 targets and in others. Only keep the common
-    % targets
-    all_targets     = unique([master_td.target_direction]);
-    targets_session = nan(n_sessions,length(all_targets));
-    for s = 1:n_sessions
-        this_s = getTDidx(master_td,{'date',meta.sessions{s}});
-        u_targets = unique([master_td(this_s).target_direction]);
-        targets_session(s,1:length(u_targets)) = u_targets;
-    end
-    
-    is_target = zeros(n_sessions,length(all_targets));
-    for s = 1:n_sessions
-        is_target(s,:) = ismember(all_targets,targets_session(s,:));
-    end
-    
-    % Targets that were present in all sessions
-    targets_always_present = all_targets(sum(is_target,1)==n_sessions);
-    
-    % Only keep trials to targets that were present in all the sessions
-    [~,master_td] = getTDidx(master_td,{'target_direction',targets_always_present});
+if strcmpi(pars.monkey,'han') || strcmpi(pars.monkey,'chips')
 
-    
-    clear unique_targets_session is_target targets_always_present u_targets targets_session this_s all_targets;
-% -- And for Chips, to exclude NaN targets
-elseif strcmpi(pars.monkey,'chips')
-     % there are trials with targets = NaN -> exclude them
-    master_td       = master_td(~isnan([master_td.target_direction]));
+    prep_to_get_targets_S1;
 end
-
 
 meta.targets        = unique([master_td.target_direction]);
 
@@ -464,75 +434,7 @@ meta.targets        = unique([master_td.target_direction]);
 
 if strcmpi(pars.monkey,'han') || strcmpi(pars.monkey,'chips')
    
-    % ---------------------------------------------------------------------
-    % Calculate movement onset
-    master_td       = getMoveOnsetAndPeak(master_td,struct('start_idx','idx_go_cue','end_idx','idx_trial_end'));
-  
-%     % ---------------------------------------------------------------------
-%     % Remove bad trials
-% %     % I CAN'T MAKE THIS KLJSAD WORK WELL
-% %     master_td       = removeBadTrials( master_td, struct('range',pars.bad_trial_params_S1,'remove_nan_idx',false) );
-%     RT              = [master_td.idx_movement_on] - [master_td.idx_go_cue];
-%     MT              = [master_td.idx_trial_end] - [master_td.idx_movement_on];
-%     master_td( MT<= ( (pars.idx_end{2}-pars.idx_start{2}+1) * pars.n_bins_downs ) ) = [];
-    
-    
-    % ---------------------------------------------------------------------
-    % Downsample
-    master_td       = binTD( master_td, pars.n_bins_downs );
-    
-    % ---------------------------------------------------------------------
-    % Remove bad neurons, square root transform and smooth for PCA
-    
-    new_master_td   = [];
-    for s = 1:n_sessions
-        
-        this_s      = getTDidx( master_td, {'date',meta.sessions{s}} );
-        
-        % remove bad units
-        this_td     = removeBadNeurons( master_td(this_s), pars.bad_neuron_params );
-        
-        % square root transform
-        this_td     = sqrtTransform( this_td, pars.spiking_inputs );
-        
-        % smooth
-        this_td     = smoothSignals( this_td, struct(...
-                            'signals',pars.spiking_inputs, ...
-                            'calc_fr', true, ...
-                            'kernel_SD', pars.kernel_SD) );
-                        
-        new_master_td = [new_master_td, this_td];
-    end        
-    
-    master_td       = new_master_td; 
-    clear new_master_td;
-    
-    % ---------------------------------------------------------------------
-    % trim the trials to idx_target_on : idx_trial_end, the window for PCA
-    master_td       = trimTD( master_td, {'idx_target_on',0}, {'idx_trial_end',0} );
-        
-    % ---------------------------------------------------------------------
-    % Do PCA
-    new_td          = [];
-    for s = 1:n_sessions
-        
-        this_s = getTDidx(master_td,{'date',meta.sessions{s}});
-        
-        [this_td, pca_info(s)] = getPCA( master_td(this_s), struct('signals',pars.spiking_inputs) );
-        
-        new_td = [new_td, this_td];
-    end
-    
-    master_td       = new_td;
-        
-    % ---------------------------------------------------------------------
-    % TRIM THE TRIALS to the ANALYSIS WINDOW
-    master_td           = trimTD( master_td, pars.idx_start, pars.idx_end );
-    
-    % GET RID OF TARGETS THAT ARE TOO SHORT BRUTE FORCE BECAUSE I HATE THIS
-    too_short           = arrayfun(@(x) size(x.pos,1), master_td) < (pars.idx_end{2} - pars.idx_start{2} + 1);
-    disp([num2str(sum(too_short)) ' Trials are outside the window']);
-    master_td(too_short) = [];
+    prep_and_do_PCA_S1;
 end
 
 
@@ -557,33 +459,6 @@ master_td           = equalNbrTrialsSessions(master_td);
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% ESTIMATE DIMENSIONALITY
-%
-
-% % NEEDTOFIX: SINCE THE BINS ARE PRETTY WIDE AND WE HAVE ONLY 4 TRIALS AND A
-% % LOT OF NEURONS, THE PCA FUNCTION DOESN'T WORK 
-
-% if strcmpi(pars.spiking_inputs{1},'M1_spikes') % || strcmpi(pars.spiking_inputs{1},'PMd_spikes')
-%  
-%     for s = 1:n_sessions
-% 
-%         this_s          = getTDidx(master_td,{'date',meta.sessions{s}});
-%         dims(s)         = estimateDimensionality(master_td(this_s),struct(...
-%                                 'signals',pars.spiking_inputs,...
-%                                 'alpha',0.95,...
-%                                 'num_iter',1000));
-%     end
-%     figure, histogram(dims,0:10,'facecolor','k')
-%     set(gca,'TickDir','out','FontSize',14), box off
-%     xlabel('Dimensionality'),ylabel('Counts'),
-%     title([pars.monkey ' - ' pars.spiking_inputs{1}(1:end-7)])
-% end
-
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
 % COMPARE KINEMATICS
 %
 
@@ -600,8 +475,9 @@ end
 %
 if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     % need to trim it first here
-    align_results       = align_latent_activity( trimTD(master_td,pars), pars.align_latent_params );
-    within_day_align_results = align_latent_activity_within_day( trimTD(master_td_all_trials,pars), pars.align_latent_params );
+    align_results       = align_latent_activity( trimTD(master_td, pars.idx_start, pars.idx_end), pars.align_latent_params );
+    within_day_align_results = align_latent_activity_within_day( trimTD(master_td_all_trials, pars.idx_start, pars.idx_end), ...
+                                pars.align_latent_params );
 else
     align_results       = align_latent_activity( master_td, pars.align_latent_params );
     within_day_align_results = align_latent_activity_within_day( master_td_all_trials, pars.align_latent_params );
