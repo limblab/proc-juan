@@ -17,8 +17,8 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'jaco'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
-pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
+pars.monkey         = 'Chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
+pars.spiking_inputs = {'PMd_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
 pars.sessions_discard = []; %6:14; %[12 13 14];
@@ -102,14 +102,15 @@ else
         
             [master_td, pars_td] = loadTDfiles(  files, ...
                             {@getTDidx,'epoch','BL','result','R'}, ...
-                            {@stripSpikeSorting},... % @removeBadTrials, ...
+                            {@stripSpikeSorting},...
+                            {@removeBadTrials,struct('nan_idx_names','idx_movement_on')}, ...
                             {@binTD,pars.n_bins_downs}, ...
                             {@removeBadNeurons,pars.bad_neuron_params},...
                             {@sqrtTransform,pars.spiking_inputs}, ...
                             {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'kernel_SD',pars.kernel_SD)}, ...
                             {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
                             {@getPCA,struct('signals',pars.spiking_inputs)});
-        
+        master_td = rmfield(master_td,'force');
         % FOR M1                        
         elseif strcmpi(pars.spiking_inputs{1},'M1_spikes')
             
@@ -127,6 +128,9 @@ else
                             {@getPCA,struct('signals',pars.spiking_inputs)}, ...
                             {@trimTD,pars.idx_start,pars.idx_end});
                         
+                 % some sessions are missing force so just throw it out
+                 % since we don't n eed it for this analysis
+                 master_td = rmfield(master_td,'force');
             % For Chewie2 and Jaco we need to remove some trials 
             elseif strcmpi(pars.monkey,'chewie2') || strcmpi(pars.monkey,'jaco')
          
@@ -288,8 +292,8 @@ end
 %
 if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     % need to trim it first here
-    align_results       = align_latent_activity( trimTD(master_td, pars.idx_start, pars.idx_end), pars.align_latent_params );
-    within_day_align_results = align_latent_activity_within_day( trimTD(master_td_all_trials, pars.idx_start, pars.idx_end), ...
+    align_results       = align_latent_activity( trimTD(master_td,pars) , pars.align_latent_params );
+    within_day_align_results = align_latent_activity_within_day( trimTD(master_td_all_trials,pars), ...
                                 pars.align_latent_params );
 else
     align_results       = align_latent_activity( master_td, pars.align_latent_params );
@@ -339,14 +343,12 @@ end
 if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     
     % first do aligned or unaligned
-    clas_results = classify_across_days(master_td,pars.class_params.in,pars.class_params);
+    clas_results = classify_across_days(master_td,'align',pars.class_params);
 
     % now do spikes
     clas_spike_results = classify_across_days(master_td,'spikes',pars.class_params);
-    clas_spike_results.norm_perf_spike =  clas_spike_results.perf_spike./mean(clas_results.perf_within_xval2,2)*100;
     
-    % now do plotting
-    %%%% TO DO
+    % save some results
     
 end
 
@@ -369,7 +371,7 @@ end
 % Plot aligned latent activity and similarity over days
 if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     % need to trim it first here
-    SOT_Fig_3_aligned_latent_activity( trimTD(master_td,pars.idx_start,pars.idx_end), pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
+    SOT_Fig_3_aligned_latent_activity( trimTD(master_td,pars), pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
 else
     SOT_Fig_3_aligned_latent_activity( master_td, pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
 end

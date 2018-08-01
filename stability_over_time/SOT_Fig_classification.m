@@ -98,9 +98,9 @@ plot( dd, mn_w,'.','color',cols_w,'markersize',32 )
 plot( dd, mn_a,'.','color',cols_a,'markersize',32 )
 plot( dd, mn_u,'.','color',cols_u,'markersize',32 )
 
-ylim([0 1]), xlim([x(1) x(2)]);
+ylim([0 100]), xlim([x(1) x(2)]);
 set(gca,'TickDir','out','FontSize',14), box off
-xlabel('Days from decoder training'), ylabel('Hand velocity prediction (R^2)')
+xlabel('Days from decoder training'), ylabel('Classification accuracy (%)')
 legend('within-day','alinged','unaligned','Location','east'), legend boxoff
 set(gcf,'color','w'), title('Decoders based on latent activity')
 
@@ -118,7 +118,7 @@ plot( dd, mn_s_a,'.','color',cols_s_a,'markersize',32 )
 
 ylim([0 100]), xlim([x(1) x(2)]);
 set(gca,'TickDir','out','FontSize',14), box off
-xlabel('Days from decoder training'), ylabel('Hand velocity prediction (R^2)')
+xlabel('Days from decoder training'), ylabel('Classification accuracy (%)')
 legend('latent within-day','alinged across','spikes across','Location','east'), legend boxoff
 set(gcf,'color','w')
 
@@ -135,9 +135,9 @@ plot( dd, mn_s_w,'.','color',cols_s_w,'markersize',32 )
 plot( dd, mn_a,'.','color',cols_a,'markersize',32 )
 plot( dd, mn_s_a,'.','color',cols_s_a,'markersize',32 )
 
-ylim([0 1]), xlim([0 max(dd)+1]);
+ylim([0 100]), xlim([0 max(dd)+1]);
 set(gca,'TickDir','out','FontSize',14), box off
-xlabel('Days from decoder training'), ylabel('Hand velocity prediction (R^2)')
+xlabel('Days from decoder training'), ylabel('Classification accuracy (%)')
 if prctile(mn_s_a,90) > 0.4
     legend('spikes within-day','aligned across','spikes across','Location','Southwest'),
 else
@@ -204,7 +204,7 @@ text(.1,yln-5,['P=' num2str(p_norm_a_to_s_a,2)],'Fontsize',14)
 
 legend('aligned','spikes across'), legend boxoff
 set(gca,'TickDir','out','FontSize',14), box off
-xlabel('Normalized prediction accuracy')
+xlabel('Normalized classification accuracy')
 ylabel('Session comparisons (%)')
 set(gcf,'color','w')
 
@@ -214,7 +214,6 @@ set(gcf,'color','w')
 % SAVE FIG ?
 if params.class_params.save_fig
     
-    ff = ['/Users/juangallego/Dropbox/Juan and Matt - Stability latent activity/Results/PMd'];
     fn1 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Classification_over_time_' num2str(length(params.mani_dims)) 'D'];
     
     savefig(f1,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn1 '.fig']));

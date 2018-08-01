@@ -149,7 +149,7 @@ for c = 1:n_comb_sessions
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % CLASSIFIERS BASED ON SPIKES
             temp_results = do_manifold_classification_stuff(td1,td2,[manifold(1:end-4) '_spikes'],params);
-
+            
             % Optimized classifier, not cross-validated on day 1
             res.perf_within_opt_noxval1_spike(c) = temp_results.perf_within;
             res.err_within_opt_noxval1_spike(c) = temp_results.err_within;
@@ -177,23 +177,23 @@ end
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUMMARY STATS AND PLOTS
-
-% Compute mean training performance per day
-res.perf_within_xval1_m  = mean(res.perf_within_xval1,2);
-res.perf_within_xval2_m  = mean(res.perf_within_xval2,2);
-
-res.err_within_xval1_m  = mean(res.err_within_xval1,2);
-res.err_within_xval2_m  = mean(res.err_within_xval2,2);
-
-
-% get number of days between sessions, to summarize the results
-diff_days   = zeros(1,size(comb_sessions,1));
-for c = 1:size(comb_sessions,1)
-    diff_days(c) = datenum(sessions{comb_sessions(c,2)}) - datenum(sessions{comb_sessions(c,1)});
+if strcmpi(which_type,'align')
+    % Compute mean training performance per day
+    res.perf_within_xval1_m  = mean(res.perf_within_xval1,2);
+    res.perf_within_xval2_m  = mean(res.perf_within_xval2,2);
+    
+    res.err_within_xval1_m  = mean(res.err_within_xval1,2);
+    res.err_within_xval2_m  = mean(res.err_within_xval2,2);
+    
+    
+    % get number of days between sessions, to summarize the results
+    diff_days   = zeros(1,size(comb_sessions,1));
+    for c = 1:size(comb_sessions,1)
+        diff_days(c) = datenum(sessions{comb_sessions(c,2)}) - datenum(sessions{comb_sessions(c,1)});
+    end
+    res.diff_days           = diff_days;
+    res.comb_sessions       = comb_sessions;
 end
-res.diff_days           = diff_days;
-res.comb_sessions       = comb_sessions;
-
 results                 = res;
 
 
@@ -345,7 +345,7 @@ end
 
 if ~isempty(regexp(model_in,'_spikes','ONCE'))
     % do nothing
-else 
+else
     % take the manifold dimensions requested
     for trial = 1:length(td1)
         temp = td1(trial).(model_in);

@@ -128,8 +128,6 @@ pars.class_params.method                = 'Bayes'; % 'NN' 'Bayes'
 
 % Inputs and Outputs
 pars.class_params.out                   = 'target_direction';
-% will do spikes after this one, by default
-pars.class_params.in                    = 'aligned_data'; % 'aligned_data'; 'unaligned_data'; 'spikes'
 
 % History?
 pars.class_params.hist_bins             = 0;
@@ -147,7 +145,7 @@ pars.class_params.idx_end               = pars.idx_end;
 pars.class_params.idx_start_classify    = {'idx_go_cue',-13};
 pars.class_params.idx_end_classify      = {'idx_go_cue',2};
 
-pars.class_params.save_fig              = false;   
+pars.class_params.save_fig              = true;   
     
     
     
