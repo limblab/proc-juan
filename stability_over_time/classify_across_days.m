@@ -336,7 +336,7 @@ end
 % SUMMARY STATS AND PLOTS
 
 switch lower(which_type)
-    case 'align'
+    case {'aligned_data','unaligned_data'}
         % Compute mean training performance per day
         res.perf_within_xval1_m  = mean(res.perf_within_xval1,2);
         res.perf_within_xval2_m  = mean(res.perf_within_xval2,2);
