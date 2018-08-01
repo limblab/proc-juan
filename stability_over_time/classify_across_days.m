@@ -15,8 +15,8 @@ hist_bins           = 0;
 n_folds             = 100; % 'cca' or 'procrustes'
 manifold            = [];
 mani_dims           = 1:10;
-idx_start_align     = {};
-idx_end_align       = {};
+idx_start           = {};
+idx_end             = {};
 idx_start_classify  = {};
 idx_end_classify    = {};
 num_test_trials     = 1; % number per target for within session  CV
@@ -78,7 +78,7 @@ for c = 1:n_comb_sessions
             % b) "align" dynamics with CCA
             if strcmpi(which_type,'aligned_data')
                 model_in = [manifold '_align'];
-                td = trimTD(td,idx_start_align,idx_end_align);
+                td = trimTD(td,idx_start,idx_end);
                 cca_info(c)     = compDynamics( td, manifold, trials1, trials2, mani_dims );
             else
                 model_in = manifold;
@@ -129,10 +129,10 @@ for c = 1:n_comb_sessions
             
             % define some new parameters to pass throughout the function
             new_params = struct( ...
+                'out',out, ...
                 'method',method, ...
                 'n_folds',n_folds, ...
                 'clas_input',clas_input, ...
-                'n_clas_vars',n_clas_vars, ...
                 'hist_bins',hist_bins, ...
                 'num_test_trials',num_test_trials);
             
@@ -141,13 +141,13 @@ for c = 1:n_comb_sessions
             % CROSS-VALIDATED WITHIN-DAY PREDICTIONS FOR DAY 1
             %       - This is currently done without optimizing the classifier
             
-            [~, perf_test1, err_test1] = do_classify_xval(td1,new_params);
+            [~, perf_test1, err_test1] = do_classify_xval(td1,n_clas_vars,new_params);
             
             
             
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % TRAIN CLASSIFIER ON DAY 1
-            [X1,Y1] = process_td_for_classification(td1,new_params);
+            [X1,Y1] = process_td_for_classification(td1,n_clas_vars,new_params);
             
             % b) Train classifier
             clas = fit_classifier(X1,Y1,new_params);
@@ -168,7 +168,7 @@ for c = 1:n_comb_sessions
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % TEST ON DAY 2
             
-            [X2,Y2] = process_td_for_classification(td2,new_params);
+            [X2,Y2] = process_td_for_classification(td2,n_clas_vars,new_params);
             
             
             % b) Test performance on day 2
@@ -182,7 +182,7 @@ for c = 1:n_comb_sessions
             
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % WITHIN-DAY DECODER FOR DAY 2, TO NORMALIZE THE TEST RESULTS
-            [~, perf_test2, err_test2] = do_classify_xval(td2,new_params);
+            [~, perf_test2, err_test2] = do_classify_xval(td2,n_clas_vars,new_params);
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %  Save results
@@ -210,6 +210,8 @@ for c = 1:n_comb_sessions
             
             
         case 'spikes'
+            model_in = [manifold(1:end-4) '_spikes'];
+            
             td = td_orig;
             
             % a) get two TD structs, one per session to compare
@@ -241,19 +243,27 @@ for c = 1:n_comb_sessions
             sg2 = td2(1).PMd_unit_guide;
             [~,idx1,idx2] = intersect(sg1,sg2,'rows');
             
+            % define some new parameters to pass throughout the function
+            new_params = struct( ...
+                'out',out, ...
+                'method',method, ...
+                'n_folds',n_folds, ...
+                'clas_input',clas_input, ...
+                'hist_bins',hist_bins, ...
+                'num_test_trials',num_test_trials);
             
             %%%% this code removes cells with zero variance in the
             %%%% conditions
             % a bit of a hack to initialize the size of things... just run
             % it once to start
-            [X1_spike,Y1_spike] = process_td_for_classification(td1,new_params);
+            [X1_spike,Y1_spike] = process_td_for_classification(td1,idx1,new_params);
             % check the spikes
             utheta = unique(Y1_spike);
             v = true(length(utheta),size(X1_spike,2));
             
             while any(any(v == true,1))
-                [X1_spike,Y1_spike] = process_td_for_classification(td1,new_params);
-                [X2_spike,Y2_spike] = process_td_for_classification(td2,new_params);
+                [X1_spike,Y1_spike] = process_td_for_classification(td1,idx1,new_params);
+                [X2_spike,Y2_spike] = process_td_for_classification(td2,idx2,new_params);
                 
                 % check the spikes
                 utheta = unique(Y1_spike);
@@ -284,8 +294,8 @@ for c = 1:n_comb_sessions
                 idx2(isnan(idx2)) = [];
             end
             
-            [X1_spike,Y1_spike] = process_td_for_classification(td1,new_params);
-            [X2_spike,Y2_spike] = process_td_for_classification(td2,new_params);
+            [X1_spike,Y1_spike] = process_td_for_classification(td1,idx1,new_params);
+            [X2_spike,Y2_spike] = process_td_for_classification(td2,idx2,new_params);
             
             % b) Train classifier
             if ~isempty(X1_spike) && ~isempty(X2_spike)
@@ -361,17 +371,17 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [X,Y] = process_td_for_classification(td,params)
+function [X,Y] = process_td_for_classification(td,n_clas_vars,params)
+out = params.out;
 hist_bins = params.hist_bins;
-n_clas_vars = params.n_clas_vars;
-clas_input = params.clas_input;
+params.n_clas_vars = n_clas_vars;
 
 % ii) Prepare the data for the classifier -- Dimensions:
 % X: trial x datapoints; Y: trial x target
 X = zeros(length(td),length(n_clas_vars)*(hist_bins+1));
 for i = 1:length(td)
     
-    temp = get_the_signals(td(i),clas_input,n_clas_vars);
+    temp = get_the_signals(td(i),params);
     
     X(i,:) = mean(temp,1);
 end
@@ -385,9 +395,11 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [perf_train, perf_test, err_test] = do_classify_xval(td,params)
+function [perf_train, perf_test, err_test] = do_classify_xval(td,n_clas_vars,params)
 n_folds = params.n_folds;
 num_test_trials = params.num_test_trials;
+
+params.n_clas_vars = n_clas_vars;
 
 % To store the results
 perf_train      = zeros(1,n_folds);
@@ -402,12 +414,12 @@ for f = 1:n_folds
     
     % i) Retrieve the training and testing bins
     
-    [Xtrain,Ytrain] = process_td_for_classification(td(itrain),params);
+    [Xtrain,Ytrain] = process_td_for_classification(td(itrain),n_clas_vars,params);
     
     % iii) Train the classifier
     clas_xval = fit_classifier(Xtrain,Ytrain,params);
     
-    [Xtest,Ytest] = process_td_for_classification(td(itest),params);
+    [Xtest,Ytest] = process_td_for_classification(td(itest),n_clas_vars,params);
     
     pred_test = clas_xval.predict(Xtest)';
     % Performance (% succesfully classified targets)

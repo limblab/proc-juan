@@ -18,8 +18,8 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'
-pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
+pars.monkey         = 'MrT'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'
+pars.spiking_inputs = {'PMd_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
 pars.sessions_discard = []; %6:14; %[12 13 14];
@@ -42,7 +42,7 @@ pars.n_bins_downs               = 3;
 % Window start & end --if idx_end is empty: the duration of the shortest trial 
 % WATCH OUT -- THIS IS AFTER DOWNSAMPLING SO I NEED TO UPDATE IT BASED ON
 % N_BINS_DOWNS
-switch pars.monkey
+switch lower(pars.monkey)
     case {'chips'} % S1
         pars.mani_dims = 1:8; % Neural modes to use
         pars.idx_start          = {'idx_go_cue', 0};
@@ -53,7 +53,7 @@ switch pars.monkey
         pars.idx_end            = {'idx_go_cue', 22};
     case {'chewie','chewie2','mihili','mrt'}
         switch pars.spiking_inputs{1}
-            case 'M1_spikes'
+            case 'M1s_spikes'
                 pars.mani_dims = 1:10; % Neural modes to use
 %                 pars.idx_start  = {'idx_movement_on',-2}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
 %                 pars.idx_end    = {'idx_movement_on',13}; % {'idx_movement_on',13}% {''}; % {'idx_go_cue',18}
@@ -72,7 +72,7 @@ pars.remove_bad_neurons                 = true; % For sorted neurons it always d
 % Minimum FR per channel
 pars.bad_neuron_params.min_fr           = 0.1;
 
-% if strcmp(pars.monkey,'chewie2'), pars.bad_neuron_params.min_fr = 0.5; end
+% if strcmpi(pars.monkey,'chewie2'), pars.bad_neuron_params.min_fr = 0.5; end
 
 % Do shunt check
 pars.bad_neuron_params.shunt_check_yn   = false;
@@ -209,7 +209,7 @@ files_chewie        = { ...
                         };
  % M1: Get rid of a session with much longer RT than the others, and with
  % a bunch of trials with idx_movement_onset = NaN
-if strcmp(pars.spiking_inputs{1},'M1_spikes') && strcmp(pars.monkey,'chewie')
+if strcmpi(pars.spiking_inputs{1},'M1_spikes') && strcmpi(pars.monkey,'chewie')
     files_chewie( strncmpi(files_chewie,'Chewie_CO_FF_2016-09-23.mat',...
         length('Chewie_CO_FF_2016-09-23.mat')) ) = [];
 end            
@@ -260,7 +260,7 @@ files_chewie2       = { ...
                         };
 
 % Delete some sessions without an instructed delya
-if strcmp(pars.spiking_inputs{1},'M1_spikes') && strcmp(pars.monkey,'chewie2')
+if strcmpi(pars.spiking_inputs{1},'M1_spikes') && strcmpi(pars.monkey,'chewie2')
     files_chewie2( strncmpi(files_chewie2,'Chewie_CO_VR_2013-10-03.mat',...
         length('Chewie_CO_VR_2013-10-03.mat')) ) = [];
     files_chewie2( strncmpi(files_chewie2,'Chewie_CO_FF_2013-10-22.mat',...
@@ -296,12 +296,12 @@ files_mihili        = { ...
                         };
 
 % M1: Get rid of a session with very few channels with neurons (9!)
-if strcmp(pars.spiking_inputs{1},'M1_spikes') && strcmp(pars.monkey,'mihili')
+if strcmpi(pars.spiking_inputs{1},'M1_spikes') && strcmpi(pars.monkey,'mihili')
     files_mihili( strncmpi(files_mihili,'Mihili_CO_CS_2014-12-03.mat',...
         length('Mihili_CO_CS_2014-12-03.mat')) ) = [];
 end
 % PMd: Get rid of two sessions without PMd data
-if strcmp(pars.spiking_inputs{1},'PMd_spikes') && strcmp(pars.monkey,'mihili')
+if strcmpi(pars.spiking_inputs{1},'PMd_spikes') && strcmpi(pars.monkey,'mihili')
     files_mihili( strncmpi(files_mihili,'Mihili_CO_CS_2014-06-26.mat',...
         length('Mihili_CO_CS_2014-06-26.mat')) ) = [];
     files_mihili( strncmpi(files_mihili,'Mihili_CO_CS_2014-06-27.mat',...
@@ -350,7 +350,7 @@ files_chips         = { ...
 here                = pwd;
 
 % If we want to "unsort", choose the appropriate file names
-switch pars.monkey
+switch lower(pars.monkey)
     % Chewie M1-PMd
     case 'chewie'
         %cd('/Users/juangallego/Documents/NeuroPlast/Data/Chewie')
@@ -427,25 +427,24 @@ else
     % reduction: 1) Loads Baseline trials only (no force field or visuomotor
     % adaptation); 2) Loads only successful trials; 3) Merges all units in
     % the same channel for Mihili and Chewie, but not for Han
-    if sum(strcmp(pars.monkey,{'mihili','chewie','chewie2','mrt'}))
+    if sum(strcmpi(pars.monkey,{'mihili','chewie','chewie2','mrt'}))
 
 
-        if strcmp(pars.spiking_inputs{1},'PMd_spikes')
+        if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
         
             [master_td, pars_td] = loadTDfiles(  files, ...
                             {@getTDidx,'epoch','BL','result','R'}, ...
-                            {@stripSpikeSorting},...
+                            {@stripSpikeSorting},... % @removeBadTrials, ...
                             {@binTD,pars.n_bins_downs}, ...
                             {@removeBadNeurons,pars.bad_neuron_params},...
                             {@sqrtTransform,pars.spiking_inputs}, ...
                             {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'kernel_SD',pars.kernel_SD)}, ...
                             {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
-                            {@getPCA,struct('signals',pars.spiking_inputs)} , ...
-                            {@trimTD,pars.idx_start,pars.idx_end});
+                            {@getPCA,struct('signals',pars.spiking_inputs)});
                         
-        elseif strcmp(pars.spiking_inputs{1},'M1_spikes')
+        elseif strcmpi(pars.spiking_inputs{1},'M1_spikes')
             
-            if ~strcmp(pars.monkey,'chewie2')
+            if ~strcmpi(pars.monkey,'chewie2')
                 
                 [master_td, pars_td] = loadTDfiles(  files, ...
                             {@getTDidx,'epoch','BL','result','R'}, ...
@@ -461,7 +460,7 @@ else
             % For Chewie2: we have to remove some trials for which end time
             % goes beyong trial time, and some others for which requested
             % start time is <1
-            elseif strcmp(pars.monkey,'chewie2')
+            elseif strcmpi(pars.monkey,'chewie2')
          
                 % request minimum movement time and delay between trial
                 % start and movement onset
@@ -494,7 +493,7 @@ else
         end
 
     % FOR HAN and CHIPS
-    elseif sum(strcmp(pars.monkey,{'chips','han'}))
+    elseif sum(strcmpi(pars.monkey,{'chips','han'}))
         
         [master_td, pars_td] = loadTDfiles(  files, ...
                             {@getTDidx,'result','R'}, ...
@@ -503,11 +502,15 @@ else
 end
 
 % Keep PCA pars, get rid of the rest of the extra outputs
-if strcmp(pars.monkey,'chewie2')
+if strcmpi(pars.monkey,'chewie2')
     for s = 1:size(pars_td.extra_outs,1)
         pca_info(s) = pars_td.extra_outs{s,end};
     end
-elseif ~( strcmp(pars.monkey,'han') || strcmp(pars.monkey,'chips') )
+elseif strcmpi(pars.spiking_inputs{1},'PMd_spikes')
+    for s = 1:size(pars_td.extra_outs,1)
+        pca_info(s) = pars_td.extra_outs{s,end};
+    end
+elseif ~( strcmpi(pars.monkey,'han') || strcmpi(pars.monkey,'chips') )
     for s = 1:size(pars_td.extra_outs,1)
         pca_info(s) = pars_td.extra_outs{s,end-1};
     end
@@ -568,7 +571,7 @@ end
 
 % --For Han and Chips, we need a couple of tricks, because of errors in
 % data storage
-if strcmp(pars.monkey,'han')
+if strcmpi(pars.monkey,'han')
     
     % ---------------------------------------------------------------------
     % there are trials with targets = NaN -> exclude them
@@ -599,7 +602,7 @@ if strcmp(pars.monkey,'han')
     
     clear unique_targets_session is_target targets_always_present u_targets targets_session this_s all_targets;
 % -- And for Chips, to exclude NaN targets
-elseif strcmp(pars.monkey,'chips')
+elseif strcmpi(pars.monkey,'chips')
      % there are trials with targets = NaN -> exclude them
     master_td       = master_td(~isnan([master_td.target_direction]));
 end
@@ -616,7 +619,7 @@ meta.targets        = unique([master_td.target_direction]);
 %
 
 
-if strcmp(pars.monkey,'han') || strcmp(pars.monkey,'chips')
+if strcmpi(pars.monkey,'han') || strcmpi(pars.monkey,'chips')
    
     % ---------------------------------------------------------------------
     % Calculate movement onset
@@ -694,14 +697,14 @@ end
 % HACK FOR CHEWIE M1 ONLY DATA: in a few trials, the time between movement
 % onset and reward is very short --discard those
 
-% if strcmp(pars.monkey,'chewie2')
+% if strcmpi(pars.monkey,'chewie2')
 %     
 %     % Analysis window duration
 %     analysis_win = pars.idx_end{2} - pars.idx_start{2};
 %     
 %     % Get window duration for each trial, assuming it goes from movement
 %     % onset until trial end since this is M1
-%     if strcmp(pars.idx_start{1},'idx_movement_on') || strcmp(pars.idx_end{1},'idx_movement_on')
+%     if strcmpi(pars.idx_start{1},'idx_movement_on') || strcmpi(pars.idx_end{1},'idx_movement_on')
 %         
 %         win_p_trial = arrayfun( @(x) x.idx_trial_end-x.idx_movement_on, master_td);
 %         trials_discard = win_p_trial <= analysis_win;
@@ -741,7 +744,7 @@ master_td           = equalNbrTrialsSessions(master_td);
 % % NEEDTOFIX: SINCE THE BINS ARE PRETTY WIDE AND WE HAVE ONLY 4 TRIALS AND A
 % % LOT OF NEURONS, THE PCA FUNCTION DOESN'T WORK 
 
-% if strcmp(pars.spiking_inputs{1},'M1_spikes') % || strcmp(pars.spiking_inputs{1},'PMd_spikes')
+% if strcmpi(pars.spiking_inputs{1},'M1_spikes') % || strcmpi(pars.spiking_inputs{1},'PMd_spikes')
 %  
 %     for s = 1:n_sessions
 % 
@@ -765,7 +768,7 @@ master_td           = equalNbrTrialsSessions(master_td);
 % COMPARE KINEMATICS
 %
 
-if ~strcmp(pars.spiking_inputs{1},'PMd_spikes')
+if ~strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     corr_kin        = comp_behavior( master_td, pars.stab_behav );
 end
 
@@ -776,14 +779,21 @@ end
 %
 % ALIGN LATENT ACTIVITY OVER SESSIONS
 %
+if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
+    % need to trim it first here
+    align_results       = align_latent_activity( trimTD(master_td,pars.idx_start,pars.idx_end) , pars.align_latent_params );
+    within_day_align_results = align_latent_activity_within_day( trimTD(master_td_all_trials,pars.idx_start,pars.idx_end), pars.align_latent_params );
+else
+    align_results       = align_latent_activity( master_td, pars.align_latent_params );
+    within_day_align_results = align_latent_activity_within_day( master_td_all_trials, pars.align_latent_params );
+end
 
-align_results       = align_latent_activity( master_td, pars.align_latent_params );
+
 
 % % get within-day ceiling
-% if strcmp(pars.monkey,'chewie2')
+% if strcmpi(pars.monkey,'chewie2')
 %     master_td_all_trials = master_td;
 % end
-within_day_align_results = align_latent_activity_within_day( master_td_all_trials, pars.align_latent_params );
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -794,7 +804,7 @@ within_day_align_results = align_latent_activity_within_day( master_td_all_trial
 %
 % only do decoding for S1 / M1 for PMd we'll classify target direction
 
-if strcmp(pars.spiking_inputs{1},'M1_spikes') || strcmp(pars.spiking_inputs{1},'S1_spikes')
+if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
     
     dec_results     = decode_across_days( master_td, pars.decoder_params );
 end
@@ -808,7 +818,7 @@ end
 %
 % only do decoding for S1 / M1 for PMd we'll classify target direction
 
-if strcmp(pars.spiking_inputs{1},'M1_spikes') || strcmp(pars.spiking_inputs{1},'S1_spikes')
+if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
     in_old          = pars.decoder_params.in;
     pars.decoder_params.in = 'spikes';
 
@@ -824,14 +834,14 @@ end
 % CLASSIFY TARGET LOCATION
 %
 
-if strcmp(pars.spiking_inputs{1},'PMd_spikes')
+if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     
     % first do aligned or unaligned
-    clas_results = classify_across_days(master_td,params.class_params.in,params.class_params);
+    clas_results = classify_across_days(master_td,pars.class_params.in,pars.class_params);
 
     % now do spikes
-    clas_results_spike = classify_across_days(master_td,'spikes',params.class_params);
-    results_spike.norm_perf_spike =  results_spike.perf_spike./mean(clas_results.perf_within_xval2,2)*100;
+    clas_results_spike = classify_across_days(master_td,'spikes',pars.class_params);
+    clas_results_spike.norm_perf_spike =  clas_results_spike.perf_spike./mean(clas_results.perf_within_xval2,2)*100;
     
     % now do plotting
     %%%% TO DO
@@ -849,7 +859,7 @@ end
 
 
 % Plot similarity behavior
-if strcmp(pars.spiking_inputs{1},'M1_spikes') || strcmp(pars.spiking_inputs{1},'S1_spikes')
+if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
     SOT_Fig_stability_behavior( corr_kin, pars );
 end
 
@@ -859,10 +869,10 @@ SOT_Fig_3_aligned_latent_activity( master_td, pars.save_dir, align_results, meta
 
 
 % Plot decoding results
-if strcmp(pars.spiking_inputs{1},'M1_spikes') || strcmp(pars.spiking_inputs{1},'S1_spikes')
+if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
     
     SOT_Fig_decoding( dec_results, dec_spike_results, pars );
-elseif strcmp(pars.spiking_inputs{1},'PMd_spikes')
+elseif strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     
     
 end
