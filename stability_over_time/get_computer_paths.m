@@ -9,6 +9,6 @@ switch strtrim(hostname)
         
     otherwise % assume it's Juan's until he fills in his computer
         save_dir = '/Users/juangallego/Dropbox/Juan and Matt - Stability latent activity/Results/';
-        data_dir = '/Users/juangallego/Documents/NeuroPlast/Data/';
+        data_dir = '/Users/juangallego/Documents/NeuroPlast/Data/TrialDataFiles/';
 end
 
