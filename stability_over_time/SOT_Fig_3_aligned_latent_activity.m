@@ -3,7 +3,7 @@
 %
 
 
-function SOT_Fig_3_aligned_latent_activity( td, align_results, meta, params, varargin )
+function SOT_Fig_3_aligned_latent_activity( td, save_dir, align_results, meta, params, varargin )
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -12,7 +12,7 @@ top_lv_plot             = 4;
 
 if nargin > 1, assignParams(who, params); end % overwrite defaults
 
-if nargin == 5
+if nargin == 6
     within_day_align_results = varargin{1};
     mean_or_max_within_day  = 'max';
 end
@@ -51,7 +51,7 @@ y_unal = polyval(linfit_unal,xfit);
 
 
 % retrieve data for within-day ceiling
-if nargin == 5
+if nargin == 6
     
     ceil_m = zeros(1,size(align_results.comb_sessions,1));
     ceil_eb = zeros(1,size(align_results.comb_sessions,1));
@@ -357,30 +357,30 @@ if params.save_fig
     % Stability over time
     fn1 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_over_time_' num2str(length(params.mani_dims)) 'D'];
 
-    savefig(f1,fullfile(params.save_dir,params.signals(1:end-4),[fn1 '.fig']));
-    saveas(f1,fullfile(params.save_dir,params.signals(1:end-4),[fn1 '.png']));
-    saveas(f1,fullfile(params.save_dir,params.signals(1:end-4),[fn1 '.pdf']));
+    savefig(f1,fullfile(save_dir,params.signals(1:end-4),[fn1 '.fig']));
+    saveas(f1,fullfile(save_dir,params.signals(1:end-4),[fn1 '.png']));
+    saveas(f1,fullfile(save_dir,params.signals(1:end-4),[fn1 '.pdf']));
     
     
     % Normalized Histograms
     fn2 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_normalized_distribution_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f6,fullfile(params.save_dir,params.signals(1:end-4),[fn2 '.fig']));
-    saveas(f6,fullfile(params.save_dir,params.signals(1:end-4),[fn2 '.png']));
-    saveas(f6,fullfile(params.save_dir,params.signals(1:end-4),[fn2 '.pdf']));
+    savefig(f6,fullfile(save_dir,params.signals(1:end-4),[fn2 '.fig']));
+    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn2 '.png']));
+    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn2 '.pdf']));
     
     
     % Aligned latent trajectories
     fn3 = [td(1).monkey '_' params.signals(1:end-4) '_Aligned_latent_trajectories_Day_1_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f4,fullfile(params.save_dir,params.signals(1:end-4),[fn3 '.fig']));
-    saveas(f4,fullfile(params.save_dir,params.signals(1:end-4),[fn3 '.png']));
-    saveas(f4,fullfile(params.save_dir,params.signals(1:end-4),[fn3 '.pdf']));
+    savefig(f4,fullfile(save_dir,params.signals(1:end-4),[fn3 '.fig']));
+    saveas(f4,fullfile(save_dir,params.signals(1:end-4),[fn3 '.png']));
+    saveas(f4,fullfile(save_dir,params.signals(1:end-4),[fn3 '.pdf']));
     
     fn4 = [td(1).monkey '_' params.signals(1:end-4) '_Aligned_latent_trajectories_Day_' num2str(diff_days) '_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f5,fullfile(params.save_dir,params.signals(1:end-4),[fn4 '.fig']));
-    saveas(f5,fullfile(params.save_dir,params.signals(1:end-4),[fn4 '.png']));
-    saveas(f5,fullfile(params.save_dir,params.signals(1:end-4),[fn4 '.pdf']));
+    savefig(f5,fullfile(save_dir,params.signals(1:end-4),[fn4 '.fig']));
+    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn4 '.png']));
+    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn4 '.pdf']));
     
 end

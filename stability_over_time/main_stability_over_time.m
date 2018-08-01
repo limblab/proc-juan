@@ -18,7 +18,7 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'chewie2'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'
+pars.monkey         = 'chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'
 pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
@@ -395,7 +395,7 @@ end
 
 % turn the files into a full filename
 for i = 1:length(files)
-    files{i} = fullfile(data_dir,pars.monkey,files{i});
+    files{i} = fullfile(pars.data_dir,pars.monkey,files{i});
 end
 
 
@@ -855,7 +855,7 @@ end
 
 
 % Plot aligned latent activity and similarity over days
-SOT_Fig_3_aligned_latent_activity( master_td, align_results, meta, pars.align_latent_params, within_day_align_results );
+SOT_Fig_3_aligned_latent_activity( master_td, pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
 
 
 % Plot decoding results
