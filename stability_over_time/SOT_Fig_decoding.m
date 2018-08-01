@@ -219,14 +219,15 @@ if params.decoder_params.save_fig
     
     ff = ['/Users/juangallego/Dropbox/Juan and Matt - Stability latent activity/Results/' params.spiking_inputs{1}(1:end-7)];
     fn1 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Decoding_over_time_' num2str(length(params.mani_dims)) 'D'];
-
-    savefig(f1,[ff filesep fn1]);
-    saveas(f1,[ff filesep fn1 '.png']);
-    saveas(f1,[ff filesep fn1 '.pdf']);
+    
+    savefig(f1,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn1 '.fig']));
+    saveas(f1,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn1 '.png']));
+    saveas(f1,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn1 '.pdf']));
     
     fn2 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Decoding_normalized_distribution_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f2,[ff filesep fn2]);
-    saveas(f2,[ff filesep fn2 '.png']);
-    saveas(f2,[ff filesep fn2 '.pdf']);
+    savefig(f2,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn2 '.fig']));
+    saveas(f2,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn2 '.png']));
+    saveas(f2,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn2 '.pdf']));
+    
 end

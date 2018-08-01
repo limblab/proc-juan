@@ -7,7 +7,7 @@ switch strtrim(hostname)
         save_dir = '/Users/mattperich/Dropbox/Research/Papers/Juan and Matt - Stability latent activity/Results/';
         data_dir = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/';
         
-    otherwise
+    otherwise % assume it's Juan's until he fills in his computer
         save_dir = '/Users/juangallego/Dropbox/Juan and Matt - Stability latent activity/Results/';
         data_dir = '/Users/juangallego/Documents/NeuroPlast/Data/';
 end

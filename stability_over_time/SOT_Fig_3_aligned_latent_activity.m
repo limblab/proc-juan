@@ -355,32 +355,32 @@ text(.1,ystats_hist-8,['P=' num2str(p_align_unaligned,2)],'Fontsize',14)
 if params.save_fig
     
     % Stability over time
-    ff = ['/Users/juangallego/Dropbox/Juan and Matt - Stability latent activity/Results/' params.signals(1:end-4)];
     fn1 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_over_time_' num2str(length(params.mani_dims)) 'D'];
 
-    savefig(f1,[ff filesep fn1]);
-    saveas(f1,[ff filesep fn1 '.png']);
-    saveas(f1,[ff filesep fn1 '.pdf']);
+    savefig(f1,fullfile(params.save_dir,params.signals(1:end-4),[fn1 '.fig']));
+    saveas(f1,fullfile(params.save_dir,params.signals(1:end-4),[fn1 '.png']));
+    saveas(f1,fullfile(params.save_dir,params.signals(1:end-4),[fn1 '.pdf']));
     
     
     % Normalized Histograms
     fn2 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_normalized_distribution_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f6,[ff filesep fn2]);
-    saveas(f6,[ff filesep fn2 '.png']);
-    saveas(f6,[ff filesep fn2 '.pdf']); 
+    savefig(f6,fullfile(params.save_dir,params.signals(1:end-4),[fn2 '.fig']));
+    saveas(f6,fullfile(params.save_dir,params.signals(1:end-4),[fn2 '.png']));
+    saveas(f6,fullfile(params.save_dir,params.signals(1:end-4),[fn2 '.pdf']));
     
     
     % Aligned latent trajectories
     fn3 = [td(1).monkey '_' params.signals(1:end-4) '_Aligned_latent_trajectories_Day_1_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f4,[ff filesep fn3]);
-    saveas(f4,[ff filesep fn3 '.png']);
-    saveas(f4,[ff filesep fn3 '.pdf']); 
+    savefig(f4,fullfile(params.save_dir,params.signals(1:end-4),[fn3 '.fig']));
+    saveas(f4,fullfile(params.save_dir,params.signals(1:end-4),[fn3 '.png']));
+    saveas(f4,fullfile(params.save_dir,params.signals(1:end-4),[fn3 '.pdf']));
     
     fn4 = [td(1).monkey '_' params.signals(1:end-4) '_Aligned_latent_trajectories_Day_' num2str(diff_days) '_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f5,[ff filesep fn3]);
-    saveas(f5,[ff filesep fn3 '.png']);
-    saveas(f5,[ff filesep fn3 '.pdf']); 
+    savefig(f5,fullfile(params.save_dir,params.signals(1:end-4),[fn4 '.fig']));
+    saveas(f5,fullfile(params.save_dir,params.signals(1:end-4),[fn4 '.png']));
+    saveas(f5,fullfile(params.save_dir,params.signals(1:end-4),[fn4 '.pdf']));
+    
 end

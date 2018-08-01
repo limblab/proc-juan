@@ -37,7 +37,7 @@ plot(corr_kin.diff_days,corr_kin.r(:,1),'.','markersize',32,'color',cols(1,:))
 plot(corr_kin.diff_days,corr_kin.r(:,2),'.','markersize',32,'color',cols(2,:))
 ylim([0 1])
 set(gca,'TickDir','out','FontSize',14), box off
-legend(['X ' corr_kin.var],['Y ' corr_kin.var],'Location','SouthEast'),legend boxoff 
+legend(['X ' corr_kin.var],['Y ' corr_kin.var],'Location','SouthEast'),legend boxoff
 xlabel('Days between sessions'),
 if ~params.stab_behav.trial_avg
     ylabel(['Correlation hand ' corr_kin.var])
@@ -68,16 +68,16 @@ set(gcf,'color','w')
 % SAVE FIG ?
 if params.stab_behav.save_fig
     
-    ff = '/Users/juangallego/Dropbox/Juan and Matt - Stability latent activity/Results/Behavior';
     fn1 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Behavior_over_time'];
-
-    savefig(f1,[ff filesep fn1]);
-    saveas(f1,[ff filesep fn1 '.png']);
-    saveas(f1,[ff filesep fn1 '.pdf']);
+    
+    savefig(f1,fullfile(params.save_dir,'Behavior',[fn1 '.fig']));
+    saveas(f1,fullfile(params.save_dir,'Behavior',[fn1 '.png']));
+    saveas(f1,fullfile(params.save_dir,'Behavior',[fn1 '.pdf']));
     
     fn2 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Behavior_distribution'];
     
-    savefig(f2,[ff filesep fn2]);
-    saveas(f2,[ff filesep fn2 '.png']);
-    saveas(f2,[ff filesep fn2 '.pdf']);
+    savefig(f2,fullfile(params.save_dir,'Behavior',[fn2 '.fig']));
+    saveas(f2,fullfile(params.save_dir,'Behavior',[fn2 '.png']));
+    saveas(f2,fullfile(params.save_dir,'Behavior',[fn2 '.pdf']));
+    
 end
