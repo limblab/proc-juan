@@ -4,7 +4,8 @@
 
 clear, close all
 
-
+% get the directories for the computer running the code
+[pars.save_dir, pars.data_dir] = get_computer_paths();
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -351,19 +352,19 @@ here                = pwd;
 switch pars.monkey
     % Chewie M1-PMd
     case 'chewie'
-        cd('/Users/juangallego/Documents/NeuroPlast/Data/Chewie')
+        %cd('/Users/juangallego/Documents/NeuroPlast/Data/Chewie')
         files = files_chewie;
     % Chewie M1 only implant
     case 'chewie2'
-        cd('/Users/juangallego/Documents/NeuroPlast/Data/Chewie')
+        %cd('/Users/juangallego/Documents/NeuroPlast/Data/Chewie')
         files = files_chewie2;
     % Mihili M1-PMd
     case 'mihili'
-        cd('/Users/juangallego/Documents/NeuroPlast/Data/Mihili')
+        %cd('/Users/juangallego/Documents/NeuroPlast/Data/Mihili')
         files = files_mihili;
     % MrT PMd
     case 'mrt'
-        cd('/Users/juangallego/Documents/NeuroPlast/Data/MrT')
+        %cd('/Users/juangallego/Documents/NeuroPlast/Data/MrT')
         files = files_mrt;
     % Han S1
     case 'han'
@@ -372,9 +373,9 @@ switch pars.monkey
             warning('Loading threshold crossings'); 
             pause(3);
             pars.unsorted_yn = true;
-            cd('/Users/juangallego/Documents/NeuroPlast/Data/Han')
+            %cd('/Users/juangallego/Documents/NeuroPlast/Data/Han')
         else
-            cd('/Users/juangallego/Documents/NeuroPlast/Data/Han')
+            %cd('/Users/juangallego/Documents/NeuroPlast/Data/Han')
         end
         files = files_han;
     % Chips S1
@@ -384,11 +385,16 @@ switch pars.monkey
             warning('Loading threshold crossings'); 
             pause(3);
             pars.unsorted_yn = true;
-            cd('/Users/juangallego/Documents/NeuroPlast/Data/Chips')
+            %cd('/Users/juangallego/Documents/NeuroPlast/Data/Chips')
         else
-            cd('/Users/juangallego/Documents/NeuroPlast/Data/Chips')
+            %cd('/Users/juangallego/Documents/NeuroPlast/Data/Chips')
         end
         files = files_chips; 
+end
+
+% turn the files into a full filename
+for i = 1:length(files)
+    files{i} = fullfile(data_dir,pars.monkey,files{i});
 end
 
 
