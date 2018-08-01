@@ -118,20 +118,33 @@ p_align_unaligned = ranksum(mn_corr_plot,mn_aligned_plot);
 
 
 % The same for the normalized aligned and unaligned data
-norm_align = mn_aligned_plot./ceil_m;
-norm_corr = mn_corr_plot./ceil_m;
-y_hist_norm_align = histcounts(norm_align,x_hist)/n_hist*100;
-y_hist_norm_corr = histcounts(norm_corr,x_hist)/n_hist*100;
+if exist('within_day_align_results','var')
 
-mn_norm_align = mean(norm_align);
-mn_norm_corr = mean(norm_corr);
-sd_norm_align = std(norm_align);
-sd_norm_corr = std(norm_corr);
+    norm_align = mn_aligned_plot./ceil_m;
+    norm_corr = mn_corr_plot./ceil_m;
+    y_hist_norm_align = histcounts(norm_align,x_hist)/n_hist*100;
+    y_hist_norm_corr = histcounts(norm_corr,x_hist)/n_hist*100;
 
-y_max_nh = max([y_hist_norm_align,y_hist_norm_corr]);
-y2_normhist = ceil((y_max_nh)/10)*10+5;
-ystats_normhist = (y2_normhist - y_max_nh)/2 + y_max_nh;
+    % stats
+    mn_norm_align = mean(norm_align);
+    mn_norm_corr = mean(norm_corr);
+    sd_norm_align = std(norm_align);
+    sd_norm_corr = std(norm_corr);
+    sem_norm_align = sd_norm_align/sqrt(length(latent_vars_plot));
+    sem_norm_corr = sd_norm_corr/sqrt(length(latent_vars_plot));
 
+    % histograms
+    y_max_nh = max([y_hist_norm_align,y_hist_norm_corr]);
+    y2_normhist = ceil((y_max_nh)/10)*10+5;
+    ystats_normhist = (y2_normhist - y_max_nh)/2 + y_max_nh;
+    
+    % linear fits
+    linfit_norm_aligned = polyfit( dd, norm_align, 1 );
+    linfit_norm_corr = polyfit( dd, norm_corr, 1 );
+    y_norm_aligned = polyval( linfit_norm_aligned, xfit );
+    y_norm_unal = polyval( linfit_norm_corr, xfit );
+end
+    
 % ---------------------------------------------------------------------------------
 % Plots vs time
 
@@ -166,7 +179,21 @@ ylim([0 1]), xlabel('Days from first session'), ylabel(['CC latent activity (top
 
 
 
+% ---------------------------------------------------------------------------------
+% Normalized Plots vs time
 
+if exist('within_day_align_results','var')
+    
+    f2 = figure;hold on
+    plot(xfit,y_norm_aligned,'k','linewidth',2)
+    plot(xfit,y_norm_unal,'color',col_unal,'linewidth',2)
+    plot(dd,norm_align,'linestyle','none','marker','.','markersize',32,'color','k')
+    plot(dd,norm_corr,'linestyle','none','marker','.','markersize',32,'color',col_unal)
+    set(gca,'TickDir','out','FontSize',14), box off
+    set(gcf, 'color', [1 1 1])
+    legend('Aligned','Unaligned'), legend boxoff
+    ylim([0 1]), xlabel('Days from first session'), ylabel(['Normalized CC latent activity (top ' num2str(length(latent_vars_plot)) ' modes)'])
+end
 
 
 
@@ -361,26 +388,39 @@ if params.save_fig
     saveas(f1,fullfile(save_dir,params.signals(1:end-4),[fn1 '.png']));
     saveas(f1,fullfile(save_dir,params.signals(1:end-4),[fn1 '.pdf']));
     
+    % Stability over time --normalized
+    fn2 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_over_time_normalized_' num2str(length(params.mani_dims)) 'D'];
+
+    savefig(f2,fullfile(save_dir,params.signals(1:end-4),[fn2 '.fig']));
+    saveas(f2,fullfile(save_dir,params.signals(1:end-4),[fn2 '.png']));
+    saveas(f2,fullfile(save_dir,params.signals(1:end-4),[fn2 '.pdf']));
+    
+    % Histograms
+    fn3 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_distribution_' num2str(length(params.mani_dims)) 'D'];
+    
+    savefig(f5,fullfile(save_dir,params.signals(1:end-4),[fn3 '.fig']));
+    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn3 '.png']));
+    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn3 '.pdf']));
     
     % Normalized Histograms
-    fn2 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_normalized_distribution_' num2str(length(params.mani_dims)) 'D'];
+    fn4 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_normalized_distribution_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f6,fullfile(save_dir,params.signals(1:end-4),[fn2 '.fig']));
-    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn2 '.png']));
-    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn2 '.pdf']));
+    savefig(f6,fullfile(save_dir,params.signals(1:end-4),[fn4 '.fig']));
+    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn4 '.png']));
+    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn4 '.pdf']));
     
     
     % Aligned latent trajectories
-    fn3 = [td(1).monkey '_' params.signals(1:end-4) '_Aligned_latent_trajectories_Day_1_' num2str(length(params.mani_dims)) 'D'];
+    fn5 = [td(1).monkey '_' params.signals(1:end-4) '_Aligned_latent_trajectories_Day_1_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f4,fullfile(save_dir,params.signals(1:end-4),[fn3 '.fig']));
-    saveas(f4,fullfile(save_dir,params.signals(1:end-4),[fn3 '.png']));
-    saveas(f4,fullfile(save_dir,params.signals(1:end-4),[fn3 '.pdf']));
+    savefig(f3,fullfile(save_dir,params.signals(1:end-4),[fn5 '.fig']));
+    saveas(f3,fullfile(save_dir,params.signals(1:end-4),[fn5 '.png']));
+    saveas(f3,fullfile(save_dir,params.signals(1:end-4),[fn5 '.pdf']));
     
-    fn4 = [td(1).monkey '_' params.signals(1:end-4) '_Aligned_latent_trajectories_Day_' num2str(diff_days) '_' num2str(length(params.mani_dims)) 'D'];
+    fn6 = [td(1).monkey '_' params.signals(1:end-4) '_Aligned_latent_trajectories_Day_' num2str(diff_days) '_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f5,fullfile(save_dir,params.signals(1:end-4),[fn4 '.fig']));
-    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn4 '.png']));
-    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn4 '.pdf']));
+    savefig(f4,fullfile(save_dir,params.signals(1:end-4),[fn6 '.fig']));
+    saveas(f4,fullfile(save_dir,params.signals(1:end-4),[fn6 '.png']));
+    saveas(f4,fullfile(save_dir,params.signals(1:end-4),[fn6 '.pdf']));
     
 end
