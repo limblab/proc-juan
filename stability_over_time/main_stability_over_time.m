@@ -653,8 +653,8 @@ if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     clas_results = classify_across_days(master_td,pars.class_params.in,pars.class_params);
 
     % now do spikes
-    clas_results_spike = classify_across_days(master_td,'spikes',pars.class_params);
-    clas_results_spike.norm_perf_spike =  clas_results_spike.perf_spike./mean(clas_results.perf_within_xval2,2)*100;
+    clas_spike_results = classify_across_days(master_td,'spikes',pars.class_params);
+    clas_spike_results.norm_perf_spike =  clas_spike_results.perf_spike./mean(clas_results.perf_within_xval2,2)*100;
     
     % now do plotting
     %%%% TO DO
@@ -664,7 +664,7 @@ end
 
 
 
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
 % PLOTTING
@@ -678,16 +678,19 @@ end
 
 
 % Plot aligned latent activity and similarity over days
-SOT_Fig_3_aligned_latent_activity( master_td, pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
+if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
+    % need to trim it first here
+    SOT_Fig_3_aligned_latent_activity( trimTD(master_td,pars), pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
+else
+    SOT_Fig_3_aligned_latent_activity( master_td, pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
+end
 
 
 % Plot decoding results
 if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
-    
     SOT_Fig_decoding( dec_results, dec_spike_results, pars );
 elseif strcmpi(pars.spiking_inputs{1},'PMd_spikes')
-    
-    
+    SOT_Fig_classification(clas_results, clas_spike_results, pars);
 end
 
 
