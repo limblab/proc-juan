@@ -369,7 +369,7 @@ end
 % Plot aligned latent activity and similarity over days
 if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     % need to trim it first here
-    SOT_Fig_3_aligned_latent_activity( trimTD(master_td,pars), pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
+    SOT_Fig_3_aligned_latent_activity( trimTD(master_td,pars.idx_start,pars.idx_end), pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
 else
     SOT_Fig_3_aligned_latent_activity( master_td, pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
 end
