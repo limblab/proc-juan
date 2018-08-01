@@ -18,6 +18,7 @@ mn_w        = mean(dec_results.withinR2_m,2)';
 mn_a        = mean(dec_results.acrossR2,2)';
 mn_u        = mean(dec_results.ctrlR2,2)';
 
+
 % stats for the decoders based on spikes
 mn_s_w      = mean(dec_spike_results.withinR2_m,2)';
 mn_s_a      = mean(dec_spike_results.acrossR2,2)';
@@ -55,6 +56,12 @@ s_a_to_s_w  = mn_s_a./mn_s_w;
 
 n_hist      = length(a_to_w);
 
+% histograms
+hist_a      = histcounts(mn_a,hist_x)/n_hist*100;
+hist_s_w    = histcounts(mn_s_w,hist_x)/n_hist*100; % spikes within
+hist_u      = histcounts(mn_u,hist_x)/n_hist*100;
+
+% normalized histograms
 hist_a_to_w = histcounts(a_to_w,hist_x)/n_hist*100;
 hist_a_to_s_w = histcounts(a_to_s_w,hist_x)/n_hist*100;
 hist_u_to_s_w = histcounts(u_to_s_w,hist_x)/n_hist*100;
@@ -73,11 +80,22 @@ sd_u_to_s_w = std(u_to_s_w);
 mn_s_a_to_s_w = mean(s_a_to_s_w);
 sd_s_a_to_s_w = std(s_a_to_s_w);
 
+% not normalized
+mn_a_hist = mean(mn_a);
+mn_u_hist = mean(mn_u);
+mn_s_w_hist = mean(mn_s_w);
+
+sd_a_hist = std(mn_a);
+sd_u_hist = std(mn_u);
+sd_s_w_hist = std(mn_s_w);
+
 
 % test statistical comparison
 p_norm_a_to_u = ranksum(a_to_s_w,u_to_s_w);
 p_norm_a_to_s_a = ranksum(a_to_s_w,s_a_to_s_w);
 
+p_a_u = ranksum(mn_a,mn_u);
+p_a_w = ranksum(mn_a,mn_w);
 
 %% ------------------------------------------------------------------------
 % PLOT PERFORMANCE VS TIME
@@ -92,7 +110,7 @@ cols_s_a    = [255,99,71]/255;
 
 % 1. DECODERS BASED ON LATENT ACTIVITY: WITHIN-DAY, ACROSS-DAY ALIGNED, AND
 % ACROSS-DAY UNALIGNED
-figure, hold on
+f1 = figure; hold on
 plot( x, y_w, 'color', cols_w,'linewidth', 2)
 plot( x, y_a, 'color', cols_a,'linewidth', 2)
 plot( x, y_u, 'color', cols_u,'linewidth', 2)
@@ -110,7 +128,7 @@ set(gcf,'color','w'), title('Decoders based on latent activity')
 
 % 2. DECODERS BASED ON LATENT ACTIVITY: WITHIN-DAY, ACROSS-DAY ALIGNED, AND
 % ACROSS-DAY DECODER BASED ON SPIKES
-figure, hold on
+f2 = figure; hold on
 plot( x, y_w, 'color', cols_w,'linewidth', 2)
 plot( x, y_a, 'color', cols_a,'linewidth', 2)
 plot( x, y_s_a, 'color', cols_s_a,'linewidth', 2)
@@ -129,7 +147,7 @@ set(gcf,'color','w')
 
 % 3. DECODERS BASED ON LATENT ACTIVITY: WITHIN-DAY, ACROSS-DAY ALIGNED, AND
 % ACROSS-DAY DECODER BASED ON SPIKES
-f1 = figure; hold on
+f3 = figure; hold on
 plot( x, y_s_w, 'color', cols_s_w,'linewidth', 2)
 plot( x, y_a, 'color', cols_a,'linewidth', 2)
 plot( x, y_s_a, 'color', cols_s_a,'linewidth', 2)
@@ -156,37 +174,44 @@ set(gcf,'color','w')
 xh          = hist_x(1:end-1);
 
 
-% % Normalized aligned vs unaligned preds
-% 
-% figure, hold on
-% h1 = bar(xh,hist_a_to_s_w,'histc');
-% set(h1,'FaceColor',cols_a)
-% h2 = bar(xh,hist_u_to_s_w,'histc');
-% set(h2,'FaceColor',cols_u)
-% alpha(h2,.5)
-% 
-% tm = max([hist_a_to_s_w,hist_u_to_s_w]);
-% yln = ceil(tm/5)*5+5;
-% ys = ceil(tm) + (yln-ceil(tm)) / 2;
-% 
-% plot(mn_a_to_s_w,ys,'.','markersize',32,'color',cols_a)
-% plot([mn_a_to_s_w-sd_a_to_s_w, mn_a_to_s_w+sd_a_to_s_w],[ys ys],'color',cols_a,'linewidth',3)
-% plot(mn_u_to_s_w,ys,'.','markersize',32,'color',cols_u)
-% plot([mn_u_to_s_w-sd_u_to_s_w, mn_u_to_s_w+sd_u_to_s_w],[ys ys],'color',cols_u,'linewidth',3)
-% 
-% text(.1,yln,['n=' num2str(n_hist)],'Fontsize',14)
-% text(.1,yln-1,['P=' num2str(p_norm_a_to_u,2)],'Fontsize',14)
-% 
-% legend('aligned','unaligned'), legend boxoff
-% set(gca,'TickDir','out','FontSize',14), box off
-% xlabel('Normalized prediction accuracy')
-% ylabel('Session comparisons (%)')
-% set(gcf,'color','w')
+%  Aligned vs unaligned preds vs spike preds
+f4 = figure; hold on
+h0 = bar(xh,hist_u,'histc');
+set(h0,'facecolor',cols_u)
+alpha(h0,0.5);
+h1 = bar(xh,hist_s_w,'histc');
+set(h1,'facecolor',cols_s_w)
+alpha(h1,0.5);
+h2 = bar(xh,hist_a,'histc');
+set(h2,'facecolor',cols_a)
+alpha(h2,0.5);
+
+tm = max([hist_s_w,hist_a,hist_u]);
+yln = ceil(tm/5)*5+5;
+ys = ceil(tm) + (yln-ceil(tm)) / 2;
+
+plot(mn_u_hist,ys,'.','markersize',32,'color',cols_u)
+plot([mn_u_hist-sd_u_hist, mn_u_hist+sd_u_hist],[ys ys],'color',cols_u,'linewidth',2)
+plot(mn_s_w_hist,ys,'.','markersize',32,'color',cols_s_w)
+plot([mn_s_w_hist-sd_s_w_hist, mn_s_w_hist+sd_s_w_hist],[ys ys],'color',cols_s_w,'linewidth',2)
+plot(mn_a_hist,ys,'.','markersize',32,'color',cols_a)
+plot([mn_a_hist-sd_a_hist, mn_a_hist+sd_a_hist],[ys ys],'color',cols_a,'linewidth',2)
+
+text(.1,yln-5,['n=' num2str(n_hist)],'Fontsize',14)
+text(.1,yln-8,['P_{a,u}=' num2str(p_a_u,2)],'Fontsize',14)
+text(.1,yln-11,['P_{a,w}=' num2str(p_a_w,2)],'Fontsize',14)
+
+legend('unaligned','spikes across','aligned'), legend boxoff
+set(gca,'TickDir','out','FontSize',14), box off
+xlabel('Prediction accuracy (R^2)')
+ylabel('Session comparisons (%)')
+set(gcf,'color','w')
+xlim([0 1])
 
 
 % Normalized aligned vs unaligned preds
 
-f2 = figure; hold on
+f5 = figure; hold on
 h3 = bar(xh,hist_a_to_s_w,'histc');
 set(h3,'FaceColor',cols_a)
 h4 = bar(xh,hist_s_a_to_s_w,'histc');
@@ -210,6 +235,7 @@ set(gca,'TickDir','out','FontSize',14), box off
 xlabel('Normalized prediction accuracy')
 ylabel('Session comparisons (%)')
 set(gcf,'color','w')
+xlim([0 1.2])
 
 
 
@@ -217,17 +243,39 @@ set(gcf,'color','w')
 % SAVE FIG ?
 if params.decoder_params.save_fig
     
-    ff = ['/Users/juangallego/Dropbox/Juan and Matt - Stability latent activity/Results/' params.spiking_inputs{1}(1:end-7)];
-    fn1 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Decoding_over_time_' num2str(length(params.mani_dims)) 'D'];
+    % LATENT ACTIVITY ONLY-DECODERS
+    fn1 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Decoding_over_time_Latent_activity_only_' num2str(length(params.mani_dims)) 'D'];
     
     savefig(f1,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn1 '.fig']));
     saveas(f1,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn1 '.png']));
     saveas(f1,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn1 '.pdf']));
     
-    fn2 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Decoding_normalized_distribution_' num2str(length(params.mani_dims)) 'D'];
+    % LATENT ACTIVITY ALIGNED AND WITHIN DAY AND SPIKES
+    fn2 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Decoding_over_time_Latent_whitin_day_across_day_Spikes_across_' num2str(length(params.mani_dims)) 'D'];
     
     savefig(f2,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn2 '.fig']));
     saveas(f2,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn2 '.png']));
     saveas(f2,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn2 '.pdf']));
+    
+    % LATENT ACTIVITY ALIGNED AND WITHIN DAY AND SPIKES
+    fn3 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Decoding_over_time_Latent_across_day_Spikes_within_day_across_day_' num2str(length(params.mani_dims)) 'D'];
+    
+    savefig(f3,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn3 '.fig']));
+    saveas(f3,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn3 '.png']));
+    saveas(f3,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn3 '.pdf']));
+ 
+    % ALL DISTRIBUTIONS
+    fn4 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Decoding_distribution_' num2str(length(params.mani_dims)) 'D'];
+    
+    savefig(f4,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn4 '.fig']));
+    saveas(f4,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn4 '.png']));
+    saveas(f4,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn4 '.pdf']));
+       
+    % DISTRIBUTION LATENT ACTIVITY AND SPIKE DECODERS -NORMALIZED 
+    fn5 = [params.monkey '_' params.spiking_inputs{1}(1:end-7) '_Decoding_normalized_distribution_' num2str(length(params.mani_dims)) 'D'];
+    
+    savefig(f5,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn5 '.fig']));
+    saveas(f5,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn5 '.png']));
+    saveas(f5,fullfile(params.save_dir,params.spiking_inputs{1}(1:end-7),[fn5 '.pdf']));
     
 end
