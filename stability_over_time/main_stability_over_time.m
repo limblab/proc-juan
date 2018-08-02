@@ -17,7 +17,7 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'mihili'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
+pars.monkey         = 'Chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
 pars.spiking_inputs = {'PMd_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
@@ -344,8 +344,9 @@ if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     % save some results
     fn1 = [pars.monkey '_' pars.spiking_inputs{1}(1:end-7) '_Classification_Results_' num2str(length(pars.mani_dims)) 'D'];
     
-    savefig(f1,fullfile(params.save_dir,pars.spiking_inputs{1}(1:end-7),[fn1 '.mat']));
+    save(fullfile(pars.save_dir,pars.spiking_inputs{1}(1:end-7),[fn1 '.mat']),'clas_results','clas_spike_results','pars');
 end
+
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

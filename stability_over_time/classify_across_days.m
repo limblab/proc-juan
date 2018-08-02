@@ -232,11 +232,12 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [perf_train, perf_test, err_test] = do_classify_xval(td,n_clas_vars,params)
+function [perf_train, perf_test, err_test] = do_classify_xval(td,idx,params)
 n_folds = params.n_folds;
 num_test_trials = params.num_test_trials;
+clas_input = params.clas_input;
 
-params.n_clas_vars = n_clas_vars;
+params.idx = idx;
 
 % To store the results
 perf_train      = zeros(1,n_folds);
@@ -250,22 +251,33 @@ for f = 1:n_folds
     [itrain, itest] = get_test_train_trials(td,num_test_trials);
     
     % i) Retrieve the training and testing bins
-    
-    [Xtrain,Ytrain] = process_td_for_classification(td(itrain),n_clas_vars,params);
+    if ~isempty(regexp(clas_input,'_spikes', 'once'))
+        temp_idx = remove_zero_var_neurons(td(itrain),params);
+    else
+        temp_idx = idx;
+    end
+    params.idx = temp_idx;
+    [Xtrain,Ytrain] = process_td_for_classification(td(itrain),temp_idx,params);
     
     % iii) Train the classifier
-    clas_xval = fit_classifier(Xtrain,Ytrain,params);
-    
-    [Xtest,Ytest] = process_td_for_classification(td(itest),n_clas_vars,params);
-    
-    pred_test = clas_xval.predict(Xtest)';
-    % Performance (% succesfully classified targets)
-    perf_test(f) = 100 * ( 1 - sum( angleDiff(pred_test,Ytest,true,true) ~= 0 ) / length(pred_test) );
-    err_test(f) = mean(angleDiff(Ytest,pred_test,true,false));
-    
-    % v) For reference, compute performance on the training set
-    pred_train  = clas_xval.predict(Xtrain)';
-    perf_train(f) = 100 * ( 1 - sum( angleDiff(pred_train,Ytrain,true,true) ~= 0 ) / length(pred_train) );
+    if ~isempty(Xtrain)
+        clas_xval = fit_classifier(Xtrain,Ytrain,params);
+        
+        [Xtest,Ytest] = process_td_for_classification(td(itest),temp_idx,params);
+        
+        pred_test = clas_xval.predict(Xtest)';
+        % Performance (% succesfully classified targets)
+        perf_test(f) = 100 * ( 1 - sum( angleDiff(pred_test,Ytest,true,true) ~= 0 ) / length(pred_test) );
+        err_test(f) = mean(angleDiff(Ytest,pred_test,true,false));
+        
+        % v) For reference, compute performance on the training set
+        pred_train  = clas_xval.predict(Xtrain)';
+        perf_train(f) = 100 * ( 1 - sum( angleDiff(pred_train,Ytrain,true,true) ~= 0 ) / length(pred_train) );
+    else
+        perf_train = NaN;
+        perf_test = NaN;
+        err_test = NaN;
+    end
 end
 
 end
@@ -398,7 +410,7 @@ end
 [X2,Y2] = process_td_for_classification(td2,idx2,new_params);
 
 % b) Train classifier
-if ~isempty(X1)
+if ~isempty(X1) && ~isempty(X2)
     clas = fit_classifier(X1,Y1,new_params);
     
     % c) Test performance on training set -- Remember that the optimal
@@ -410,13 +422,7 @@ if ~isempty(X1)
     
     % d) Compute classif error (degrees)
     res.err_within      = mean(angleDiff(Y1,res.pred_within,true,false));
-else
-    res.pred_within = 0;
-    res.perf_within = 0;
-    res.err_within = 0;
-end
-
-if ~isempty(X2)
+    
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % TEST ON DAY 2
     
@@ -427,9 +433,12 @@ if ~isempty(X2)
     % c) Classifier error
     res.err_across      = mean(angleDiff(Y2,res.pred_across,true,false));
 else
-    res.pred_across = 0;
-    res.perf_across = 0;
-    res.err_across = 0;
+    res.pred_within = NaN;
+    res.perf_within = NaN;
+    res.err_within = NaN;
+    res.pred_across = NaN;
+    res.perf_across = NaN;
+    res.err_across = NaN;
 end
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -445,54 +454,102 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [idx1, idx2] = remove_zero_var_neurons(td1,td2,new_params)
-% first get the electrode/unit pairs that are common across days
-sg1 = td1(1).PMd_unit_guide;
-sg2 = td2(1).PMd_unit_guide;
-[~,idx1,idx2] = intersect(sg1,sg2,'rows');
+function [idx1, idx2] = remove_zero_var_neurons(varargin)
 
-%%%% this code removes cells with zero variance in the
-%%%% conditions
-% a bit of a hack to initialize the size of things... just run
-% it once to start
-[X1,Y1] = process_td_for_classification(td1,idx1,new_params);
-
-% check the spikes
-utheta = unique(Y1);
-v = true(length(utheta),size(X1,2));
-
-while any(any(v == true,1))
+if nargin == 3
+    td1 = varargin{1};
+    td2 = varargin{2};
+    new_params = varargin{3};
+    
+    % first get the electrode/unit pairs that are common across days
+    sg1 = td1(1).PMd_unit_guide;
+    sg2 = td2(1).PMd_unit_guide;
+    [~,idx1,idx2] = intersect(sg1,sg2,'rows');
+    
+    %%%% this code removes cells with zero variance in the
+    %%%% conditions
+    % a bit of a hack to initialize the size of things... just run
+    % it once to start
     [X1,Y1] = process_td_for_classification(td1,idx1,new_params);
-    [X2,Y2] = process_td_for_classification(td2,idx2,new_params);
     
     % check the spikes
     utheta = unique(Y1);
-    v1 = zeros(length(utheta),size(X1,2));
-    for u = 1:length(utheta)
-        idx = Y1 == utheta(u);
-        v1(u,:)  = var(X1(idx,:));
-    end
-    v2 = zeros(length(utheta),size(X2,2));
-    for u = 1:length(utheta)
-        idx = Y2 == utheta(u);
-        v2(u,:)  = var(X2(idx,:));
-    end
+    v = true(length(utheta),size(X1,2));
     
-    v = v1 == 0 | v2 == 0;
-    
-    idx = find(any(v,1));
-    for u = 1:length(idx)
-        temp = idx(u);
-        if temp > length(idx1), temp = temp - length(idx1); end
-        idx1(temp) = NaN;
+    while any(any(v == true,1))
+        [X1,Y1] = process_td_for_classification(td1,idx1,new_params);
+        [X2,Y2] = process_td_for_classification(td2,idx2,new_params);
         
-        if temp > length(idx2), temp = temp - length(idx2); end
-        idx2(temp) = NaN;
+        % check the spikes
+        utheta = unique(Y1);
+        v1 = zeros(length(utheta),size(X1,2));
+        for u = 1:length(utheta)
+            v1(u,:)  = var(X1(Y1 == utheta(u),:));
+        end
+        v2 = zeros(length(utheta),size(X2,2));
+        for u = 1:length(utheta)
+            v2(u,:)  = var(X2(Y2 == utheta(u),:));
+        end
+        
+        v = v1 == 0 | v2 == 0;
+        
+        idx = find(any(v,1));
+        for u = 1:length(idx)
+            temp = idx(u);
+            if temp > length(idx1), temp = temp - length(idx1); end
+            idx1(temp) = NaN;
+            
+            if temp > length(idx2), temp = temp - length(idx2); end
+            idx2(temp) = NaN;
+        end
+        
+        idx1(isnan(idx1)) = [];
+        idx2(isnan(idx2)) = [];
     end
     
-    idx1(isnan(idx1)) = [];
-    idx2(isnan(idx2)) = [];
+elseif nargin == 2
+    td1 = varargin{1};
+    new_params = varargin{2};
+    idx2 = [];
+    
+    % first get the electrode/unit pairs that are common across days
+    idx1 = (1:size(td1(1).PMd_unit_guide,1))';
+    
+    
+    %%%% this code removes cells with zero variance in the
+    %%%% conditions
+    % a bit of a hack to initialize the size of things... just run
+    % it once to start
+    [X1,Y1] = process_td_for_classification(td1,idx1,new_params);
+    
+    % check the spikes
+    utheta = unique(Y1);
+    v = true(length(utheta),size(X1,2));
+    
+    while any(any(v == true,1))
+        [X1,Y1] = process_td_for_classification(td1,idx1,new_params);
+        
+        % check the spikes
+        utheta = unique(Y1);
+        v1 = zeros(length(utheta),size(X1,2));
+        for u = 1:length(utheta)
+            v1(u,:)  = var(X1(Y1 == utheta(u),:));
+        end
+        
+        v = v1 == 0;
+        
+        idx = find(any(v,1));
+        for u = 1:length(idx)
+            temp = idx(u);
+            if temp > length(idx1), temp = temp - length(idx1); end
+            idx1(temp) = NaN;
+        end
+        
+        idx1(isnan(idx1)) = [];
+    end
+    
 end
+
 
 end
 
