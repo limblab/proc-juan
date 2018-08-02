@@ -161,12 +161,13 @@ if exist('within_day_align_results','var')
 end
 switch errorbars
     case 'sd'
-        errorbar(dd,mn_aligned_plot,sd_aligned_plot,'k','linewidth',1.5,'linestyle','none','marker','.','markersize',32)
-        errorbar(dd,mn_corr_plot,sd_corr_plot,'color',col_unal,'linewidth',1.5,'linestyle','none','marker','.','markersize',32)
+        e1 = errorbar(dd,mn_aligned_plot,sd_aligned_plot,'k','linewidth',1.5,'linestyle','none','marker','.','markersize',32);
+        e2 = errorbar(dd,mn_corr_plot,sd_corr_plot,'color',col_unal,'linewidth',1.5,'linestyle','none','marker','.','markersize',32);
     case 'sem'
-        errorbar(dd,mn_aligned_plot,sem_aligned_plot,'k','linewidth',1.5,'linestyle','none','marker','.','markersize',32)
-        errorbar(dd,mn_corr_plot,sem_corr_plot,'color',col_unal,'linewidth',1.5,'linestyle','none','marker','.','markersize',32)
+        e1 = errorbar(dd,mn_aligned_plot,sem_aligned_plot,'k','linewidth',1.5,'linestyle','none','marker','.','markersize',32);
+        e2 = errorbar(dd,mn_corr_plot,sem_corr_plot,'color',col_unal,'linewidth',1.5,'linestyle','none','marker','.','markersize',32);
 end
+e1.CapSize = 0; e2.CapSize = 0;
 set(gca,'TickDir','out','FontSize',14), box off
 set(gcf, 'color', [1 1 1])
 if exist('within_day_align_results','var')
