@@ -198,31 +198,6 @@ end
 
 
 
-% % -------------------------------------------------------------------------
-% % PLOT HISTOGRAM ALIGNED NOT ALIGNED CCs
-% 
-% bin_hist = 0.05;
-% x_hist = 0:bin_hist:(1+bin_hist);
-% 
-% data_aligned = cell2mat(arrayfun( @(x) x.cc(latent_vars_plot), align_results.aligned_info, 'UniformOutput', false));
-% data_unaligned = cell2mat(arrayfun( @(x) abs(x.r(latent_vars_plot)), align_results.corr_info, 'UniformOutput', false));
-% 
-% hist_aligned = histcounts(data_aligned,x_hist)/length(data_aligned)*100;
-% hist_unaligned = histcounts(data_unaligned,x_hist)/length(data_unaligned)*100;
-% 
-% figure, hold on
-% hha = bar(x_hist(1:end-1),hist_aligned,'histc');
-% set(hha,'facecolor','k')
-% hhu = bar(x_hist(1:end-1),hist_unaligned,'histc');
-% set(hhu,'facecolor',col_unal);
-% alpha(hhu,0.5)
-% set(gca,'TickDir','out','FontSize',14), box off
-% set(gcf, 'color', [1 1 1])
-% legend('Aligned','Unaligned','Location','NorthWest'), legend boxoff
-% xlim([0 1]), xlabel('CC (aligned) or corr (unaligned) across days')
-% ylabel('Mode comparisons (%)')
-
-
 
 %% % ----------------------------------------------------------------------
 % PLOT THE MEAN ALIGNED MEAN TRAJECTORIES PER TARGET
@@ -244,7 +219,7 @@ idx_cmp = find( align_results.comb_sessions(:,1)==s1 & align_results.comb_sessio
 
 % define name var to plot
 latent_signals_plot = align_results.signals;
-
+align_latent_signals_plot = [latent_signals_plot '_align'];
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Separate concatenated aligned latent activity into trials and
@@ -254,8 +229,8 @@ bins_p_trial = size(td1(1).pos,1);
 for t = 1:length(td1)
     be = bins_p_trial*(t-1)+1;
     en = bins_p_trial*t;
-    td1(t).(latent_signals_plot) = align_results.aligned_info(idx_cmp).U(be:en,:);
-    td2(t).(latent_signals_plot) = align_results.aligned_info(idx_cmp).V(be:en,:);
+    td1(t).(align_latent_signals_plot) = align_results.aligned_info(idx_cmp).U(be:en,:);
+    td2(t).(align_latent_signals_plot) = align_results.aligned_info(idx_cmp).V(be:en,:);
 end
 
 
@@ -265,17 +240,18 @@ td_avg_ali1  = trialAverage(td1,'target_direction');
 td_avg_ali2  = trialAverage(td2,'target_direction');
 
  
-cols        = parula(length(td_avg_ali1));
+cols        = parula(length(td_avg_ali1)+1);
  
+% ALIGNED TRAJECTORIES
 f3 = figure; hold on
-for t = 1:length(cols)
-    plot3(td_avg_ali1(t).(latent_signals_plot)(:,modesplot(1)),...
-        td_avg_ali1(t).(latent_signals_plot)(:,modesplot(2)),...
-        td_avg_ali1(t).(latent_signals_plot)(:,modesplot(3)),...
+for t = 1:length(td_avg_ali1)
+    plot3(td_avg_ali1(t).(align_latent_signals_plot)(:,modesplot(1)),...
+        td_avg_ali1(t).(align_latent_signals_plot)(:,modesplot(2)),...
+        td_avg_ali1(t).(align_latent_signals_plot)(:,modesplot(3)),...
         'color',cols(t,:),'linewidth',3)
-    plot3(td_avg_ali1(t).(latent_signals_plot)(1,modesplot(1)),...
-        td_avg_ali1(t).(latent_signals_plot)(1,modesplot(2)),...
-        td_avg_ali1(t).(latent_signals_plot)(1,modesplot(3)),...
+    plot3(td_avg_ali1(t).(align_latent_signals_plot)(1,modesplot(1)),...
+        td_avg_ali1(t).(align_latent_signals_plot)(1,modesplot(2)),...
+        td_avg_ali1(t).(align_latent_signals_plot)(1,modesplot(3)),...
         'color',cols(t,:),'marker','.','markersize',30)
     view(-169,13)
     set(gca,'TickDir','out','FontSize',14), box off
@@ -290,14 +266,14 @@ ax1 = gca;
 
 
 f4 = figure; hold on
-for t = 1:length(cols)
-    plot3(td_avg_ali2(t).(latent_signals_plot)(:,modesplot(1)),...
-        td_avg_ali2(t).(latent_signals_plot)(:,modesplot(2)),...
-        td_avg_ali2(t).(latent_signals_plot)(:,modesplot(3)),...
+for t = 1:length(td_avg_ali1)
+    plot3(td_avg_ali2(t).(align_latent_signals_plot)(:,modesplot(1)),...
+        td_avg_ali2(t).(align_latent_signals_plot)(:,modesplot(2)),...
+        td_avg_ali2(t).(align_latent_signals_plot)(:,modesplot(3)),...
         'color',cols(t,:),'linewidth',3)
-    plot3(td_avg_ali2(t).(latent_signals_plot)(1,modesplot(1)),...
-        td_avg_ali2(t).(latent_signals_plot)(1,modesplot(2)),...
-        td_avg_ali2(t).(latent_signals_plot)(1,modesplot(3)),...
+    plot3(td_avg_ali2(t).(align_latent_signals_plot)(1,modesplot(1)),...
+        td_avg_ali2(t).(align_latent_signals_plot)(1,modesplot(2)),...
+        td_avg_ali2(t).(align_latent_signals_plot)(1,modesplot(3)),...
         'color',cols(t,:),'marker','.','markersize',30)
     view(-169,13)
     set(gca,'TickDir','out','FontSize',14), box off
@@ -323,10 +299,69 @@ figure(f3), xlim(xl); ylim(yl); zlim(zl);
 figure(f4), xlim(xl); ylim(yl); zlim(zl);
 
 
+% UNALIGNED TRAJECTORIES
+f5 = figure; hold on
+for t = 1:length(td_avg_ali1)
+    plot3(td_avg_ali1(t).(latent_signals_plot)(:,modesplot(1)),...
+        td_avg_ali1(t).(latent_signals_plot)(:,modesplot(2)),...
+        td_avg_ali1(t).(latent_signals_plot)(:,modesplot(3)),...
+        'color',cols(t,:),'linewidth',3)
+    plot3(td_avg_ali1(t).(latent_signals_plot)(1,modesplot(1)),...
+        td_avg_ali1(t).(latent_signals_plot)(1,modesplot(2)),...
+        td_avg_ali1(t).(latent_signals_plot)(1,modesplot(3)),...
+        'color',cols(t,:),'marker','.','markersize',30)
+    view(-169,13)
+    set(gca,'TickDir','out','FontSize',14), box off
+end
+set(f5,'color', [1 1 1]);
+xlabel(['Neural mode ' num2str(modesplot(1))]);
+ylabel(['Neural mode ' num2str(modesplot(2))]);
+zlabel(['Neural mode ' num2str(modesplot(3))]);
+grid on
+title('Day 1 Unaligned')
+ax3 = gca;
+
+
+f6 = figure; hold on
+for t = 1:length(td_avg_ali1)
+    plot3(td_avg_ali2(t).(latent_signals_plot)(:,modesplot(1)),...
+        td_avg_ali2(t).(latent_signals_plot)(:,modesplot(2)),...
+        td_avg_ali2(t).(latent_signals_plot)(:,modesplot(3)),...
+        'color',cols(t,:),'linewidth',3)
+    plot3(td_avg_ali2(t).(latent_signals_plot)(1,modesplot(1)),...
+        td_avg_ali2(t).(latent_signals_plot)(1,modesplot(2)),...
+        td_avg_ali2(t).(latent_signals_plot)(1,modesplot(3)),...
+        'color',cols(t,:),'marker','.','markersize',30)
+    view(-169,13)
+    set(gca,'TickDir','out','FontSize',14), box off
+end
+set(f6,'color', [1 1 1]);
+xlabel(['Neural mode ' num2str(modesplot(1))]);
+ylabel(['Neural mode ' num2str(modesplot(2))]);
+zlabel(['Neural mode ' num2str(modesplot(3))]);
+grid on
+title(['Day ' num2str(diff_days) ' Unaligned'])
+ax4 = gca;
+
+% Make axes lims equal
+xl(1) = min(ax3.XLim(1),ax4.XLim(1));
+yl(1) = min(ax3.YLim(1),ax4.YLim(1));
+zl(1) = min(ax3.ZLim(1),ax4.ZLim(1));
+    
+xl(2) = min(ax3.XLim(2),ax4.XLim(2));
+yl(2) = min(ax3.YLim(2),ax4.YLim(2));
+zl(2) = min(ax3.ZLim(2),ax4.ZLim(2));
+
+figure(f5), xlim(xl); ylim(yl); zlim(zl);
+figure(f6), xlim(xl); ylim(yl); zlim(zl);
+
+
+
+
 
 % HISTOGRAMS
 
-f5 = figure; hold on
+f7 = figure; hold on
 b1 = bar(x_hist(1:end-1),y_hist_corr,'histc');
 set(b1,'facecolor',col_unal)
 alpha(b1,0.5)
@@ -354,7 +389,7 @@ text(.1,ystats_hist-10,['P=' num2str(p_align_unaligned,2)],'Fontsize',14)
 
 
 % Normalized hist
-f6 = figure; hold on
+f8 = figure; hold on
 bn1 = bar(x_hist(1:end-1),y_hist_norm_corr,'histc');
 set(bn1,'facecolor',col_unal)
 alpha(bn1,0.5)
@@ -399,16 +434,16 @@ if params.save_fig
     % Histograms
     fn3 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_distribution_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f5,fullfile(save_dir,params.signals(1:end-4),[fn3 '.fig']));
-    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn3 '.png']));
-    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn3 '.pdf']));
+    savefig(f7,fullfile(save_dir,params.signals(1:end-4),[fn3 '.fig']));
+    saveas(f7,fullfile(save_dir,params.signals(1:end-4),[fn3 '.png']));
+    saveas(f7,fullfile(save_dir,params.signals(1:end-4),[fn3 '.pdf']));
     
     % Normalized Histograms
     fn4 = [td(1).monkey '_' params.signals(1:end-4) '_Latent_activity_normalized_distribution_' num2str(length(params.mani_dims)) 'D'];
     
-    savefig(f6,fullfile(save_dir,params.signals(1:end-4),[fn4 '.fig']));
-    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn4 '.png']));
-    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn4 '.pdf']));
+    savefig(f8,fullfile(save_dir,params.signals(1:end-4),[fn4 '.fig']));
+    saveas(f8,fullfile(save_dir,params.signals(1:end-4),[fn4 '.png']));
+    saveas(f8,fullfile(save_dir,params.signals(1:end-4),[fn4 '.pdf']));
     
     
     % Aligned latent trajectories
@@ -423,5 +458,18 @@ if params.save_fig
     savefig(f4,fullfile(save_dir,params.signals(1:end-4),[fn6 '.fig']));
     saveas(f4,fullfile(save_dir,params.signals(1:end-4),[fn6 '.png']));
     saveas(f4,fullfile(save_dir,params.signals(1:end-4),[fn6 '.pdf']));
+    
+    % Unaligned trajectories
+    fn7 = [td(1).monkey '_' params.signals(1:end-4) '_Unaligned_latent_trajectories_Day_1_' num2str(length(params.mani_dims)) 'D'];
+    
+    savefig(f5,fullfile(save_dir,params.signals(1:end-4),[fn7 '.fig']));
+    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn7 '.png']));
+    saveas(f5,fullfile(save_dir,params.signals(1:end-4),[fn7 '.pdf']));
+    
+    fn8 = [td(1).monkey '_' params.signals(1:end-4) '_Unaligned_latent_trajectories_Day_' num2str(diff_days) '_' num2str(length(params.mani_dims)) 'D'];
+    
+    savefig(f6,fullfile(save_dir,params.signals(1:end-4),[fn8 '.fig']));
+    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn8 '.png']));
+    saveas(f6,fullfile(save_dir,params.signals(1:end-4),[fn8 '.pdf']));
     
 end
