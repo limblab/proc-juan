@@ -17,8 +17,8 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
-pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
+pars.monkey         = 'mihili'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
+pars.spiking_inputs = {'PMd_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
 pars.sessions_discard = []; %6:14; %[12 13 14];
@@ -190,7 +190,6 @@ clear files* here min_* i;
 % GET METADATA
 %
 
-
 % -------------------------------------------------------------------------
 % GET THE SESSIONS 
 meta.sessions       = unique({master_td.date});
@@ -241,7 +240,6 @@ end
 meta.targets        = unique([master_td.target_direction]);
 
 
-
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -253,7 +251,6 @@ if strcmpi(pars.monkey,'han') || strcmpi(pars.monkey,'chips')
    
     prep_and_do_PCA_S1;
 end
-
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -271,8 +268,6 @@ master_td_all_trials = master_td;
 master_td           = equalNbrTrialsSessions(master_td);
 
 
-
-
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -284,7 +279,6 @@ if ~strcmpi(pars.spiking_inputs{1},'PMd_spikes')
 end
 
 
-
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -292,14 +286,13 @@ end
 %
 if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     % need to trim it first here
-    align_results       = align_latent_activity( trimTD(master_td,pars) , pars.align_latent_params );
-    within_day_align_results = align_latent_activity_within_day( trimTD(master_td_all_trials,pars), ...
+    align_results       = align_latent_activity( trimTD(master_td,pars.idx_start,pars.idx_end) , pars.align_latent_params );
+    within_day_align_results = align_latent_activity_within_day( trimTD(master_td_all_trials,pars.idx_start,pars.idx_end), ...
                                 pars.align_latent_params );
 else
     align_results       = align_latent_activity( master_td, pars.align_latent_params );
     within_day_align_results = align_latent_activity_within_day( master_td_all_trials, pars.align_latent_params );
 end
-
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -355,13 +348,10 @@ if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
 end
 
 
-
-
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
 % PLOTTING
-
 
 
 % Plot similarity behavior
@@ -373,7 +363,7 @@ end
 % Plot aligned latent activity and similarity over days
 if strcmpi(pars.spiking_inputs{1},'PMd_spikes')
     % need to trim it first here
-    SOT_Fig_3_aligned_latent_activity( trimTD(master_td,pars), pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
+    SOT_Fig_3_aligned_latent_activity( trimTD(master_td,pars.idx_start,pars.idx_end), pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
 else
     SOT_Fig_3_aligned_latent_activity( master_td, pars.save_dir, align_results, meta, pars.align_latent_params, within_day_align_results );
 end
