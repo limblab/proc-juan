@@ -102,7 +102,7 @@ ylim([0 100]), xlim([x(1) x(2)]);
 set(gca,'TickDir','out','FontSize',14), box off
 xlabel('Days from decoder training'), ylabel('Classification accuracy (%)')
 legend('within-day','alinged','unaligned','Location','east'), legend boxoff
-set(gcf,'color','w'), title('Decoders based on latent activity')
+set(gcf,'color','w'), title('Classifiers based on latent activity')
 
 
 % 2. DECODERS BASED ON LATENT ACTIVITY: WITHIN-DAY, ACROSS-DAY ALIGNED, AND
