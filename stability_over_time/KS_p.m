@@ -209,12 +209,12 @@ for i = 1:num_days % Loop through days
                     temp = temp*p_wave;
                 end
                 
-                all_p_isi(l,:) = [chan2 + 0.1*unit2,p_isi];
-                    all_p_wave(l,:) = [chan2 + 0.1*unit2,p_wave];
+                all_p_isi(l,:) = [double(chan2) + 0.1*double(unit2),p_isi];
+                    all_p_wave(l,:) = [double(chan2) + 0.1*double(unit2),p_wave];
                     
                 if temp < conf^(length(criteria))
                     % Link the two as matched neurons
-                    COMPS{i}.chan(j,k) = chan2 + 0.1*unit2;
+                    COMPS{i}.chan(j,k) = double(chan2) + 0.1*double(unit2);
 %                     COMPS{i}.inds(j,k) = sorted_list_ind;
                 end
                 
