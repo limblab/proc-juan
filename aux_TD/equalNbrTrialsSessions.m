@@ -2,7 +2,7 @@
 % Equalize number of trials across sessions and targets
 % 
 
-function trial_data = equalNbrTrialsSessions( trial_data )
+function [trial_data, min_nbr_trials] = equalNbrTrialsSessions( trial_data )
 
 
 % get the sessions
