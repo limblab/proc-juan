@@ -168,13 +168,15 @@ for c = 1:n_comb_sessions
     % a) Build it!
     [td1, mod_info]     = getModel(td1,mod_params);
 
-    % b) Cross-validate the predictions on day 2, which is the day we want
-    % as reference
+    % b) As a reference build a model on day 2. This will serve to
+    % normalize the across day predictions obtained by using the decoder
+    % trained on day 1 to predict data from day 2
     % Trick: first randomize trial order, because the function that
     % equalizes the number of trials across targets and session sorts them
     % by target
     
-    td2                 = td2(randperm(length(td2)));
+    idx_rnd             = randperm(length(td2));
+    td2                 = td2(idx_rnd);
     trials_p_fold       = floor(length(td2)/n_folds);
 
     R2xval              = zeros(n_folds,size(td2(1).(out),2));
