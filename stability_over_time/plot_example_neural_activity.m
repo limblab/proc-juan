@@ -5,45 +5,81 @@ clc;
 [save_dir, data_dir] = get_computer_paths();
 save_them = false;
 
-pars.monkey         = 'Chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
-pars.array          = 'M1';
-pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
+pars.array          = 'PMd';
+pars.spiking_inputs = {[pars.array '_spikes']};
 
-date0 = '2016-09-09';
-date1 = '2016-10-05';
-date2 = '2016-10-21';
 
-% load CDS for first day
-load(['/Users/mattperich/Desktop/Chewie/CDS/' date1 '/Chewie_CO_FF_BL_10052016_001.mat']);
-cds1 = cds;
-% load CDS for second day
-load(['/Users/mattperich/Desktop/Chewie/CDS/' date2 '/Chewie_CO_CS_BL_10212016_001.mat']);
-cds2 = cds;
-clear cds;
+switch pars.array
+    case {'M1','PMd'}
+        pars.monkey         = 'Chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
+        
+        fr_max = 180;
+vel_lim = [-25 25];
 
+        date0 = '2016-09-09';
+        date1 = '2016-10-05';
+        date2 = '2016-10-21';
+        
+        tdfile1 = ['/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chewie/Chewie_CO_FF_' date1 '.mat'];
+        tdfile2 = ['/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chewie/Chewie_CO_CS_' date2 '.mat'];
+        
+        %--------------------------------------------------------------------------
+        % load CDS for first day
+        load(['/Users/mattperich/Desktop/Chewie/CDS/' date1 '/Chewie_CO_FF_BL_10052016_001.mat']);
+        cds1 = cds;
+        % load CDS for second day
+        load(['/Users/mattperich/Desktop/Chewie/CDS/' date2 '/Chewie_CO_CS_BL_10212016_001.mat']);
+        cds2 = cds;
+        clear cds;
+        
+        params_stability_over_time;
+        
+        [master_td, pars_td] = loadTDfiles(  {tdfile1,tdfile2}, ...
+            {@getTDidx,'epoch','BL','result','R'}, ...    {@stripSpikeSorting},...
+            {@binTD,pars.n_bins_downs}, ...
+            {@removeBadNeurons,pars.bad_neuron_params},...
+            {@sqrtTransform,pars.spiking_inputs}, ...
+            {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'kernel_SD',pars.kernel_SD)}, ...
+            {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
+            {@getPCA,struct('signals',pars.spiking_inputs)}, ...
+            {@trimTD,pars.idx_start,pars.idx_end});
+        
+        master_td = removeBadTrials(master_td,struct('nan_idx_names','idx_movement_on'));
+        
+    case 'S1'
+        pars.monkey = 'Chips';
+        
+        fr_max = 180;
+vel_lim = [-30 30];
+
+        date0 = '2015-11-13';
+        date1 = '2015-11-13';
+        date2 = '2015-12-11';
+        
+        tdfile1 = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chips/Chips_20151113_TD_nosort_notrack_noemg.mat';
+        tdfile2 = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chips/Chips_20151211_TD_nosort_notrack_noemg.mat';
+        
+        params_stability_over_time;
+        
+        [master_td, pars_td] = loadTDfiles(  {tdfile1,tdfile2}, ...
+            {@getTDidx,'result','R'}, ...    {@stripSpikeSorting},...
+            {@binTD,pars.n_bins_downs}, ...
+            {@removeBadNeurons,pars.bad_neuron_params},...
+            {@removeBadTrials,struct('nan_idx_names','idx_go_cue','ranges',{{'idx_go_cue','idx_trial_end',[19 Inf]}})}, ...
+            {@sqrtTransform,pars.spiking_inputs}, ...
+            {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'kernel_SD',pars.kernel_SD)}, ...
+            {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
+            {@getPCA,struct('signals',pars.spiking_inputs)}, ...
+            {@trimTD,pars});
+end
+
+%--------------------------------------------------------------------------
 % load TD for both days
-tdfile1 = ['/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chewie/Chewie_CO_FF_' date1 '.mat'];
-tdfile2 = ['/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chewie/Chewie_CO_CS_' date2 '.mat'];
-
-params_stability_over_time;
-
-[master_td, pars_td] = loadTDfiles(  {tdfile1,tdfile2}, ...
-    {@getTDidx,'epoch','BL','result','R'}, ...    {@stripSpikeSorting},...
-    {@binTD,pars.n_bins_downs}, ...
-    {@removeBadNeurons,pars.bad_neuron_params},...
-    {@sqrtTransform,pars.spiking_inputs}, ...
-    {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'kernel_SD',pars.kernel_SD)}, ...
-    {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
-    {@getPCA,struct('signals',pars.spiking_inputs)}, ...
-    {@trimTD,pars.idx_start,pars.idx_end});
 
 % some sessions are missing force so just throw it out
 % since we don't n eed it for this analysis
 master_td = rmfield(master_td,'force');
-
 [master_td, num_trials] = equalNbrTrialsSessions(master_td);
-
-master_td = removeBadTrials(master_td,struct('nan_idx_names','idx_movement_on'));
 master_td = trimTD(master_td,pars);
 
 % get the trial data and unit idx belonging to this electrode
@@ -55,10 +91,10 @@ d_day2 = datenum(date2) - datenum(date0);
 
 
 %% make a proper raster plot for the two days
-fr_max = 180;
 do_norm = false;
 n_whitespace = 1;
 
+%--------------------------------------------------------------------------
 close all;
 
 td1_temp = td1;
@@ -72,24 +108,25 @@ td2_temp = trialAverage(td2_temp,'target_direction');
 
 % add some whitespace to each trial
 for trial = 1:length(td1_temp)
-    td1_temp(trial).M1_spikes  = cat(1,td1_temp(trial).M1_spikes,NaN(n_whitespace,size(td1_temp(trial).M1_spikes,2)));
+    td1_temp(trial).([pars.array '_spikes'])  = cat(1,td1_temp(trial).([pars.array '_spikes']),NaN(n_whitespace,size(td1_temp(trial).([pars.array '_spikes']),2)));
     td1_temp(trial).vel  = cat(1,td1_temp(trial).vel,NaN(n_whitespace,size(td1_temp(trial).vel,2)));
 end
 % add some whitespace to each trial
 for trial = 1:length(td2_temp)
-    td2_temp(trial).M1_spikes  = cat(1,td2_temp(trial).M1_spikes,NaN(n_whitespace,size(td2_temp(trial).M1_spikes,2)));
+    td2_temp(trial).([pars.array '_spikes'])  = cat(1,td2_temp(trial).([pars.array '_spikes']),NaN(n_whitespace,size(td2_temp(trial).([pars.array '_spikes']),2)));
     td2_temp(trial).vel  = cat(1,td2_temp(trial).vel,NaN(n_whitespace,size(td2_temp(trial).vel,2)));
 end
 
-
 figure('Position',[100 100 1000 500]);
 
+%--------------------------------------------------------------------------
 [~,idx]  = get_test_train_trials(td1_temp,1);
-fr = cat(1,td1_temp(idx).M1_spikes)./0.01;
+fr = cat(1,td1_temp(idx).([pars.array '_spikes']))./0.01;
 if do_norm
     fr = fr./repmat(nanmean(fr,1),size(fr,1),1);
 end
 fr(isnan(fr)) = Inf;
+size(fr)
 % plot spikes
 ax(1) = subplot(4,2,[1,3,5]);
 imagesc(fr');
@@ -99,22 +136,24 @@ axis tight;
 ylabel('Sorted neurons')
 title(['Day ' num2str(d_day1)]);
 colormap hot;
+% colormap(brewermap(100,'*Blues'));
 
 % now plot vel
 ax(3) = subplot(4,2,7);
 plot(cat(1,td1_temp(idx).vel),'LineWidth',2);
 set(gca,'Box','off','TickDir','out','FontSize',14);
 axis tight;
-set(gca,'YLim',[-25 25]);
+set(gca,'YLim',vel_lim);
 xlabel('Time (10ms bins)');
 
-
+%--------------------------------------------------------------------------
 [~,idx]  = get_test_train_trials(td2_temp,1);
-fr = cat(1,td2_temp(idx).M1_spikes)./0.01;
+fr = cat(1,td2_temp(idx).([pars.array '_spikes']))./0.01;
 if do_norm
     fr = fr./repmat(nanmean(fr,1),size(fr,1),1);
 end
 fr(isnan(fr)) = Inf;
+
 % plot spikes
 ax(2) = subplot(4,2,[2,4,6]);
 imagesc(fr');
@@ -128,7 +167,7 @@ ax(4) = subplot(4,2,8);
 plot(cat(1,td2_temp(idx).vel),'LineWidth',2);
 set(gca,'Box','off','TickDir','out','FontSize',14);
 axis tight;
-set(gca,'YLim',[-25 25]);
+set(gca,'YLim',vel_lim);
 
 if save_them
     fn = fullfile(save_dir,'Neural activity',[pars.monkey '_' pars.array '_PopulationRasters']);
@@ -145,6 +184,7 @@ fr_max = 30;
 wf_lims = [-600, 500];
 isi_bins = 0:250;
 
+%--------------------------------------------------------------------------
 % get the waveforms for the electrode
 idx1 = find(td1(1).M1_unit_guide(:,1) == elec);
 idx2 = find(td2(1).M1_unit_guide(:,1) == elec);
@@ -165,7 +205,7 @@ for i = 1:length(idx2)
     wf2{i} = cat(1,cds2.units(idx).spikes.wave);
 end
 
-
+%--------------------------------------------------------------------------
 % get the ISIs for the electrode
 isi1 = zeros(length(idx1),length(isi_bins)-1);
 for i = 1:length(idx1)
@@ -193,13 +233,11 @@ end
 isi1 = isi1./repmat(sum(isi1,2),1,size(isi1,2));
 isi2 = isi2./repmat(sum(isi2,2),1,size(isi2,2));
 
-
+%--------------------------------------------------------------------------
 % now do the plotting
-
-% plot the waveforms
 figure('Position',[100 100 800 800]);
 subplot1(5,5);
-
+% plot the waveforms
 subplot1(1); hold all;
 for i = 1:length(idx1)
     plot(mean(wf1{i},1),'LineWidth',2)
@@ -207,6 +245,7 @@ end
 set(gca,'Box','off','TickDir','out','FontSize',14,'XLim',[1 48],'YLim',wf_lims);
 title(['Day ' num2str(d_day1)]);
 
+%--------------------------------------------------------------------------
 % plot the ISIs
 subplot1(5); hold all;
 plot(isi1','LineWidth',2)
@@ -214,10 +253,9 @@ set(gca,'Box','off','TickDir','out','FontSize',14,'XLim',[0 isi_bins(end)],'YLim
 set(gca,'XTick',isi_bins(1:100:end),'XTickLabel',isi_bins(1:100:end));
 xlabel('ISI');
 
-
+%--------------------------------------------------------------------------
 % plot the PETHs
 plot_idx = [17,23,19,15,9,3,7,11];
-
 utheta = unique([td1.target_direction]);
 
 fr_dir = [];
@@ -267,10 +305,10 @@ end
 
 
 
-%
+% now plot the second day
 figure('Position',[100 100 800 800]);
 subplot1(5,5);
-
+%--------------------------------------------------------------------------
 % plot the waveforms
 subplot1(1); hold all;
 for i = 1:length(idx2)
@@ -279,7 +317,7 @@ end
 set(gca,'Box','off','TickDir','out','FontSize',14,'XLim',[1 48],'YLim',wf_lims);
 title([ 'Day ' num2str(d_day2) ]);
 
-
+%--------------------------------------------------------------------------
 % plot the ISIs
 subplot1(5); hold all;
 plot(isi2','LineWidth',2)
@@ -288,7 +326,7 @@ set(gca,'XTick',isi_bins(1:100:end),'XTickLabel',isi_bins(1:100:end));
 xlabel('ISI (s)');
 
 
-
+%--------------------------------------------------------------------------
 fr_dir = [];
 for u = 1:length(utheta)
     [~,td] = getTDidx(td2,'target_direction',utheta(u));

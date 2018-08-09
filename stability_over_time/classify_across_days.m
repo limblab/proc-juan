@@ -117,6 +117,12 @@ for c = 1:n_comb_sessions
             res.perf_across(c) = temp_results.perf_across;
             res.err_across(c) = temp_results.err_across;
             
+            % the real directions
+            res.dir_across(c,:) = temp_results.dir_across';
+            res.dir_within(c,:) = temp_results.dir_within';
+            res.pred_across(c,:) = temp_results.pred_across;
+            res.pred_within(c,:) = temp_results.pred_within;
+            
             % For the normalized predictions
             res.norm_perf_across(c) = temp_results.perf_across/mean(temp_results.perf_test2)*100;
             
@@ -140,6 +146,12 @@ for c = 1:n_comb_sessions
             % Across day classifier
             res.perf_across_ctrl(c) = temp_results.perf_across;
             res.err_across_ctrl(c) = temp_results.err_across;
+            
+                        % the real directions
+            res.dir_across_ctrl(c,:) = temp_results.dir_across';
+            res.dir_within_ctrl(c,:) = temp_results.dir_within';
+            res.pred_across_ctrl(c,:) = temp_results.pred_across;
+            res.pred_within_ctrl(c,:) = temp_results.pred_within;
             
             % For the normalized predictions
             res.norm_perf_across_ctrl(c) = temp_results.perf_across/mean(temp_results.perf_test2)*100;
@@ -165,6 +177,12 @@ for c = 1:n_comb_sessions
             % Across day classifier
             res.perf_across_spike(c) = temp_results.perf_across;
             res.err_across_spike(c) = temp_results.err_across;
+            
+            % the real directions
+            res.dir_across_spike(c,:) = temp_results.dir_across';
+            res.dir_within_spike(c,:) = temp_results.dir_within';
+            res.pred_across_spike(c,:) = temp_results.pred_across;
+            res.pred_within_spike(c,:) = temp_results.pred_within;
             
             % For the normalized predictions
             res.norm_perf_across_spike(c) = temp_results.perf_across/mean(temp_results.perf_test2)*100;
@@ -404,6 +422,7 @@ else
     res.err_test1 = NaN;
 end
 
+
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TRAIN CLASSIFIER ON DAY 1 AND DAY 2
 [X1,Y1] = process_td_for_classification(td1,idx1,new_params);
@@ -411,17 +430,31 @@ end
 
 % b) Train classifier
 if ~isempty(X1) && ~isempty(X2)
+    % This is a hacky way of getting some CV performance for the confusion
+    % matrix
+% % %     % first do some cross validation
+% % %     [temp_pred, temp_dir] = deal([]);
+% % %     for i = 1:23
+% % %         [fuckme, fuckyou] = get_test_train_trials(td2,1);
+% % %         clas = fit_classifier(X2(fuckme,:),Y2(fuckme),new_params);
+% % %         temp_pred = cat(2,temp_pred,clas.predict(X2(fuckyou,:))');
+% % %         temp_dir =  cat(2,temp_dir,Y2(fuckyou));
+% % %     end
+% % %     res.pred_within = temp_pred;
+% % %     res.dir_within = temp_dir;
+    
+    % now train it on day 1 normally
     clas = fit_classifier(X1,Y1,new_params);
     
-    % c) Test performance on training set -- Remember that the optimal
-    %       parameters where identified with cross-validation, thus these
-    %       predictions are cross-validated
+    % c) Test performance on training set
     res.pred_within = clas.predict(X1)';
+    res.dir_within = Y1;
+    
     %pred_within     = predict(clas,X1)';
-    res.perf_within     = 100 * ( 1 - sum( angleDiff(res.pred_within,Y1,true,true) ~= 0 ) / length(res.pred_within) );
+    res.perf_within     = 100 * ( 1 - sum( angleDiff(res.pred_within,res.dir_within,true,true) ~= 0 ) / length(res.pred_within) );
     
     % d) Compute classif error (degrees)
-    res.err_within      = mean(angleDiff(Y1,res.pred_within,true,false));
+    res.err_within      = mean(angleDiff(res.dir_within,res.pred_within,true,false));
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % TEST ON DAY 2
@@ -429,6 +462,7 @@ if ~isempty(X1) && ~isempty(X2)
     % b) Test performance on day 2
     res.pred_across = clas.predict(X2)';
     res.perf_across     = 100 * ( 1 - sum( angleDiff(res.pred_across,Y2,true,true) ~= 0 ) / length(res.pred_across) );
+    res.dir_across = Y2;
     
     % c) Classifier error
     res.err_across      = mean(angleDiff(Y2,res.pred_across,true,false));
