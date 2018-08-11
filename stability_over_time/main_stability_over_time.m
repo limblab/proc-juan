@@ -17,7 +17,7 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
+pars.monkey         = 'mihili'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
 pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
@@ -82,16 +82,53 @@ end
 % Sorted data
 if ~pars.unsorted_yn
     
-    [master_td, pars_td] = loadTDfiles(  files, ...
+    if strcmpi(pars.spiking_inputs{1},'M1_spikes')
+
+                       % For Chewie and Mihili things work without removing any trials
+            if strcmpi(pars.monkey,'chewie') || strcmpi(pars.monkey,'mihili')
+                
+                [master_td, pars_td] = loadTDfiles(  files, ...
+                            {@getTDidx,'epoch','BL','result','R'}, ...
+                            {@binTD,pars.n_bins_downs}, ...
+                            {@removeBadNeurons,pars.bad_neuron_params},...
+                            {@sqrtTransform,pars.spiking_inputs}, ...
+                            {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'kernel_SD',pars.kernel_SD)}, ...
+                            {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
+                            {@getPCA,struct('signals',pars.spiking_inputs)}, ...
+                            {@trimTD,pars.idx_start,pars.idx_end});
+                        
+                 % some sessions are missing force so just throw it out
+                 % since we don't n eed it for this analysis
+                 master_td = rmfield(master_td,'force');
+            % For Chewie2 and Jaco we need to remove some trials 
+            elseif strcmpi(pars.monkey,'chewie2')
+         
+                % request minimum movement time and delay between trial
+                % start and movement onset
+                min_MT = (pars.idx_end{2}+1)*pars.n_bins_downs;
+                min_WT = 20; % (abs(pars.idx_start{2})+2)*pars.n_bins_downs;
+                
+                pars.bad_trial_params = struct( 'ranges',{{ ...
+                                        'idx_movement_on','idx_trial_end',[min_MT Inf]; ...
+                                        'idx_target_on','idx_movement_on',[min_WT Inf]}});
+                
+                [master_td, pars_td] = loadTDfiles(  files, ...
                             {@getTDidx,'epoch','BL','result','R'}, ...
                             {@removeBadTrials,pars.bad_trial_params}, ...
                             {@binTD,pars.n_bins_downs}, ...
                             {@removeBadNeurons,pars.bad_neuron_params},...
                             {@sqrtTransform,pars.spiking_inputs}, ...
                             {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'kernel_SD',pars.kernel_SD)}, ...
-                            {@trimTrials,{'idx_target_on',0},{'idx_trial_end',0}}, ...
-                            {@getPCA,struct('signals',pars.spiking_inputs)} );  
-    
+                            {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
+                            {@getPCA,struct('signals',pars.spiking_inputs)}, ...
+                            {@trimTD, pars.idx_start, pars.idx_end} );
+                        
+            elseif strcmpi(pars.monkey,'jaco')
+                
+                error('We do not have sorted units for Jaco');
+            end 
+        end
+
 % Unsort the units                        
 else      
     
@@ -303,9 +340,13 @@ end
 %
 % only do decoding for S1 / M1 for PMd we'll classify target direction
 
-if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
-    
-    dec_results     = decode_across_days( master_td, pars.decoder_params );
+% For the moment, don't do the decoding if using sorted units, because the
+% code will strip the sorting first
+if ~pars.unsorted_yn
+    if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
+
+        dec_results     = decode_across_days( master_td, pars.decoder_params );
+    end
 end
 
 
@@ -371,12 +412,13 @@ end
 
 
 % Plot decoding results
-if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
-    SOT_Fig_decoding( dec_results, dec_spike_results, pars );
-elseif strcmpi(pars.spiking_inputs{1},'PMd_spikes')
-    SOT_Fig_classification(clas_results, clas_spike_results, pars);
+if ~pars.unsorted_yn
+    if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
+        SOT_Fig_decoding( dec_results, dec_spike_results, pars );
+    elseif strcmpi(pars.spiking_inputs{1},'PMd_spikes')
+        SOT_Fig_classification(clas_results, clas_spike_results, pars);
+    end
 end
-
 
 
 % %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
