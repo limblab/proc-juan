@@ -17,7 +17,7 @@ clear, close all
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'mihili'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
+pars.monkey         = 'chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
 pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
@@ -27,6 +27,7 @@ pars.sessions_discard = []; %6:14; %[12 13 14];
 % Load rest of the default parameters
 params_stability_over_time;
 
+pars.mani_dims      = 6;
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -342,7 +343,7 @@ end
 
 % For the moment, don't do the decoding if using sorted units, because the
 % code will strip the sorting first
-if ~pars.unsorted_yn
+if pars.unsorted_yn
     if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
 
         dec_results     = decode_across_days( master_td, pars.decoder_params );
@@ -412,7 +413,7 @@ end
 
 
 % Plot decoding results
-if ~pars.unsorted_yn
+if pars.unsorted_yn
     if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
         SOT_Fig_decoding( dec_results, dec_spike_results, pars );
     elseif strcmpi(pars.spiking_inputs{1},'PMd_spikes')
