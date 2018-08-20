@@ -92,7 +92,20 @@ for i = 1:numel(files_indx)
     end
     
     % do dimensionality reduction on the smoothed FRs
-    discard_neurons             = setdiff( 1:numel(cbdf(1).units), neural_chs );
+    if min(size(neural_chs)) == 1 % for threshold crossings
+        discard_neurons         = setdiff( 1:numel(cbdf(1).units), neural_chs );
+    else % for sorted units
+        these_neurons           = cell2mat(arrayfun(@(x) x.id, cbdf(1).units, 'uniformoutput',false)');
+        discard_neurons         = [];
+        for n = 1:max(size(these_neurons)) 
+            % check that a unit in the desired channel and with the desired
+            % id is present in the BDF
+            if max( sum( these_neurons(n,:) == neural_chs, 2) ) < 2
+            
+                discard_neurons     = [discard_neurons; n];
+            end
+        end
+    end
     for ii = 1:numel(cbdf)
         % decide what data to do PCA on --the continous data or the
         % trial-related part of the data only
