@@ -148,3 +148,37 @@ plot( t_PAs_ta, '-.','linewidth',1,'color','k' )
 set(gca,'FontSize',14,'TickDir','out'); box off
 xlabel('Neural mode')
 ylabel('Principal angle (deg)')
+
+
+
+% -------------------------------------------------------------------------
+% COMPUTE NUMBER OF SMALL PAs with our old random criterion
+
+if ~exist('angle_non_orth','var')
+    load('/Users/juangallego/Documents/NeuroPlast/Data/_Dimensionality reduction/_control analyses/empirical principal angle distributions all datasets_original_submission.mat');
+end
+
+
+n_non_orth = [];
+for d = 1:length(datasets)
+    
+    ts = find(t_session==d);
+    
+    for t = 1:length(ts)
+       
+        n_non_orth = [n_non_orth; sum(rad2deg(PAs_trial_avg(ts(t),:)) < angle_non_orth(:,1,d)')];
+    end
+end
+
+
+
+x_hist = 0.5:mani_dims+1.5;
+y_hist = histcounts(n_non_orth,x_hist)/numel(n_non_orth)*100;
+
+figure
+b1 = bar(x_hist(1:end-1),y_hist,'histc');
+set(gca,'FontSize',14,'TickDir','out'); box off
+set(gcf,'color','w')
+set(b1,'FaceColor',[.8 .8 .8])
+xlabel('Number of similar modes')
+ylabel('Task comparisons (%)')
