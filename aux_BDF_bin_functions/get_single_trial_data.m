@@ -115,6 +115,25 @@ end
 % only keep the neural/emg channels we want
 
 
+% if using sorted units, convert them to indices. Otherwise, they'll
+% already be indices
+if min(size(neural_chs)) > 1 
+    these_neurons           = binned_data.neuronIDs;
+    neural_chs_idx          = [];
+    for n = 1:max(size(these_neurons))
+        % check that a unit in the desired channel and with the desired
+        % id is present in the BDF
+        if max( sum( these_neurons(n,:) == neural_chs, 2) ) == 2
+            
+            neural_chs_idx  = [neural_chs_idx; n];
+        end
+    end
+    
+    % overwrite neural_chs
+    neural_chs              = neural_chs_idx;
+end
+
+
 nbr_neural_chs              = length(neural_chs);
 nbr_emgs                    = length(emg_chs);
 
