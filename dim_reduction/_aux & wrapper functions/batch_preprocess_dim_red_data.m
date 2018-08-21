@@ -26,8 +26,8 @@
 function datasets = batch_preprocess_dim_red_data( varargin )
 
 
-% check that the parallel pool is running, otherwise start it
-gcp;
+% % check that the parallel pool is running, otherwise start it
+% gcp;
 
 
 % -------------------------------------------------------------------------
