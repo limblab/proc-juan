@@ -19,11 +19,13 @@ PAs_trial_avg = [];
 
 ptr = 1;
 
+ds_use = [1:3 7:9];
+
 
 % DO
-for d = 1:length(datasets)
+for d = 1:length(ds_use)
     
-    comb_tasks = nchoosek( 1:length(datasets{d}.labels), 2);
+    comb_tasks = nchoosek( 1:length(datasets{ds_use(d)}.labels), 2);
     n_comb_tasks = size(comb_tasks,1);
     
     
@@ -38,8 +40,8 @@ for d = 1:length(datasets)
 %         W1st = datasets{d}.dim_red_FR{t1}.w(:,1:mani_dims);
 %         W2st = datasets{d}.dim_red_FR{t2}.w(:,1:mani_dims);
         
-        FR1st = datasets{d}.stdata{t1}.target{end}.neural_data.conc_smoothed_fr;
-        FR2st = datasets{d}.stdata{t2}.target{end}.neural_data.conc_smoothed_fr;
+        FR1st = datasets{ds_use(d)}.stdata{t1}.target{end}.neural_data.conc_smoothed_fr;
+        FR2st = datasets{ds_use(d)}.stdata{t2}.target{end}.neural_data.conc_smoothed_fr;
 
         W1st = pca(FR1st);
         W2st = pca(FR2st);
@@ -52,8 +54,8 @@ for d = 1:length(datasets)
         % -----------------------------------------------------------------
         % for the trial averaged data
          
-        FR1ta = datasets{d}.stdata{t1}.target{end}.neural_data.smoothed_fr_mn;
-        FR2ta = datasets{d}.stdata{t2}.target{end}.neural_data.smoothed_fr_mn;
+        FR1ta = datasets{ds_use(d)}.stdata{t1}.target{end}.neural_data.smoothed_fr_mn;
+        FR2ta = datasets{ds_use(d)}.stdata{t2}.target{end}.neural_data.smoothed_fr_mn;
         
         W1ta = pca(FR1ta);
         W2ta = pca(FR2ta);
