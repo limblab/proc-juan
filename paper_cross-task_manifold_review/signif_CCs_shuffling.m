@@ -22,7 +22,7 @@ proj_params = batch_compare_manifold_projs_defaults();
 plot_per_comp_flg = true;
 
 % Manifold dimensionality
-mani_dims = 4;
+mani_dims = 12;
 
 % -------------------------------------------------------------------------
 % Parameters for the control analysis
@@ -33,13 +33,13 @@ mani_dims = 4;
 %  - 'shuffle_across_neurons_and_targets' -> same as the previous one,
 %  but shuffles the neural activity rather than the mode dynamics
 %  - 'shuffleSVD_U'
-%  - 'shuffle_over_time' (not fully implemented)  
-control = 'shuffle_across_neurons_and_targets'; % 'shuffle_across_neurons_and_targets'; 
+%  - 'shuffle_over_time'
+control = 'shuffle_over_time'; % 'shuffle_across_neurons_and_targets'; 
 invert_random_trials_flg = true;
 
 % Number of shuffles
-n_shuffles = 2000;
-P_th = 0.01;
+n_shuffles = 5000;
+P_th = 0.001;
 
 
 % -------------------------------------------------------------------------
@@ -311,18 +311,39 @@ for ds = 1:length(ds_to_use)
                 end                
             case 'shuffle_over_time'
                 
-                error('Did not finish implementing this because the FFTs look very different');
                 
-                % This didn't work very well
-                % shuffle the scores for one task over time
-                % -- this ain't a great idea, we don't keep the
-                % smoothness at all, even after shuffling!!!
-                rnd_ssc1 = ssc1(randperm(size(ssc1,1)),:);
-                
-                % smooth these shuffled activity patterns to have
-                % smoothed random trajectories
-                smooth_rnd_ssc1 = smooth_data( rnd_ssc1, datasets{ds}.stdata{1}.target{1}.bin_size, 0.05);
+                for s = 1:n_shuffles
+                    
+                    % This didn't work very well
+                    % shuffle the scores for one task over time
+                    % -- this ain't a great idea, we don't keep the
+                    % smoothness at all, even after shuffling!!!
+                    rnd_ssc1 = ssc1(randperm(size(ssc1,1)),:);
 
+                    % smooth these shuffled activity patterns to have
+                    % smoothed random trajectories
+                    smooth_rnd_ssc1 = smooth_data( rnd_ssc1, datasets{ds}.stdata{1}.target{1}.bin_size, 0.05);
+
+
+    %                 % Plot FFTs to check they have similar smoothness
+    %                 bin_size = 1/stdata{comb_tasks(c,1)}.target{1}.bin_size;
+    %                 l_ssc1 = length(ssc1);
+    %                 nfft = 2^nextpow2(l_ssc1);
+    %                 Yrnd_ssc1 = fft(smooth_rnd_ssc1,nfft)/l_ssc1;
+    %                 Y_ssc1 = fft(ssc1,nfft)/l_ssc1;
+    %                 f = bin_size/2*linspace(0,1,nfft/2);
+    %                 
+    %                 figure, hold on
+    %                 plot(f,2*abs(Y_ssc1(1:nfft/2)),'k'),plot(f,2*abs(Yrnd_ssc1(1:nfft/2)),'-.c')
+    %                 legend('real data','shuffled'), legend boxoff
+    %                 xlabel('Frequency (Hz)'),ylabel('Amplitude')
+    %                 set(gca,'TickDir','out','FontSize',14), box off,set(gcf,'color','w')
+
+
+                    smooth_rnd_ssc1 = smooth_rnd_ssc1(:,1:proj_params.dim_manifold);
+
+                    [~,~,all_rshuff(s,:)] = canoncorr(smooth_rnd_ssc1,ssc2);
+                end
         end
         
         
