@@ -71,38 +71,38 @@ for d = 1:n_ds
     
     [~,~,ccs(:,d)] = canoncorr(lv_mu,lv_sort);
     
-    % PAs
-    w_mu        = mudatasets.dim_red_FR{d}.w(:,mani_dims);
-    w_sort      = sortdatasets.dim_red_FR{d}.w(:,mani_dims);
-    
-    % If the number of multiunits and sorted units is different take a subset
-    % of the multiunits
-    if size(w_mu,1) ~= size(w_sort,1)
-        if size(w_mu,1) > size(w_sort,1)
-            
-            fr_mus = mustdata{d}.target{end}.neural_data.conc_smoothed_fr;
-            fr_mus = fr_mus(:,randperm(size(w_mu,1)));
-            fr_mus = fr_mus(:,1:size(w_sort,1));
-            
-            w_mu = pca(fr_mus);
-        else
-           error('not implemented yet'); 
-        end
-    end
-    
-    pas(:,d)    = principal_angles(w_mu,w_sort);
+%     % PAs
+%     w_mu        = mudatasets.dim_red_FR{d}.w(:,mani_dims);
+%     w_sort      = sortdatasets.dim_red_FR{d}.w(:,mani_dims);
+%     
+%     % If the number of multiunits and sorted units is different take a subset
+%     % of the multiunits
+%     if size(w_mu,1) ~= size(w_sort,1)
+%         if size(w_mu,1) > size(w_sort,1)
+%             
+%             fr_mus = mustdata{d}.target{end}.neural_data.conc_smoothed_fr;
+%             fr_mus = fr_mus(:,randperm(size(w_mu,1)));
+%             fr_mus = fr_mus(:,1:size(w_sort,1));
+%             
+%             w_mu = pca(fr_mus);
+%         else
+%            error('not implemented yet'); 
+%         end
+%     end
+%     
+%     pas(:,d)    = principal_angles(w_mu,w_sort);
 end
 
 
 % PLOT COMPARISONS manifold and latent activity comparisons
 figure,
-subplot(121)
-plot(rad2deg(pas),'linewidth',1.5)
-ylim([0 1]),xlim([0 mani_dims(end)])
-set(gca,'FontSize',14,'TickDir','out'); box off
-legend(mudatasets.labels),legend boxoff
-xlabel('Neural mode'); ylabel('Principal angle (deg)')
-subplot(122)
+% subplot(121)
+% plot(rad2deg(pas),'linewidth',1.5)
+% ylim([0 1]),xlim([0 mani_dims(end)])
+% set(gca,'FontSize',14,'TickDir','out'); box off
+% legend(mudatasets.labels),legend boxoff
+% xlabel('Neural mode'); ylabel('Principal angle (deg)')
+% subplot(122)
 plot(ccs,'linewidth',1.5)
 ylim([0 1]),xlim([0 mani_dims(end)])
 set(gca,'FontSize',14,'TickDir','out'); box off
@@ -207,7 +207,7 @@ set(gcf,'color','w')
 
 % -------------------------------------------------------------------------
 % -------------------------------------------------------------------------
-%% Plot a few ISIs
+%% Plot a few ISIs and their mean waveforms
 
 if plot_ISIs_yn
 
@@ -224,6 +224,8 @@ if plot_ISIs_yn
 
     cols   = parula(length(sortstdata)+1);
 
+    
+    % ISIs
     figure
     for u = 1:length(units)
 
@@ -240,10 +242,37 @@ if plot_ISIs_yn
             plot(x_hist(1:end-1),t_y,'color',cols(t,:),'linewidth',1.5);
         end
 
-        xlim([0 0.500])
+        xlim([0 0.300])
         title(num2str(neural_chs(idx_unit,:)))
         set(gca,'FontSize',14,'TickDir','out'); box off
     end
-    subplot(n_rows,n_cols,u),legend(sortdatasets.labels), legend boxoff
+    subplot(n_rows,n_cols,1),legend(sortdatasets.labels), legend boxoff
+    set(gcf,'color','w')
+    
+    
+    % MEAN WAVEFORMS
+    figure
+    for u = 1:length(units)
+       
+        subplot(n_rows,n_cols,u), hold on
+        
+        % for each task
+        for t = 1:length(sortstdata)
+            
+            ucomp = sortdatasets.binned_data{t}.neuronIDs == neural_chs(units(u),:);
+            idx_unit = find(sum(ucomp,2)==2);
+            
+            
+            waveforms = cbdf(t).units(idx_unit).waveforms;
+            mn_w = mean(waveforms,1);
+            t_w = 0:1/30000:1/30000*(length(mn_w)-1);
+            plot(t_w,mn_w,'color',cols(t,:),'linewidth',1.5);
+        end
+        
+        xlim([0 1/30000*(length(mn_w)-1)])
+        title(num2str(neural_chs(idx_unit,:)))
+        set(gca,'FontSize',14,'TickDir','out'); box off
+    end
+    subplot(n_rows,n_cols,1),legend(sortdatasets.labels,'Location','SouthEast'), legend boxoff
     set(gcf,'color','w')
 end
