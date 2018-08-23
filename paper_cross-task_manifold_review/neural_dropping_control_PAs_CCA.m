@@ -105,7 +105,9 @@ cols = parula(length(perc_drop));
 figure,
 for d = 1:length(ds)
     
-    ano = angle_non_orth(:,1,ds(d));
+    idx_non_orth = find( space_dim == length(datasets{ds(d)}.neural_chs) );
+    
+    ano = angle_non_orth(:,1,idx_non_orth);
     
     subplot(1,length(ds),d), hold on
     for p = 1:length(perc_drop) 
