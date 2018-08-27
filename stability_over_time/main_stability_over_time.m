@@ -18,7 +18,7 @@ clear, close all
 % What data to use
 
 pars.monkey         = 'mihili'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
-pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
+pars.spiking_inputs = {'PMd_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
 pars.sessions_discard = []; %6:14; %[12 13 14];
@@ -420,6 +420,35 @@ if pars.unsorted_yn
     end
 end
 
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% Save results?
+
+if pars.save_results_yn
+    
+    % file name
+    fn = ([pars.monkey '_' pars.spiking_inputs{1}(1:end-7) '_' num2str(pars.mani_dims(end)) 'D_']);
+    if pars.unsorted_yn
+        fn = strcat(fn,'multi-units');
+    else
+        fn = strcat(fn,'sorted-units');
+    end
+    fn = strcat(fn,'_results.mat');
+    
+    % vars to save
+    vars_save = who('*results');
+    vars_save{length(vars_save)+1} = 'pars';
+    
+    if exist('corr_kin','var')
+        vars_save{length(vars_save)+1} = 'corr_kin';
+    end
+    vars_save{length(vars_save)+1} = 'pca_info';
+    
+    save([pars.save_dir fn],vars_save{:});
+    
+end   
 
 % %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
