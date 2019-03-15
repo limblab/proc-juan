@@ -28,6 +28,7 @@ end
 
 % find the minimum number of trials across all sessions and targets
 min_nbr_trials = min(min(trials_p_target));
+
 disp(['Keeping the first ' num2str(min_nbr_trials) ' trials per target and session']);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                

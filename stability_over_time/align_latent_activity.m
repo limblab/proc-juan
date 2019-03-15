@@ -61,26 +61,21 @@ for c = 1:size(comb_sessions,1)
             % get the data
             [trials1, td1] = getTDidx(td,'date',sessions{comb_sessions(c,1)});
             [trials2, td2] = getTDidx(td,'date',sessions{comb_sessions(c,2)});
-
-
+            
+            
             %trials2 = trials2(randperm(length(trials2)));
-
-
+            
+            
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Compare dynamics
-            switch method 
-                case 'cca'
-                    aligned_info(c) = compDynamics( td, signals, trials1, trials2, mani_dims );
-                case 'procrustes'
-                    error('Procrustes not yet supported');
-            end
-
+            aligned_info(c) = compDynamics( td, signals, trials1, trials2, mani_dims, method);
+            
             % compare dynamics with good old forrelations
             corr_info(c) = corrDynamics( td, signals, trials1, trials2, mani_dims );
             
             
-        % -----------------------------------------------------------------
-        % WITH MULTIFOLD CROSS-VALIDATION
+            % -----------------------------------------------------------------
+            % WITH MULTIFOLD CROSS-VALIDATION
         case true
             
             error('Cross-validation not yet implemented when for aligning the dynamics')
@@ -103,13 +98,14 @@ aligned_latent_results.corr_info        = corr_info;
 aligned_latent_results.diff_days        = diff_days;
 aligned_latent_results.comb_sessions    = comb_sessions;
 
-% add 
+% add
 switch method
     case 'cca'
         aligned_latent_results.cc       = cell2mat(arrayfun(@(x) x.cc, aligned_info, ...
-                                            'uniformoutput', false )');
+            'uniformoutput', false )');
     case 'procrustes'
-        
+        aligned_latent_results.cc       = cell2mat(arrayfun(@(x) x.cc, aligned_info, ...
+            'uniformoutput', false )');
 end
 aligned_latent_results.r                = cell2mat(arrayfun(@(x) x.r, corr_info, ...
                                             'uniformoutput', false )');

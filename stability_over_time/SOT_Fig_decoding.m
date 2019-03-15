@@ -47,7 +47,7 @@ y_s_a       = polyval(lf_s_a,x);
 % compute distribution of how well across-day decoders do compared to
 % within day decoders
 
-hist_x      = 0:0.05:1.25;
+hist_x      = 0:0.05:1.5;
 
 a_to_w      = mn_a./mn_w;
 a_to_s_w    = mn_a./mn_s_w;
@@ -235,7 +235,7 @@ set(gca,'TickDir','out','FontSize',14), box off
 xlabel('Normalized prediction accuracy')
 ylabel('Session comparisons (%)')
 set(gcf,'color','w')
-xlim([0 1.2])
+xlim([0 1.5])
 
 
 

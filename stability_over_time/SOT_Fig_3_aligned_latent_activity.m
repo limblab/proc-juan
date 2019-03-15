@@ -385,7 +385,8 @@ plot([mn_hist_align-sd_hist_align, mn_hist_align+sd_hist_align],[ystats_hist yst
 legend('Unaligned','Within-day','Aligned','Location','West'),legend boxoff
 
 text(.1,ystats_hist-5,['n=' num2str(n_hist)],'Fontsize',14)
-text(.1,ystats_hist-10,['P=' num2str(p_align_unaligned,2)],'Fontsize',14)
+text(.1,ystats_hist-10,['P (unalign)=' num2str(p_align_unaligned,2)],'Fontsize',14)
+text(.1,ystats_hist-15,['P (within)=' num2str(p_align_within,2)],'Fontsize',14)
 
 
 % Normalized hist
@@ -408,8 +409,7 @@ plot([mn_norm_align-sd_norm_align, mn_norm_align+sd_norm_align],[ystats_normhist
 legend('Within-day','Aligned','Location','West'),legend boxoff
 
 text(.1,ystats_hist-5,['n=' num2str(n_hist)],'Fontsize',14)
-text(.1,ystats_hist-8,['P=' num2str(p_align_unaligned,2)],'Fontsize',14)
-
+text(.1,ystats_hist-8,['P (unalign)=' num2str(p_align_unaligned,2)],'Fontsize',14)
 
 
 

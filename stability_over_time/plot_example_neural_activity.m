@@ -5,7 +5,7 @@ clc;
 [save_dir, data_dir] = get_computer_paths();
 save_them = false;
 
-pars.array          = 'PMd';
+pars.array          = 'M1';
 pars.spiking_inputs = {[pars.array '_spikes']};
 
 
@@ -13,7 +13,7 @@ switch pars.array
     case {'M1','PMd'}
         pars.monkey         = 'Chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
         
-        fr_max = 180;
+        fr_max = 100;
 vel_lim = [-25 25];
 
         date0 = '2016-09-09';
@@ -39,25 +39,38 @@ vel_lim = [-25 25];
             {@binTD,pars.n_bins_downs}, ...
             {@removeBadNeurons,pars.bad_neuron_params},...
             {@sqrtTransform,pars.spiking_inputs}, ...
-            {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'kernel_SD',pars.kernel_SD)}, ...
+            {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'width',pars.kernel_SD)}, ...
             {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
-            {@getPCA,struct('signals',pars.spiking_inputs)}, ...
+            {@dimReduce,struct('signals',pars.spiking_inputs)}, ...
             {@trimTD,pars.idx_start,pars.idx_end});
         
         master_td = removeBadTrials(master_td,struct('nan_idx_names','idx_movement_on'));
         
     case 'S1'
-        pars.monkey = 'Chips';
+        %pars.monkey = 'Chips';
+        pars.monkey = 'Han';
         
         fr_max = 180;
-vel_lim = [-30 30];
-
-        date0 = '2015-11-13';
-        date1 = '2015-11-13';
-        date2 = '2015-12-11';
+        vel_lim = [-30 30];
         
-        tdfile1 = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chips/Chips_20151113_TD_nosort_notrack_noemg.mat';
-        tdfile2 = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chips/Chips_20151211_TD_nosort_notrack_noemg.mat';
+        switch lower(pars.monkey)
+            case 'chips'
+                min_length = 19;
+                
+                date0 = '2015-11-13';
+                date1 = '2015-11-13';
+                date2 = '2015-12-11';
+                tdfile1 = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chips/Chips_20151113_TD_nosort_notrack_noemg.mat';
+                tdfile2 = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chips/Chips_20151211_TD_nosort_notrack_noemg.mat';
+            case 'han'
+                min_length = 22;
+                
+                date0 = '2017-10-24';
+                date1 = '2017-10-24';
+                date2 = '2017-12-07';
+                tdfile1 = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Han/Han_COactpas_2017-10-24.mat';
+                tdfile2 = '/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Han/Han_COactpas_2017-12-07.mat';
+        end
         
         params_stability_over_time;
         
@@ -65,11 +78,11 @@ vel_lim = [-30 30];
             {@getTDidx,'result','R'}, ...    {@stripSpikeSorting},...
             {@binTD,pars.n_bins_downs}, ...
             {@removeBadNeurons,pars.bad_neuron_params},...
-            {@removeBadTrials,struct('nan_idx_names','idx_go_cue','ranges',{{'idx_go_cue','idx_trial_end',[19 Inf]}})}, ...
+            {@removeBadTrials,struct('nan_idx_names','idx_go_cue','ranges',{{'idx_go_cue','idx_trial_end',[min_length Inf]}})}, ...
             {@sqrtTransform,pars.spiking_inputs}, ...
-            {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'kernel_SD',pars.kernel_SD)}, ...
+            {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'width',pars.kernel_SD)}, ...
             {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
-            {@getPCA,struct('signals',pars.spiking_inputs)}, ...
+            {@dimReduce,struct('signals',pars.spiking_inputs)}, ...
             {@trimTD,pars});
 end
 
@@ -137,6 +150,7 @@ ylabel('Sorted neurons')
 title(['Day ' num2str(d_day1)]);
 colormap hot;
 % colormap(brewermap(100,'*Blues'));
+colorbar;
 
 % now plot vel
 ax(3) = subplot(4,2,7);
@@ -156,12 +170,13 @@ fr(isnan(fr)) = Inf;
 
 % plot spikes
 ax(2) = subplot(4,2,[2,4,6]);
+
 imagesc(fr');
 set(gca,'Box','off','TickDir','out','FontSize',14);
 set(gca,'CLim',[0 fr_max]);
 axis tight;
 title(['Day ' num2str(d_day2)]);
-
+colorbar
 % now plot vel
 ax(4) = subplot(4,2,8);
 plot(cat(1,td2_temp(idx).vel),'LineWidth',2);

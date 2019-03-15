@@ -2,7 +2,7 @@
 % Decode from aligned latent signals
 %
 
-function results = decode_across_days( td, params ) 
+function results = decode_across_days_fixed( td, params ) 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

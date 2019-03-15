@@ -82,7 +82,7 @@ for s = 1:n_sessions
                 unshuf_idx( end-trials_p_block+1 : end );
         end
         
-        aligned_info(r) = compDynamics( tdd, signals, idx_ss1, idx_ss2, mani_dims );
+        aligned_info(r) = compDynamics( tdd, signals, idx_ss1, idx_ss2, mani_dims, method );
     end
     
     

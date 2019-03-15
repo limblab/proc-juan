@@ -3,7 +3,9 @@
 %
 
 
-pars.save_results_yn            = true;
+pars.save_results_yn            = false;
+
+pars.dimReduce_algorithm = 'pca'; % 'pca' or 'fa'
 
 % -------------------------------------------------------------------------
 % Data preprocessing
@@ -41,7 +43,7 @@ switch lower(pars.monkey)
                 pars.idx_start  = {'idx_movement_on',-4}; % {'idx_movement_on',0}; % {'idx_go_cue',0}
                 pars.idx_end    = {'idx_movement_on',13}; % {'idx_movement_on',13}% {''}; % {'idx_go_cue',18}
             case 'PMd_spikes'
-                pars.mani_dims = 1:16; % Neural modes to use
+                pars.mani_dims = 1:15; % Neural modes to use
                 pars.idx_start  = {'idx_movement_on',-15};
                 pars.idx_end    = {'idx_movement_on',0};
         end
@@ -87,7 +89,7 @@ pars.align_latent_params.method         = 'cca'; % 'cca' 'procrustes'
 
 pars.align_latent_params.n_shuff        = 100; % n shuffles for within day ceiling
 
-pars.align_latent_params.signals        = [pars.spiking_inputs{1}(1:find(pars.spiking_inputs{1}=='_')) 'pca'];
+pars.align_latent_params.signals        = [pars.spiking_inputs{1}(1:find(pars.spiking_inputs{1}=='_')) pars.dimReduce_algorithm];
 pars.align_latent_params.mani_dims      = pars.mani_dims;
 
 pars.align_latent_params.save_fig       = true;
