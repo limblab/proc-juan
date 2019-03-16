@@ -106,7 +106,7 @@ pars.decoder_params.out                 = 'vel';
 pars.decoder_params.in                  = 'aligned_data'; % 'aligned_data'; 'unaligned_data'; 'spikes' (it always does spikes afterwards)
 
 % Bins for decoder history
-pars.decoder_params.hist_bins           = 3;
+pars.decoder_params.hist_bins           = 1:3;
 
 % Lag of the kinematics we want to predict, only for S1 (because we predict
 % past kinematics)
