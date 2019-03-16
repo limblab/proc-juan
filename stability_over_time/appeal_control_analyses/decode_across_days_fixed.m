@@ -82,13 +82,13 @@ for iSess1 = 1:n_sessions
             
             % a) Set model params inputs
             if max(abs(hist_bins)) ~= 0
-                mod_params.in_signals = {[manifold 'align_shift'],1:length(mani_dims)*hist_bins};
+                mod_params.in_signals = {[manifold '_align_shift'],1:length(mani_dims)*hist_bins};
             else
-                mod_params.in_signals = {[manifold 'align'],1:length(mani_dims)};
+                mod_params.in_signals = {[manifold '_align'],1:length(mani_dims)};
             end
             
             % b) "align" dynamics with CCA
-            cca_info(c) = compDynamics( td, manifold, trials1, trials2, mani_dims );
+            cca_info1 = compDynamics( td, manifold, trials1, trials2, mani_dims );
             
             
             % c) Add latent activity to the tdi structs
@@ -98,8 +98,8 @@ for iSess1 = 1:n_sessions
             for t = 1:length(trials2)
                 be      = bins_p_trial*(t-1)+1;
                 en      = bins_p_trial*t;
-                temp = cca_info(c).U(be:en,:);
-                td1(t).([manifold '_align' ]) = temp*inv(cca_info(c).A) + ...
+                temp = cca_info1.U(be:en,:);
+                td1(t).([manifold '_align' ]) = temp*inv(cca_info1.A) + ...
                         repmat(mean(getSig(td(trials1),manifold),1),size(temp,1),1);
             end
             
