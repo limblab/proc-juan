@@ -18,7 +18,7 @@ pars.save_dir = fullfile(pars.save_dir,'_Appeal_Results');
 % -------------------------------------------------------------------------
 % What data to use
 
-pars.monkey         = 'Chewie'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
+pars.monkey         = 'Chewie2'; % 'chewie2'; 'chewie'; 'mihili'; 'han'; 'chips'; 'jaco'
 pars.spiking_inputs = {'M1_spikes'}; % {'PMd_spikes'}; {'M1_spikes'}; {'S1_spikes'}
 
 % Sesssions to discard if any
@@ -351,9 +351,12 @@ end
 if pars.unsorted_yn
     if strcmpi(pars.spiking_inputs{1},'M1_spikes') || strcmpi(pars.spiking_inputs{1},'S1_spikes')
 
-        dec_results     = decode_across_days( master_td, pars.decoder_params );
+        dec_results     = decode_across_days_fixed( master_td, pars.decoder_params );
     end
 end
+
+close all;
+SOT_Fig_decoding( dec_results, dec_spike_results, pars );
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
