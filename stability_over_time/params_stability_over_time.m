@@ -5,7 +5,7 @@
 
 pars.save_results_yn            = false;
 
-pars.dimReduce_algorithm = 'pca'; % 'pca' or 'fa'
+pars.dimReduce_algorithm        = 'pca'; % 'pca' or 'fa'
 
 % -------------------------------------------------------------------------
 % Data preprocessing
@@ -17,7 +17,7 @@ pars.unsorted_yn                = true;
 % pars.only_common_elecs          = false; % NO LONGER AVAILABLE as an option; there are very few channels that are stable across all sessions
 
 % Gaussian kernel for smoothing
-pars.kernel_SD                  = 0.05;
+pars.width                      = 0.05;
 
 % "Downsampling rate": nbr of bins that will be combined
 pars.n_bins_downs               = 3;

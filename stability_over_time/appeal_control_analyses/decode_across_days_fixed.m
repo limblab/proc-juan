@@ -76,7 +76,7 @@ for iSess1 = 1:n_sessions
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % train the day 1 decoder
-        if iSess1 == 1 && iSess2 == 1
+        if iSess2 == 1 % to use one decoder for all, add iSess1 == 1
             
             [trials1, td1]      = getTDidx(td,'date',sessions{iSess1});
             
