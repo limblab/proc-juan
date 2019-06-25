@@ -9,7 +9,7 @@ bins = 0:0.1:1;
 n_rows = 1;
 n_cols = 4;
 
-f1 = figure('Position',[100 100 1000 400]);
+f1 = figure('Position',[100 100 1200 400]);
 
 
 %% Chewie
@@ -21,11 +21,11 @@ hist_r = zeros(n_days, length(bins));
 diff_days = zeros(1,n_days);
 
 [all_r,all_r_labels,mean_r,std_r] = deal([]);
+r_out = cell(1,n_days);
 for iSess = 1:n_days
     r = mean(results.file_tuning{iSess,3},2);
-    [n,x] = hist(r,bins);
     
-    hist_r(iSess,:) = n;
+    r_out{iSess} = r;
     
     diff_days(iSess) = datenum(results.file_info(iSess).date,'mm-dd-yyyy') - datenum(results.file_info(1).date,'mm-dd-yyyy');
     
@@ -43,11 +43,20 @@ hist_r = 100*hist_r./repmat(sum(hist_r,2),1,size(hist_r,2));
 
 figure(f1);
 subplot(n_rows,n_cols,1);
-imagesc(diff_days,bins,hist_r');
-set(gca,'Box','off','TickDir','out','FontSize',14);
-axis tight;
-set(gca,'YDir','normal');
+hold all;
 
+m = cellfun(@nanmean,r_out);
+s = cellfun(@nanstd,r_out);%./sqrt(cellfun(@length,r_out));
+
+plot(1:n_days,m,'k.','MarkerSize',10);
+plot([1:n_days; 1:n_days],[m-s; m+s],'k-');
+% h = patch([1:n_days, fliplr(1:n_days)],[m-s, fliplr(m+s)],'k');
+% set(h,'EdgeColor','none','FaceColor','k','FaceAlpha',0.3);
+
+axis tight;
+
+set(gca,'Box','off','TickDir','out','FontSize',14);
+set(gca,'Ylim',[0 1]);
 xlabel('Days since first session');
 ylabel('R^2');
 title(['Chewie; r2 = ' num2str(s(1),3) '; p = ' num2str(s(3),3)]);
@@ -62,13 +71,13 @@ load(fullfile(root_dir,'NeuralTuningStability_Chewie2_M1.mat'));
 n_days = size(results.file_tuning,1);
 
 [all_r,all_r_labels,mean_r,std_r] = deal([]);
+r_out = cell(1,n_days);
 hist_r = zeros(n_days, length(bins));
 diff_days = zeros(1,n_days);
 for iSess = 1:n_days
     r = mean(results.file_tuning{iSess,3},2);
-    [n,x] = hist(r,bins);
     
-    hist_r(iSess,:) = n;
+    r_out{iSess} = r;
     
     diff_days(iSess) = datenum(results.file_info(iSess).date,'mm-dd-yyyy') - datenum(results.file_info(1).date,'mm-dd-yyyy');
     all_r = [all_r; r];
@@ -84,11 +93,20 @@ hist_r = 100*hist_r./repmat(sum(hist_r,2),1,size(hist_r,2));
 
 figure(f1);
 subplot(n_rows,n_cols,2);
-imagesc(diff_days,bins,hist_r');
-set(gca,'Box','off','TickDir','out','FontSize',14);
-axis tight;
-set(gca,'YDir','normal');
+hold all;
 
+m = cellfun(@nanmean,r_out);
+s = cellfun(@nanstd,r_out);%./sqrt(cellfun(@length,r_out));
+
+plot(1:n_days,m,'k.','MarkerSize',10);
+plot([1:n_days; 1:n_days],[m-s; m+s],'k-');
+% h = patch([1:n_days, fliplr(1:n_days)],[m-s, fliplr(m+s)],'k');
+% set(h,'EdgeColor','none','FaceColor','k','FaceAlpha',0.3);
+
+axis tight;
+
+set(gca,'Box','off','TickDir','out','FontSize',14);
+set(gca,'Ylim',[0 1]);
 xlabel('Days since first session');
 ylabel('R^2');
 title(['Chewie2; r2 = ' num2str(s(1),3) '; p = ' num2str(s(3),3)]);
@@ -102,13 +120,13 @@ load(fullfile(root_dir,'NeuralTuningStability_Mihili_M1.mat'));
 n_days = size(results.file_tuning,1);
 
 [all_r,all_r_labels,mean_r,std_r] = deal([]);
+r_out = cell(1,n_days);
 hist_r = zeros(n_days, length(bins));
 diff_days = zeros(1,n_days);
 for iSess = 1:n_days
     r = mean(results.file_tuning{iSess,3},2);
-    [n,x] = hist(r,bins);
-    
-    hist_r(iSess,:) = n;
+
+        r_out{iSess} = r;
     
     diff_days(iSess) = datenum(results.file_info(iSess).date,'mm-dd-yyyy') - datenum(results.file_info(1).date,'mm-dd-yyyy');
     all_r = [all_r; r];
@@ -124,11 +142,20 @@ hist_r = 100*hist_r./repmat(sum(hist_r,2),1,size(hist_r,2));
 
 figure(f1);
 subplot(n_rows,n_cols,3);
-imagesc(diff_days,bins,hist_r');
-set(gca,'Box','off','TickDir','out','FontSize',14);
-axis tight;
-set(gca,'YDir','normal');
+hold all;
 
+m = cellfun(@nanmean,r_out);
+s = cellfun(@nanstd,r_out);%./sqrt(cellfun(@length,r_out));
+
+plot(1:n_days,m,'k.','MarkerSize',10);
+plot([1:n_days; 1:n_days],[m-s; m+s],'k-');
+% h = patch([1:n_days, fliplr(1:n_days)],[m-s, fliplr(m+s)],'k');
+% set(h,'EdgeColor','none','FaceColor','k','FaceAlpha',0.3);
+
+axis tight;
+
+set(gca,'Box','off','TickDir','out','FontSize',14);
+set(gca,'Ylim',[0 1]);
 xlabel('Days since first session');
 ylabel('R^2');
 title(['Mihili; r2 = ' num2str(s(1),3) '; p = ' num2str(s(3),3)]);
@@ -142,13 +169,13 @@ load(fullfile(root_dir,'NeuralTuningStability_Jaco_M1.mat'));
 n_days = size(results.file_tuning,1);
 
 [all_r,all_r_labels,mean_r,std_r] = deal([]);
+r_out = cell(1,n_days);
 hist_r = zeros(n_days, length(bins));
 diff_days = zeros(1,n_days);
 for iSess = 1:n_days
     r = mean(results.file_tuning{iSess,3},2);
-    [n,x] = hist(r,bins);
-    
-    hist_r(iSess,:) = n;
+
+        r_out{iSess} = r;
     
     diff_days(iSess) = datenum(results.file_info(iSess).date,'mm-dd-yyyy') - datenum(results.file_info(1).date,'mm-dd-yyyy');
     all_r = [all_r; r];
@@ -164,11 +191,20 @@ hist_r = 100*hist_r./repmat(sum(hist_r,2),1,size(hist_r,2));
 
 figure(f1);
 subplot(n_rows,n_cols,4);
-imagesc(diff_days,bins,hist_r');
-set(gca,'Box','off','TickDir','out','FontSize',14);
-axis tight;
-set(gca,'YDir','normal');
+hold all;
 
+m = cellfun(@nanmean,r_out);
+s = cellfun(@nanstd,r_out);%./sqrt(cellfun(@length,r_out));
+
+plot(1:n_days,m,'k.','MarkerSize',10);
+plot([1:n_days; 1:n_days],[m-s; m+s],'k-');
+% h = patch([1:n_days, fliplr(1:n_days)],[m-s, fliplr(m+s)],'k');
+% set(h,'EdgeColor','none','FaceColor','k','FaceAlpha',0.3);
+
+axis tight;
+
+set(gca,'Box','off','TickDir','out','FontSize',14);
+set(gca,'Ylim',[0 1]);
 xlabel('Days since first session');
 ylabel('R^2');
 title(['Jaco; r2 = ' num2str(s(1),3) '; p = ' num2str(s(3),3)]);

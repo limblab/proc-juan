@@ -6,7 +6,7 @@ clc;
 [save_dir, ~] = get_computer_paths();
 save_dir = fullfile(save_dir,'_Appeal_Results');
 
-save_figs =  true;
+save_figs =  false;
 
 monkey = 'chewie'; % 'chewie','chewie2','jaco','mihili'};
 array = 'M1';
@@ -26,6 +26,7 @@ master_td_all_trials1 = [];
 master_td_all_trials2 = [];
 
 [r1, r2, tc1, tc2, good_idx] = deal([]);
+eigen_spectra = zeros(max(pars.mani_dims),length(dates),2);
 for iDate = 1:length(dates)
     [~,td] = getTDidx(master_td,'date',dates{iDate});
     
@@ -39,8 +40,8 @@ for iDate = 1:length(dates)
     end
     
     % compute PCA
-    [td,~] = dimReduce(td,struct('signals','M1_spikes'));
-    [td2,~] = dimReduce(td2,struct('signals','M1_spikes'));
+    [td,pca_info1] = dimReduce(td,struct('signals','M1_spikes'));
+    [td2,pca_info2] = dimReduce(td2,struct('signals','M1_spikes'));
     
     
     
@@ -56,7 +57,9 @@ for iDate = 1:length(dates)
     
     master_td_all_trials1 = [master_td_all_trials1, td];
     master_td_all_trials2 = [master_td_all_trials2, td2];
-
+    
+    eigen_spectra(:,iDate,1) = pca_info1.eigen(pars.mani_dims)./sum(pca_info1.eigen);
+    eigen_spectra(:,iDate,2) = pca_info2.eigen(pars.mani_dims)./sum(pca_info2.eigen);
 end
 
 % compute cc metric for all days
@@ -84,6 +87,69 @@ for iDate = 1:length(within_align)
     within2(iDate) = mean(temp);
 end
 
+
+%%
+
+fi = figure;
+hold all;
+plot(NaN,NaN,'r');
+plot(NaN,NaN,'b');
+
+temp = squeeze(eigen_spectra(:,:,1));
+plot(temp,'r');
+
+temp = squeeze(eigen_spectra(:,:,2));
+plot(temp,'b');
+
+axis square;
+axis tight;
+set(gca,'YLim',[0 1]);
+set(gca,'Box','off','TickDir','out','FontSize',14);
+xlabel('Dimension');
+ylabel('Cumulative Variance Explained')
+
+title(['All ' monkey  ' sessions']);
+
+h = legend({'Subsample 1','Subsample 2'},'Location','NorthEast');
+set(h,'Box','off');
+
+if save_figs
+    saveas(fi,fullfile(save_dir,'Subpopulation',[ monkey '_' array '_eigenvalues.fig']));
+    saveas(fi,fullfile(save_dir,'Subpopulation',[ monkey '_' array '_eigenvalues.pdf']));
+    saveas(fi,fullfile(save_dir,'Subpopulation',[ monkey '_' array '_eigenvalues.png']));
+end
+
+
+fi = figure;
+hold all;
+plot(NaN,NaN,'r');
+plot(NaN,NaN,'b');
+
+temp = squeeze(eigen_spectra(:,:,1));
+temp = cumsum(temp,1);
+plot(temp,'r');
+
+temp = squeeze(eigen_spectra(:,:,2));
+temp = cumsum(temp,1);
+plot(temp,'b');
+
+axis square;
+axis tight;
+set(gca,'YLim',[0 1]);
+set(gca,'Box','off','TickDir','out','FontSize',14);
+xlabel('Dimension');
+ylabel('Cumulative Variance Explained')
+
+title(['All ' monkey  ' sessions']);
+
+h = legend({'Subsample 1','Subsample 2'},'Location','SouthEast');
+set(h,'Box','off');
+
+if save_figs
+    saveas(fi,fullfile(save_dir,'Subpopulation',[ monkey '_' array '_scree.fig']));
+    saveas(fi,fullfile(save_dir,'Subpopulation',[ monkey '_' array '_scree.pdf']));
+    saveas(fi,fullfile(save_dir,'Subpopulation',[ monkey '_' array '_scree.png']));
+end
 
 
 %% plot FR and tuning distributions
@@ -140,7 +206,7 @@ plot_colors  =  distinguishable_colors(length(targs));
 % get average for each trial
 td_temp = td;
 td2_temp = td2;
-    
+
 if 0
     td_temp = trimTD(td_temp,'idx_movement_on',{'idx_movement_on',5});
     td2_temp = trimTD(td2_temp,'idx_movement_on',{'idx_movement_on',5});

@@ -24,13 +24,13 @@ vel_lim = [-25 25];
         tdfile2 = ['/Users/mattperich/Dropbox/Research/Data/TrialDataFiles/Chewie/Chewie_CO_CS_' date2 '.mat'];
         
         %--------------------------------------------------------------------------
-        % load CDS for first day
-        load(['/Users/mattperich/Desktop/Chewie/CDS/' date1 '/Chewie_CO_FF_BL_10052016_001.mat']);
-        cds1 = cds;
-        % load CDS for second day
-        load(['/Users/mattperich/Desktop/Chewie/CDS/' date2 '/Chewie_CO_CS_BL_10212016_001.mat']);
-        cds2 = cds;
-        clear cds;
+%         % load CDS for first day
+%         load(['/Users/mattperich/Desktop/Chewie/CDS/' date1 '/Chewie_CO_FF_BL_10052016_001.mat']);
+%         cds1 = cds;
+%         % load CDS for second day
+%         load(['/Users/mattperich/Desktop/Chewie/CDS/' date2 '/Chewie_CO_CS_BL_10212016_001.mat']);
+%         cds2 = cds;
+%         clear cds;
         
         params_stability_over_time;
         
@@ -39,7 +39,7 @@ vel_lim = [-25 25];
             {@binTD,pars.n_bins_downs}, ...
             {@removeBadNeurons,pars.bad_neuron_params},...
             {@sqrtTransform,pars.spiking_inputs}, ...
-            {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'width',pars.kernel_SD)}, ...
+            {@smoothSignals,struct('signals',pars.spiking_inputs,'calc_fr',true,'width',pars.width)}, ...
             {@trimTD,{'idx_target_on',0},{'idx_trial_end',0}}, ...
             {@dimReduce,struct('signals',pars.spiking_inputs)}, ...
             {@trimTD,pars.idx_start,pars.idx_end});
@@ -113,8 +113,8 @@ close all;
 td1_temp = td1;
 td2_temp = td2;
 
-% td1_temp = stripSpikeSorting(td1_temp);
-% td2_temp = stripSpikeSorting(td2_temp);
+td1_temp = stripSpikeSorting(td1_temp);
+td2_temp = stripSpikeSorting(td2_temp);
 
 td1_temp = trialAverage(td1_temp,'target_direction');
 td2_temp = trialAverage(td2_temp,'target_direction');
@@ -135,21 +135,25 @@ figure('Position',[100 100 1000 500]);
 %--------------------------------------------------------------------------
 [~,idx]  = get_test_train_trials(td1_temp,1);
 fr = cat(1,td1_temp(idx).([pars.array '_spikes']))./0.01;
+
 if do_norm
     fr = fr./repmat(nanmean(fr,1),size(fr,1),1);
 end
+
 fr(isnan(fr)) = Inf;
-size(fr)
+
+fr_max = max(max(fr));
+
 % plot spikes
 ax(1) = subplot(4,2,[1,3,5]);
 imagesc(fr');
 set(gca,'Box','off','TickDir','out','FontSize',14);
 set(gca,'CLim',[0 fr_max]);
 axis tight;
-ylabel('Sorted neurons')
-title(['Day ' num2str(d_day1)]);
+ylabel('Neural Channels')
+title(['Day ' num2str(d_day1) '; N = ' num2str(size(td1_temp(1).([pars.array '_spikes']),2))]);
 colormap hot;
-% colormap(brewermap(100,'*Blues'));
+% colormap(brewermap(100,'RdYlBu'));
 colorbar;
 
 % now plot vel
@@ -175,7 +179,7 @@ imagesc(fr');
 set(gca,'Box','off','TickDir','out','FontSize',14);
 set(gca,'CLim',[0 fr_max]);
 axis tight;
-title(['Day ' num2str(d_day2)]);
+title(['Day ' num2str(d_day1) '; N = ' num2str(size(td2_temp(1).([pars.array '_spikes']),2))]);
 colorbar
 % now plot vel
 ax(4) = subplot(4,2,8);

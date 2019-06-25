@@ -9,7 +9,7 @@ save_dir = fullfile(save_dir,'_Appeal_Results');
 
 save_figs =  false;
 
-min_fr = 20;
+min_fr = 0;
 r2_cutoff = 0.6;
 do_speed = false;
 
@@ -19,7 +19,7 @@ avg_dims = 1:4;
 monkeys = {'chewie','chewie2','jaco','mihili'};
 array =  'M1';
 
-[within_align, all_to_tune, all_to_untune, tune_to_untune, all_r,decode_results] = deal([]);
+[monk_labels, within_align, all_to_tune, all_to_untune, tune_to_untune, all_r,decode_results] = deal([]);
 for iMonk = 1:length(monkeys)
     monkey = monkeys{iMonk};
     
@@ -131,7 +131,7 @@ for iMonk = 1:length(monkeys)
             all_to_tune = [all_to_tune, compDynamics( [td_all,td_tune], 'M1_pca', 1:length(td_all), length(td_all)+1:length(td_all)+length(td_tune),pars.mani_dims )];
             all_to_untune = [all_to_untune, compDynamics( [td_all,td_untune], 'M1_pca', 1:length(td_all), length(td_all)+1:length(td_all)+length(td_untune),pars.mani_dims)];
             tune_to_untune = [tune_to_untune, compDynamics( [td_tune,td_untune], 'M1_pca', 1:length(td_tune), length(td_tune)+1:length(td_tune)+length(td_untune),pars.mani_dims)];
-            
+            monk_labels = [monk_labels, {monkey}];
         end
         
         
